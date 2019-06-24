@@ -1,0 +1,10 @@
+build/
+*.o
+*.a
+doc/*.aux
+doc/*.dvi
+doc/*.log
+doc/*.pdf
+doc/date.tex
+doc/version.tex
+src/fur

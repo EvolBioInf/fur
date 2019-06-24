@@ -1,0 +1,69 @@
+\documentclass[a4paper, english]{article}
+\usepackage{graphics,eurosym,latexsym}
+\usepackage{listings}
+\lstset{columns=fixed,basicstyle=\ttfamily,numbers=left,numberstyle=\tiny,stepnumber=5,breaklines=true}
+\usepackage{pst-all}
+\usepackage{algorithmic,algorithm}
+\usepackage{times}
+\usepackage{babel}
+\usepackage[nodayofweek]{datetime}
+\usepackage[round]{natbib}
+\bibliographystyle{plainnat}
+\oddsidemargin=0cm
+\evensidemargin=0cm
+\textwidth=16cm
+\textheight=23cm
+\begin{document}
+
+\title{\texttt{fur} \input{version}: \emph{Description}}
+\author{\input{author}}
+\input{date}
+\date{\displaydate{tagDate}}
+\maketitle
+
+\section{Introduction} 
+\emph{Introduction}
+
+\section{Getting Started}
+The program \texttt{fur} was written in C on a computer running Linux.
+Please contact \texttt{\input{email}} if there are any problems
+with the program.
+\begin{itemize}
+\item Obtain the package\\
+\texttt{git clone https://www.github.com/\input{repo}/fur}
+\item Change into the directory just downloaded
+\begin{verbatim}
+cd fur
+\end{verbatim}
+and make \texttt{fur}
+\begin{verbatim}
+make
+\end{verbatim}
+\item Test \texttt{fur}
+\begin{verbatim}
+make test
+\end{verbatim}
+\item The executable \texttt{fur} is located in the
+  directory \texttt{build}. Place it into your \texttt{PATH}.
+\item Make the documentation
+\begin{verbatim}
+make doc
+\end{verbatim}
+This calls the typesetting program \texttt{latex}, so please make sure
+it is installed before making the documentation. The typeset manual is
+located in
+\begin{verbatim}
+doc/fur.pdf
+\end{verbatim}
+\end{itemize}
+
+\section{Change Log}
+Please use
+\begin{verbatim}
+git log
+\end{verbatim}
+to list the change history.
+
+%% \bibliography{ref}
+\end{document}
+
