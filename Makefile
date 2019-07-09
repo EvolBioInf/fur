@@ -1,8 +1,10 @@
 all:
 	make -C common
 	make -C src
+	make -C src tutorial
 	mkdir -p build
 	cp src/fur build
+	cp src/tutorial.sh scripts
 test:
 	@make -s -C src test
 eco105:

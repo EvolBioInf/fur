@@ -14,4 +14,8 @@ doc/header.tex
 doc/ref.bib
 doc/text.tex
 src/fur
-scr/fur.c
+src/fur.c
+src/*.idx
+src/tutorial.sh
+scripts/tutorial.sh
+

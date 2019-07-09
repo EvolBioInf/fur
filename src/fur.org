@@ -639,7 +639,7 @@
       freeSeq(sa->arr[i]);
       sa->arr[i] = NULL;
     } else 
-      fprintf(stderr, "#Present in all targets: %s\n", sa->arr[i]->name);
+      fprintf(stderr, "# Present in all targets: %s\n", sa->arr[i]->name);
   }
 #+end_src
 #+begin_src latex
@@ -794,7 +794,7 @@ int tn = target->arr[j]->l;
   FILE *fp = efopen(bo, "r");
   int ii;
   while (fscanf(fp, "%d", &ii) != EOF) {
-    fprintf(stderr, "#Found in neighborhood: %s\n", sa->arr[ii]->name);
+    fprintf(stderr, "# Found in neighborhood: %s\n", sa->arr[ii]->name);
     freeSeq(sa->arr[ii]);
     sa->arr[ii] = NULL;
   }
@@ -812,6 +812,124 @@ int tn = target->arr[j]->l;
 #+end_src
 #+begin_src latex
   The program is now ready to be used.
+  \section{Tutorial}
+  To demonstrate the application of \texttt{fur}, example data is taken
+  from a study of \textit{Escherichia coli} ST131, a multi-drug
+  resistant strain that causes urinary tract and blood infections in
+  humans~\cite{pet14:glo}. \emph{E. coli} ST131 belongs to the B2
+  phylogenetic subgroup, which corresponds to serotype O25b:H4.
+  Figure~\ref{fig:eco} shows the phylogeny of 105 \emph{E. coli} B2
+  strains. The clade marked ST131 comprises 95 strains newly sequenced
+  by~\cite{pet14:glo}, plus three STS131 reference genomes, SE15, NA114,
+  and EC958. this clade defines the target strains. The neighborhood
+  comprises the seven remaining \emph{E. coli} strains, which also
+  belong to the B2 group, but not to ST131~\cite{pet14:glo}. The aim is
+  to find regions specific to ST131.
+
+      \begin{figure}
+	\begin{center}
+	  \tiny
+	  \scalebox{1}{\input{eco105}}
+	\end{center}
+	\caption{Phylogeny of 105 strains of \emph{Eschericia coli} computed from whole genome sequences
+	using \texttt{andi}~\cite{hau15:and}.}\label{fig:eco}
+      \end{figure}
+
+  The first step in the Tutorial is to get the data. This is analyzed in
+  a first pass before the analysis is then refined by varying the
+  parameters of \texttt{fur}.
+#+end_src
+#+begin_src sh <<tutorial.sh>>=
+  <<Get tutorial data>>
+  <<Analyze tutorial data>>
+  <<Refine tutorial analysis>>
+#+end_src
+#+begin_src latex
+  The example data is copied from my computer and unpacked.
+#+end_src
+#+begin_src sh <<Get tutorial data>>=
+  wget guanine.evolbio.mpg.de/fur/eco105.tar.gz
+  tar -xvzf eco105.tar.gz
+#+end_src
+#+begin_src latex
+  This generates two directories of FASTA files, \texttt{target} and
+  \texttt{neighborhood}. A first pass analysis of these takes
+  approximately half a minute.
+#+end_src
+#+begin_src sh <<Analyze tutorial data>>=
+  fur -t target -n neighborhood > templates.fasta
+#+end_src
+#+begin_src latex
+  The program prints the name of the \texttt{macle} index, which is a
+  unique file name that differs every time the program is run to prevent
+  accidental over-writing of existing files. 
+  It then
+  lists six regions present in all targets, followed by one region found
+  in at least one of the neighborhood sequences. So the final number of
+  sequences in \texttt{templates.fasta} is $6-1=5$.
+  \begin{verbatim}
+  fur -t target -n neighborhood > templates.fasta
+  # Wrote macle index to snkTYM.idx
+  # Present in all targets: target/HVM834.fasta-448650...450450
+  # Present in all targets: target/HVM834.fasta-523600...534100
+  # Present in all targets: target/HVM834.fasta-1106050...1107850
+  # Present in all targets: target/HVM834.fasta-2122500...2124300
+  # Present in all targets: target/HVM834.fasta-3438450...3440250
+  # Present in all targets: target/HVM834.fasta-4856750...4858550
+  # Found in neighborhood: target/HVM834.fasta-3438450...3440250
+  \end{verbatim}
+
+  The index file can be reused to speed up repeated runs of the program
+  with different to vary its parameter settings. Before doing so,
+  however, it is a good idea to save the index file to a more meaningful
+  name.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  mv *.idx macle.idx
+#+end_src
+#+begin_src latex
+The first parameter worth exploring is window length,
+\texttt{-w}. Longer windows result in fewer candidate regions. For
+example, with 1 kb windows, only two templates are found.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+fur -i macle.idx -t target -n neighborhood -w 1000 
+#+end_src
+#+begin_src latex
+  This run takes approximately six seconds, five times less than without
+  the precomputed index. A further doubling of the window length results
+  in one candidate, but it is also found in the neighborhood, so there
+  are no viable templates.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+fur -i macle.idx -t target -n neighborhood -w 2000 
+#+end_src
+#+begin_src latex
+  On the other hand, reducing the window length to 250 bp yields 21
+  templates. Clearly, \texttt{fur} is highly sensitive to the window
+  length and this could be an important factor when investigating other
+  pathogens.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  fur -i macle.idx -t target -n neighborhood -w 250
+#+end_src
+#+begin_src latex
+  The second parameter worth exploring is the $P$-value corresponding to
+  the complexity threshold used by the program, \texttt{-p}. By default
+  this is 0.95; decreasing it to 0.5 leads to a less stringent search
+  where two rather than just one of the candidate regions are found in
+  the neighborhood.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  fur -t target -n neighborhood -i macle.idx -p 0.5
+#+end_src
+#+begin_src latex
+  Setting \texttt{-p} to 1 abolishes all candidates. However, setting it
+  just below 1 yields nine templates. So it might well be worth
+  exploring different $P$-values in real world analyses.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  fur -t target -n neighborhood -i macle.idx -p 0.99999
 #+end_src
 #+begin_src latex
   \section{List of code chunks}

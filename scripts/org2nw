@@ -2,6 +2,7 @@
 sed '
 s/^#+begin_src *latex/@/
 s/^#+begin_src *[cC] *<</<</
+s/^#+begin_src *[sS][hH] *<</<</
 s/\/\/ *<</<</
 /^#+end/d
 /^\*/d
