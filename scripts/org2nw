@@ -1,0 +1,9 @@
+#!/bin/bash
+sed '
+s/^#+begin_src *latex/@/
+s/^#+begin_src *[cC] *<</<</
+s/\/\/ *<</<</
+/^#+end/d
+/^\*/d
+s/^  //
+' $@

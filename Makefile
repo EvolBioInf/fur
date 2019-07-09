@@ -5,6 +5,8 @@ all:
 	cp src/fur build
 test:
 	@make -s -C src test
+eco105:
+	make -C src eco105
 clean:
 	make -C common clean
 	make -C src    clean

@@ -8,16 +8,23 @@
 #ifndef INTERFACE
 #define INTERFACE
 
-#define DEFAULT_I 1
+#define DEFAULT_W 500
+#define DEFAULT_P 0.95
 
 /* define argument container */
 typedef struct args{
   char    h; /* help message?         */
   char    v; /* version message?      */
   char  err; /* error                 */
-  int     i; /* iterations            */
   char **fi; /* input files           */
   int    nf; /* number of input files */
+
+  char   *t; /* target directory      */
+  char   *n; /* neighborhood dir.     */
+  char   *i; /* macle index           */
+  int     w; /* window length         */
+  float   p; /* p-value               */
+
 } Args;
 
 Args *getArgs(int argc, char *argv[]);

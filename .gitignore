@@ -7,4 +7,11 @@ doc/*.log
 doc/*.pdf
 doc/date.tex
 doc/version.tex
+doc/fur.bbl
+doc/fur.blg
+doc/fur.toc
+doc/header.tex
+doc/ref.bib
+doc/text.tex
 src/fur
+scr/fur.c
