@@ -3,7 +3,7 @@ DATE    := $(shell git log -1 --format=%ai $(TAG) | sed 's/-/ /g' | awk '{printf
 VERSION := $(shell git describe | sed 's/^[vV]//; s/-.*//')
 NAME    = fur
 
-all: $(NAME).tex text.tex header.tex ref.bib
+all: $(NAME).tex text.tex header.tex ref.bib cdf.tex
 	printf "%s\n" $(VERSION) > version.tex
 	printf "%s\n" $(DATE)    > date.tex
 	latex $(NAME)
@@ -11,7 +11,9 @@ all: $(NAME).tex text.tex header.tex ref.bib
 	latex $(NAME)
 	latex $(NAME)
 	dvipdf $(NAME)
-text.tex: ../src/$(NAME).org
+text.tex: ../src/$(NAME).org 
 	bash ../scripts/org2nw ../src/$(NAME).org | noweave -n -x > text.tex
+cdf.tex: fig.gp cdf.dat
+	gnuplot fig.gp
 clean:
 	rm -f text.tex $(NAME).pdf

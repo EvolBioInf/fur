@@ -10,20 +10,23 @@
 
 #define DEFAULT_W 500
 #define DEFAULT_P 0.95
+#define DEFAULT_TT 8
 
 /* define argument container */
 typedef struct args{
-  char    h; /* help message?         */
-  char    v; /* version message?      */
-  char  err; /* error                 */
-  char **fi; /* input files           */
-  int    nf; /* number of input files */
+  char    h; /* help message?                */
+  char    v; /* version message?             */
+  char  err; /* error                        */
+  char **fi; /* input files                  */
+  int    nf; /* number of input files        */
 
-  char   *t; /* target directory      */
-  char   *n; /* neighborhood dir.     */
-  char   *i; /* macle index           */
-  int     w; /* window length         */
-  float   p; /* p-value               */
+  char   *t; /* target directory             */
+  char   *n; /* neighborhood dir.            */
+  char   *i; /* macle index                  */
+  char   *I; /* file for writing macle index */
+  int     w; /* window length                */
+  float   p; /* p-value                      */
+  int     T; /* number of threads            */
 
 } Args;
 

@@ -6,7 +6,37 @@
   template sequences that are unique to the target strain. The program
   \texttt{fur} \emph{finds unique regions} by comparing the genome of
   the target strain to the genomes of the closest relatives the target
-  is to be distinguished from.
+  is to be distinguished from. If the neighborhood consists of a
+  representative sample of fully sequenced genomes, any region that
+  distinguishes a target sequence from its neighborhood, probably also
+  distinguishes it from all other sequences out there. That is the
+  heuristic underlying fur.
+
+  Consider, for example, \textit{Escherichia coli} ST131, a multi-drug
+  resistant strain that causes urinary tract and blood infections in
+  humans~\cite{pet14:glo}. \emph{E. coli} ST131 belongs to the B2
+  phylogenetic subgroup, which corresponds to serotype O25b:H4.
+  Figure~\ref{fig:eco} shows the phylogeny of 105 \emph{E. coli} B2
+  strains. The clade marked ST131 comprises 95 strains newly sequenced
+  by~\cite{pet14:glo}, plus three STS131 reference genomes, SE15, NA114,
+  and EC958. this clade defines the target strains. The neighborhood
+  comprises the seven remaining \emph{E. coli} strains, which also
+  belong to the B2 group, but not to ST131~\cite{pet14:glo}. The aim is
+  to find regions specific to ST131. In Section~\ref{sec:tut} a
+  tutorial-style analysis of this data set shows how to reach this aim.
+
+      \begin{figure}
+	\begin{center}
+	  \tiny
+	  \scalebox{1}{\input{eco105}}
+	\end{center}
+	\caption{Phylogeny of 105 strains of \emph{Eschericia coli}
+	  computed from whole genome sequences using
+	  \texttt{andi}~\cite{hau15:and}. The scale bar is the number of
+	  substitutions per site. The clade marked ST131 contains the
+	  pathogenic target strains, the remaining seven strains form
+	  the neighborhood.}\label{fig:eco}
+      \end{figure}
 
   The program takes as input two directories of sequence files, the
   first contains one or more \emph{target} genomes, the second one or
@@ -15,22 +45,22 @@
   \texttt{macle}~\cite{pir18:hig} to identify candidate regions that are
   unique to a representative target sequence when compared to all
   neighborhood sequences. These candidate regions are then checked for
-  presence in all targets and absence from all neighborhood
-  sequences. The resulting templates are finally printed to the standard
-  output stream. They are now ready for submission to a primer design
-  program like Primer-BLAST~\cite{ye12:pri}.
+  presence in all targets and absence from all neighborhood sequences
+  using BLAST. The resulting templates are finally printed to the
+  standard output stream. They are now ready for submission to a primer
+  design program like Primer-BLAST~\cite{ye12:pri}.
 
   \section{Implementation}
   The program is based on arrays of sequences and arrays of intervals on
   those sequences. Apart from these two data structures, the program
-  consists of the usual include section, declaration and implementation
+  consists of the usual include section, declaration and definition
   of functions, and finally the \texttt{main} function.
 #+end_src
 #+begin_src C <<fur.c>>=
   //<<Include headers>>
   //<<Data structures>>
   //<<Function declarations>>
-  //<<Function implementations>>
+  //<<Function definitions>>
   //<<Main function>>
 #+end_src
 #+begin_src latex
@@ -71,15 +101,15 @@
 #+begin_src latex
   Sequence and interval arrays require functions for construction,
   freeing, and addition. Sequences come first, followed by intervals.
-  The construction of a new, empty sequence arrays is declared
+  The construction of a new, empty sequence arrays is declared.
 #+end_src
 #+begin_src C <<Function declarations>>=
   SeqArr *newSeqArr();
 #+end_src
 #+begin_src latex
-  and implemented.
+  It returns an empty sequence array.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   SeqArr *newSeqArr() {
     SeqArr *sa = emalloc(sizeof(SeqArr));
     sa->arr = NULL;
@@ -88,22 +118,22 @@
   }
 #+end_src
 #+begin_src latex
-  The function \texttt{emalloc} is defined in \texttt{error.h}.
+  The function \texttt{emalloc} is declared in \texttt{error.h}.
 #+end_src
 #+begin_src C <<Include headers>>=
   #include "error.h"
 #+end_src
-
 #+begin_src latex
-  Sequences arrays are freed by \texttt{freeSeqArr}, which is declared
+  Sequence arrays are freed by \texttt{freeSeqArr}.
 #+end_src
 #+begin_src C <<Function declarations>>=
   void freeSeqArr(SeqArr *sa);
 #+end_src
 #+begin_src latex
-  and implemented using the function \texttt{freeSeq} defined in \texttt{seq.h}.
+  It iterates across the sequences and frees each one before freeing the
+  sequence array itself.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   void freeSeqArr(SeqArr *sa) {
     for (int i = 0; i < sa->n; i++)
       if (sa->arr[i])
@@ -114,15 +144,15 @@
 #+end_src
 #+begin_src latex
   Individual sequences are added to a sequence array using
-  \texttt{seqArrAdd}. This function is declared
+  \texttt{seqArrAdd}. 
 #+end_src
 #+begin_src C <<Function declarations>>=
   void seqArrAdd(SeqArr *sa, Seq *s);
 #+end_src
 #+begin_src latex
-  and implemented through expansion of the array holding the sequences.
+  It expands the array holding the sequences.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   void seqArrAdd(SeqArr *sa, Seq *s) {
     sa->arr = (Seq **)erealloc(sa->arr, (sa->n + 1) * sizeof(Seq *));
     sa->arr[sa->n++] = s;
@@ -136,9 +166,9 @@
   Intv *newIntv(int s, int e);
 #+end_src
 #+begin_src latex
-  and implemented.
+  These positions are saved once space has been made for them.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   Intv *newIntv(int s, int e) {
     Intv *i = (Intv *)emalloc(sizeof(Intv));
     i->s = s;
@@ -149,15 +179,15 @@
 #+begin_src latex
   The standard \texttt{free} function is sufficient to free an interval,
   so there is no need for a function like \texttt{freeIntv}. Next, the
-  construction of an interval array is declared
+  construction of an interval array is declared.
 #+end_src
 #+begin_src C <<Function declarations>>=
   IntvArr *newIntvArr();
 #+end_src
 #+begin_src latex
-  and implemented.
+  Its definition is similar to the definition of a sequence array.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   IntvArr *newIntvArr() {
     IntvArr *ia = (IntvArr *)emalloc(sizeof(IntvArr));
     ia->arr = NULL;
@@ -166,15 +196,16 @@
   }
 #+end_src
 #+begin_src latex
-  And to deconstruct, the freeing of an interval array is declared
+  And to deconstruct, the freeing of an interval array is declared.
 #+end_src
 #+begin_src C <<Function declarations>>=
   void freeIntvArr(IntvArr *ia);
 #+end_src
 #+begin_src latex
-  and implemented.
+  Again, its definition mirrors that of its sequence equivalent,
+  \texttt{freeSeqArr}.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   void freeIntvArr(IntvArr *ia) {
     for (int i = 0; i < ia->n; i++)
       free(ia->arr[i]);
@@ -183,15 +214,15 @@
   }
 #+end_src
 #+begin_src latex
-  To add an interval to an existing interval array, declare
+  Declare the addition an interval to an existing interval array.
 #+end_src
 #+begin_src C <<Function declarations>>=
   void intvArrAdd(IntvArr *ia, Intv *i);
 #+end_src
 #+begin_src latex
-  and implement.
+  The definition looks like \texttt{seqArrAdd}.
 #+end_src
-#+begin_src C <<Function implementations>>=
+#+begin_src C <<Function definitions>>=
   void intvArrAdd(IntvArr *ia, Intv *i) {
     ia->arr = (Intv **)
       erealloc(ia->arr, (ia->n + 1) * sizeof(Intv *));
@@ -200,8 +231,8 @@
 #+end_src
 #+begin_src latex
   \subsection{Sequence Analysis}
-  Sequence arrays are now ready to be used. This happens in the
-  \texttt{main} function, which first interacts with the user, then
+  Sequence and interval arrays are now ready to be used. This happens in
+  the \texttt{main} function, which first interacts with the user, then
   reads the target and neighborhood sequences, analyzes them, and
   finally prints the desired template sequences. At the end of the
   program any memory not freed yet is deallocated.
@@ -209,8 +240,11 @@
 #+begin_src C <<Main function>>=
   int main(int argc, char **argv) {
     // <<Interact with user>>
+    fprintf(stderr, "# Reading target sequences...");
     // <<Read target sequences>>
+    fprintf(stderr, "done.\n# Reading neighborhood sequences...");
     // <<Read neighborhood sequences>>
+    fprintf(stderr, "done.\n");
     // <<Analyze sequences>>
     // <<Print templates>>
     // <<Free memory>>
@@ -225,7 +259,7 @@
   setprogname(argv[0]);
 #+end_src
 #+begin_src latex
-  The function \texttt{setprogname} is defined in the standard part of
+  The function \texttt{setprogname} is declared in the standard part of
   the BSD library.
 #+end_src
 #+begin_src C <<Include headers>>=
@@ -240,7 +274,7 @@
 #+end_src
 #+begin_src latex
   The \texttt{Args} data structure and the \texttt{getArgs} function are
-  defined in \texttt{interface.h}.
+  declared in \texttt{interface.h}.
 #+end_src
 #+begin_src C <<Include headers>>=
   #include "interface.h"
@@ -254,8 +288,9 @@
 #+begin_src latex
   The options passed via \texttt{args} might include a request for help,
   or indicate an error, such as not specifying a target and a
-  neighborhood. In that case, \texttt{printUsage}, which is also part of
-  \texttt{interface.h}, emits a usage message before exiting.
+  neighborhood. In that case, \texttt{printUsage}, which is also
+  declared in \texttt{interface.h}, emits a usage message before
+  exiting.
 #+end_src
 #+begin_src C <<Interact with user>>=
   if (args->h || args->err)
@@ -263,8 +298,7 @@
 #+end_src
 #+begin_src latex
   Alternatively, the user might request information about the program,
-  to which it responds by making a rather modest splash and then
-  exiting.
+  to which it responds by making a modest splash and then exiting.
 #+end_src
 #+begin_src C <<Interact with user>>=
   if (args->v)
@@ -289,13 +323,13 @@
   closedir(d);
 #+end_src
 #+begin_src latex
-  The previous chunk referred to a number of preexisting objects,
+  The previous code chunk refers to a number of preexisting objects,
   including the directory, \texttt{DIR}, and its entries,
   \texttt{dirent}, both defined in \texttt{dirent.h}. The function
-  \texttt{eopendir} is an error-aware version of \texttt{opendir} and is
+  \texttt{eopendir} is an error-aware version of \texttt{opendir}
   declared in \texttt{error.h}. The function \texttt{readdir} is again
-  part of \texttt{dirent.h}. The function \texttt{strcmp} is declared in
-  \texttt{string.h}.  
+  declared in \texttt{dirent.h}, and \texttt{strcmp} in
+  \texttt{string.h}.
 #+end_src
 #+begin_src C <<Include headers>>=
   #include <dirent.h>
@@ -304,28 +338,32 @@
   #include <string.h>
 #+end_src
 #+begin_src latex
-  The function \texttt{readSeq} still needs to be declard
+  Now \texttt{readSeq} still needs to be declared. It is a function of
+  the sequence array to be added to, the directory path, and the name of
+  the sequence file.
 #+end_src
 #+begin_src C <<Function declarations>>=
-  void readSeq(SeqArr *sa, char *path, char *name);
+  void readSeq(SeqArr *sa, char *dir, char *file);
 #+end_src 
 #+begin_src latex
-  and implemented to wrap \texttt{seqArrAdd}.
+  Its main work is to concatenate the directory path and the file name
+  into the file path that serves as the argument to
+  \texttt{getJoinedSeq}.
 #+end_src 
-#+begin_src C <<Function implementations>>=
-  void readSeq(SeqArr *sa, char *p, char *n) {
-    char *path = emalloc(strlen(p) + strlen(n) + 2);
+#+begin_src C <<Function definitions>>=
+  void readSeq(SeqArr *sa, char *dir, char *file) {
+    char *path = emalloc(strlen(dir) + strlen(file) + 2);
     path[0] = '\0';
-    strcat(path, p);
+    strcat(path, dir);
     strcat(path, "/");
-    strcat(path, n);
+    strcat(path, file);
     seqArrAdd(sa, getJoinedSeq(path));
     free(path);
   }
 #+end_src
 #+begin_src latex
   The only function called in \texttt{readSeq} not yet declared is
-  \texttt{free}, which is listed in \texttt{strlib.h}.
+  \texttt{free}, which is declared in \texttt{strlib.h}.
 #+end_src
 #+begin_src C <<Include headers>>=
   #include <stdlib.h>
@@ -369,83 +407,20 @@
   sequences and then traversing the index to compute local complexity
   values. Based on these local complexity values, unique intervals are
   constructed. The sequences to be indexed are the neighborhood
-  augmented by one representative target. Indexing is skipped if the
-  user supplies an index file.
+  augmented by one representative target. Indexing requires the creating
+  an external index file with a unique name. The file and its name are
+  cleaned up when done with.
 #+end_src
 #+begin_src C <<Identify unique regions>>=
   char *idx;
   Seq *rep = NULL;
   //<<Identify representative target sequence>>
-  if (args->i) {
-    idx = estrdup(args->i);
-  } else {
-    idx = uniqueFileName(".idx");
-    //<<Index neighborhood augmented by representative>>
-  }
+  idx = uniqueFileName();
+  fprintf(stderr, "# Making macle db of augmented neighborhood...");
+  //<<Index neighborhood augmented by representative>>
+  fprintf(stderr, "done.\n");
   //<<Construct unique intervals>>
-#+end_src
-#+begin_src latex
-  The unique file name is freed at the end of the program.
-#+end_src
-#+begin_src C <<Free memory>>=
-  free(idx);
-#+end_src
-#+begin_src latex
-  The function \texttt{uniqueFileName} is declared
-#+end_src
-#+begin_src C <<Function declarations>>=
-  char *uniqueFileName(char *ext);
-#+end_src
-#+begin_src latex
-  and implemented as a wrapper of the library function
-  \texttt{mkstemps}. This creates a unique file name based on a
-  template. The template consists of a prefix of six ``X'', and a suffix
-  of length \texttt{len} based on the extension. The file is opened, and
-  its descriptor returned. All that's required in
-  \texttt{uniqueFileName} is the name, so the corresponding file is
-  closed as soon as it is opened.
-#+end_src
-#+begin_src C <<Function implementations>>=
-  char *uniqueFileName(char *ext) {
-    int len = 0;
-    char *tmpl;
-    //<<Construct prefix>>
-    //<<Construct suffix>>
-    close(mkstemps(tmpl, len));
-    return tmpl;
-  }
-#+end_src
-#+begin_src latex
-  The function \texttt{close} is declared in \texttt{unistd.h}.
-#+end_src
-#+begin_src C <<Include headers>>=
-  #include <unistd.h>
-#+end_src
-#+begin_src latex
-  To construct the prefix, sufficient memory is allocate for the full template.
-#+end_src    
-#+begin_src C <<Construct prefix>>=
-  if (ext)
-    len = strlen(ext);
-  tmpl = emalloc(6 + len + 1);
-  int ii;
-  for (ii = 0; ii < 6 ; ii++)
-    tmpl[ii] = 'X';
-#+end_src
-#+begin_src latex
-  The function \texttt{strlen} is declared in \texttt{string.h}.
-#+end_src
-#+begin_src C <<Include headers>>=
-  #include <string.h>
-#+end_src
-#+begin_src latex
-  The suffix of the template is the extension.
-#+end_src
-#+begin_src C <<Construct suffix>>=
-  int jj;
-  for (jj = 0; jj < len; jj++)
-    tmpl[ii + jj] = ext[jj];
-  tmpl[ii + jj] = '\0';
+  //<<Clean up indexing>>
 #+end_src
 #+begin_src latex
   A template sequence needs to be present in all targets. So the
@@ -462,16 +437,38 @@
   }
 #+end_src
 #+begin_src latex
-  The constant \texttt{INT\_MIN} is defined in \texttt{limits.h}.
+  The function \texttt{uniqueFileName} is declared.
+#+end_src
+#+begin_src C <<Function declarations>>=
+  char *uniqueFileName();
+#+end_src
+#+begin_src latex
+  It wraps the library function \texttt{mkstemp}. This creates a unique
+  file name based on a template consisting of six ``X''. The file is opened, and
+  its descriptor returned. All that's required in
+  \texttt{uniqueFileName} is the name, so the file is closed as soon as
+  it is opened.
+#+end_src
+#+begin_src C <<Function definitions>>=
+  char *uniqueFileName() {
+    char *tmpl = emalloc(7);
+    for (int i = 0; i < 6; i++)
+      tmpl[i] = 'X';
+    tmpl[6] = '\0';
+    close(mkstemp(tmpl));
+    return tmpl;
+  }
+#+end_src
+#+begin_src latex
+  The function \texttt{close} is declared in \texttt{unistd.h}.
 #+end_src
 #+begin_src C <<Include headers>>=
-  #include <limits.h>
+  #include <unistd.h>
 #+end_src
 #+begin_src latex
   Indexing is done by constructing a pipe centered on \texttt{macle} and
-  then writing the neighborhood sequences and the target representative
-  to that pipe. The program also tells the user the name of the index,
-  so it can be reused in future runs of the program.
+  then writing target representative and the neighborhood sequences to
+  that pipe.
 #+end_src
 #+begin_src C <<Index neighborhood augmented by representative>>=
   char cmd[1024];
@@ -481,26 +478,67 @@
   for (int i = 0; i < neighborhood->n; i++)
     printSeq(pp, neighborhood->arr[i], -1);
   pclose(pp);
-  fprintf(stderr, "# Wrote macle index to %s\n", idx);
+#+end_src
+#+begin_src latex
+  The index file is deleted and its name freed after they have been used.
+#+end_src
+#+begin_src C <<Clean up indexing>>=
+  tmpl = "rm %s";
+  sprintf(cmd, tmpl, idx);
+  if (system(cmd) < 0)
+    error("couldn't run system command %s\n", cmd);
+  free(idx);
 #+end_src
 #+begin_src latex
   The complexity threshold indicating uniqueness is computed as
-  preparation for the sliding window analysis of local complexity. The
-  result is an array of unique intervals, which are turned into an array
-  of unique sequences.
+  preparation for the sliding window analysis of local
+  complexity. Figure~\ref{fig:sw} shows a cartoon of a sliding window
+  analysis. The overlapping windows returned by \texttt{macle} are
+  characterized by their mid-points (dots) and are either unique (red)
+  or not (blue). The unique windows are summarized into unique intervals
+  (green). In the algorithm the array of unique intervals is eventually
+  converted into an array of unique sequences, the template candidates.
+
+  \begin{figure}
+    \begin{center}
+      \input{sw}
+    \end{center}
+    \caption{Sliding window analysis of a genome sequence. The
+      overlapping windows are either unique (red), or not (blue). Unique
+      windows are summarized into unique intervals
+      (green).}\label{fig:sw}
+  \end{figure}
+
 #+end_src
 #+begin_src C <<Construct unique intervals>>=
   double mc, gc = 0.;
   long len = 0;
   //<<Compute complexity threshold>>
+  fprintf(stderr, "# Sliding window anlaysis...");
   //<<Sliding window analysis>>
+  fprintf(stderr, "done.\n");
   //<<Prepare array of unique sequences>>
 #+end_src
 #+begin_src latex
   The complexity threshold is a function of aggregate sequence length,
-  GC-content, window length, and the probability that a particular
-  complexity value indicates uniqueness. Sequence length and GC content
-  are computed, window length and probability supplied by the user.
+  GC-content, window length, and value of the cumulative density
+  function of the match length null distribution. Figure~\ref{fig:cdf}
+  shows this function and how choosing a particular CDF-value on the
+  $y$-axis corresponds to a complexity-threshold on the
+  $x$-axis. Sequence length and GC content are computed, window length
+  and probability supplied by the user.
+
+  \begin{figure}
+    \begin{center}
+      \scalebox{0.6}{\input{cdf}}
+    \end{center}
+    \caption{Cumulative density function (CDF) of the match complexity
+      ($C_{\rm m}$) in 500 bp windows over a 35.5 Mb data set with
+      GC-content 0.5~\cite{pir18:hig}. The parameter choice corresponds
+      to the neighborhood data set of \emph{E. coli} genomes depicted in
+      Figure~\ref{fig:eco}. The vertical line indicates the complexity
+      threshold for a cumulative density of 0.95.}\label{fig:cdf}
+  \end{figure}
 #+end_src
 #+begin_src C <<Compute complexity threshold>>=
   for (int i = 0; i < neighborhood->n; i++)
@@ -511,9 +549,7 @@
   mc = quantCm(len, gc / len, args->w, args->p);
 #+end_src
 #+begin_src latex
-  The function \texttt{gcSeq} is defined in \texttt{seq.h}, which is
-  already included. However, the function \texttt{quantCm} is defined
-  in \texttt{matchLen.h}, which hasn't been encountered so far.
+  The function is part of the \texttt{matchLen} library.
 #+end_src
 #+begin_src C <<Include headers>>=
   #include "matchLen.h"
@@ -523,8 +559,9 @@
   $(m, C_{\rm m})$, where $m$ is the window midpoint and $C_{\rm m}$ its
   complexity. Let $t$ be the uniqueness threshold. If $C_{\rm m}\ge t$,
   the corresponding window is deemed unique. It also belongs to a unique
-  interval of one or more overlapping unique windows. So the algorithm
-  toggles between being inside or outside a unique interval.
+  interval of one or more overlapping unique windows. As the algorithm
+  parses the windows from left to right, it toggles between being inside
+  or outside a unique interval.
 #+end_src
 #+begin_src C <<Sliding window analysis>>=
   //<<Prepare sliding window analysis>>
@@ -543,20 +580,19 @@
   \texttt{macle} output. The pipe command consists of three steps. The
   first calls \texttt{macle}, the second cuts the second and third
   column from the output, which form the $(m,C_{\rm m})$ pairs, and the
-  third filters out windows with $C_{\rm m}=-1$, which indicates ``no
-  data''. In addition, the sliding window analysis requires variables
-  for holding the current midpoint and complexity values, the interval
-  array, and a variable to indicate whether the program is inside a
-  unique interval or not.
+  third filters out windows without reliable sequence data, where
+  $C_{\rm m}=-1$. In addition, the sliding window analysis requires
+  variables for holding the current midpoint and complexity values, the
+  interval array, and a variable to indicate whether the program is
+  inside a unique interval or not.
 #+end_src
 #+begin_src C <<Prepare sliding window analysis>>=
-  char cmd[1024];
   char *tmpl =
     "macle -i %s -n %s -w %d | "
     "cut -f 2,3 | "
     "awk '$2 > -1'";
   sprintf(cmd, tmpl, idx, rep->name, args->w);
-  FILE *pp = epopen(cmd, "r");
+  pp = epopen(cmd, "r");
   float m, c;
   IntvArr *ia = newIntvArr();
   int is, ie, in = 0;
@@ -574,8 +610,9 @@
 #+end_src
 #+begin_src latex
   If a unique \emph{window} overlaps an existing unique \emph{interval},
-  the interval is extended. Otherwise, the interval is ``closed''at the
-  endpoint found in the previous round, and added to the interval array.
+  the interval is extended (Figure~\ref{fig:sw}). Otherwise, the
+  interval is ``closed'' at the endpoint found in the previous round, and
+  added to the interval array.
 #+end_src
 #+begin_src C <<Inside unique interval>>=
   if (ws <= ie && c >= mc)
@@ -605,7 +642,7 @@
   char name[1024];
   for (int i = 0; i < ia->n; i++) {
     Intv *iv = ia->arr[i];
-    sprintf(name, "%s-%d...%d\n", rep->name, iv->s + 1, iv->e + 1);
+    sprintf(name, "%s_%d..%d\n", rep->name, iv->s + 1, iv->e + 1);
     Seq *s = newSeq(name);
     //<<Copy sequence data>>
     seqArrAdd(sa, s);
@@ -625,141 +662,199 @@
 #+begin_src latex
   \subsubsection{Check Unique Templates}
   The intervals in hand are candidates for unique template
-  sequences. Before they are printed, they are checked for presence in
-  all targets and absence from all neighbors.  If a candidate is not
-  found in all targets, it is deleted from the sequence array.
+  sequences. But before they are printed, they are checked for presence
+  in all targets and absence from all neighbors using BLAST. Presence in
+  all targets is checked first by converting the target sequences into a
+  BLAST database. The template candidates are then searched in this
+  database and the templates not found in every target get deleted. This
+  segment requires intermediate files and memory for their names, both
+  of which is cleaned up at the end.
 #+end_src
 #+begin_src C <<Check presence in all targets>>=
-  for (int i = 0; i < sa->n; i++) {
-    int count = 0;
-    for (int j = 0; j < target->n; j++) {
-      //<<String search>>
+  //<<Generate target database>>
+  //<<Search target database>>
+  //<<Delete non-ubiquitous templates>>
+  //<<Clean up target search>>
+#+end_src
+#+begin_src latex
+  The target database is calculated by piping the target sequences
+  through the external program \texttt{makeblastdb}.
+#+end_src
+#+begin_src C <<Generate target database>>=
+  char *targetDb = uniqueFileName(".db");
+  tmpl =
+    "makeblastdb -out %s -dbtype nucl -title db > /dev/null";
+  sprintf(cmd, tmpl, targetDb);
+  fprintf(stderr, "# Making target BLAST db...");
+  pp = epopen(cmd, "w");
+  for (int i = 0; i < target->n; i++)
+    printSeq(pp, target->arr[i], -1);
+  pclose(pp);
+  fprintf(stderr, "done.\n");
+#+end_src
+#+begin_src latex
+  At the end the target database is removed and its name freed.
+#+end_src
+#+begin_src C <<Clean up target search>>=
+  tmpl = "rm %s*";
+  sprintf(cmd, tmpl, targetDb);
+  if (system(cmd) < 0)
+    error("couldn't run system call %s\n", cmd);
+  free(targetDb);
+#+end_src
+#+begin_src latex
+  To search the target database, the search pipe is constructed and the
+  templates are written to it.
+#+end_src
+#+begin_src C <<Search target database>>=
+  //<<Construct target pipe>>
+  //<<Write templates to target pipe>>
+#+end_src
+#+begin_src latex
+  The command of the target pipe begins with a BLAST search, which is
+  piped through an AWK script to count the number of exact matches per
+  template. The names of templates that match every target are written
+  to file. Since \emph{exact} matches are required, the BLAST search is
+  customized, such that it contains the query length in its output. Only
+  hits where the query length is equal to the alignment length without
+  mismatches are counted. Also, multiple hits to the same subject are
+  counted only once. To facilitate the identification of templates,
+  their indexes in the sequence array are used as FASTA
+  identifiers. Indexes are numbers, so these get sorted to facilitate
+  their subsequent handling.
+#+end_src
+#+begin_src C <<Construct target pipe>>=
+  tmpl = "blastn -db %s -num_threads %d -outfmt "
+    "\"6 qacc sacc qlen length mismatch\" | "
+    "awk -v n=%d '$3==$4 && $5==0 "
+    "{i = $1 $2; if (!u[i]) {u[i]++; c[$1]++}} "
+    "END {for (a in c) if (c[a] == n) print a}' | "
+    "sort -n > %s";
+  char *targetOut = uniqueFileName(".out");
+  sprintf(cmd, tmpl, targetDb, args->T, target->n, targetOut);
+#+end_src
+#+begin_src latex
+  At the end of the target search the output file is removed and its
+  name freed.
+#+end_src
+#+begin_src C <<Clean up target search>>=
+  sprintf(cmd, "rm %s", targetOut);
+  if (system(cmd) < 0)
+    error("couldn't run system call %s\n", cmd);
+  free(targetOut);
+#+end_src
+#+begin_src latex
+  Templates are written in FASTA format to the pipe with their index
+  numbers as identifiers.
+#+end_src
+#+begin_src C <<Write templates to target pipe>>=
+  fprintf(stderr, "# Running target search...");
+  pp = epopen(cmd, "w");
+  for (int i = 0; i < sa->n; i++)
+    fprintf(pp, ">%d\n%s\n", i, sa->arr[i]->data);
+  pclose(pp);
+  fprintf(stderr, "done.\n");
+#+end_src
+#+begin_src latex
+  The output of the search consists of the templates \emph{not} to be
+  deleted. Since they are in numerical order, deleting all other
+  templates is done in two steps. First parse the output file and delete
+  everything but the sequences listed there. Then delete the remaining
+  sequences. 
+#+end_src
+#+begin_src C <<Delete non-ubiquitous templates>>=
+  FILE *fp = efopen(targetOut, "r");
+  int index, ii = 0;
+  //<<Scan output file>>
+  //<<Remove remaining sequences>>
+  fclose(fp);
+#+end_src
+#+begin_src latex
+  Say, there are 10 template candidates, $\{1,2,...,10\}$, and the
+  output file has entries 5 and 7. Scanning it leads to the removal of
+  templates 1--4 and 6. Removal consists of freeing the memory and
+  setting its pointer to NULL. The names of the files not deleted are
+  printed to the standard error stream.
+#+end_src
+#+begin_src C <<Scan output file>>=
+  while (fscanf(fp, "%d", &index) != EOF) {
+    for ( ; ii < index; ii++) {
+      freeSeq(sa->arr[ii]);
+      sa->arr[ii] = NULL;
     }
-    if (count < target->n) {
-      freeSeq(sa->arr[i]);
-      sa->arr[i] = NULL;
-    } else 
-      fprintf(stderr, "# Present in all targets: %s\n", sa->arr[i]->name);
+    fprintf(stderr, "# Present in all targets: %s\n",
+	    sa->arr[ii++]->name);
   }
 #+end_src
 #+begin_src latex
-  The string search first defines pattern and text, and then iterates
-  across them.
+  After the output file just imagined has been scanned, templates 8--10
+  still need to be removed.
 #+end_src
-#+begin_src C <<String search>>=
-  //<<Obtain pattern and text>>
-  //<<Iterate across pattern and text>>
-#+end_src
-#+begin_src latex
-  The pattern is the current sequence fragment, the text the current
-  target.
-#+end_src
-#+begin_src C <<Obtain pattern and text>>=
-char *p = sa->arr[i]->data;
-char pn = sa->arr[i]->l;
-char *t = target->arr[j]->data;
-int tn = target->arr[j]->l;
-#+end_src
-#+begin_src latex
-  The iteration across pattern and text is interrupted after the first
-  match is found. This nested loop for string searching is also known as
-  a ``na\"ive algorithm'', because its worsts case run time is
-  proportional to the product of pattern length and text
-  length. However, in practice na\"ive string searching is very fast. It
-  also has a transparent implementation, which responds to two
-  situations, the first match, and no match.
-#+end_src
-#+begin_src C <<Iterate across pattern and text>>=
-  int l, found = 0;
-  for (int k = 0; k < tn - pn; k++) {
-    for (l = 0; l < pn; l++)
-      if (t[k + l] != p[l])
-	break;
-    if (l == pn) {
-      //<<First match>>
-    }
-  }
-  //<<No match>>
-#+end_src
-#+begin_src latex
-  After the first match, the match counter is incremented, the indicator
-  \texttt{found} set to 1, and the search is abandoned, as one match
-  suffices.
-#+end_src
-#+begin_src C <<First match>>=
-  if (l == pn) {
-    count++;
-    found = 1;
-    break;
+#+begin_src C <<Remove remaining sequences>>=
+  for ( ; ii < sa->n; ii++) {
+    freeSeq(sa->arr[ii]);
+    sa->arr[ii] = NULL;
   }
 #+end_src
 #+begin_src latex
-  If a template did not match, the other templates need not be ckecked.
-#+end_src
-#+begin_src C <<No match>>=
-  if (!found)
-    break;
-#+end_src
-#+begin_src latex
-  The absence of the remaining fragments from the entire neighborhood is
-  checked using the external program \texttt{blastn}. To begin with, the
-  neighborhood sequences are converted to a BLAST data base. Then the
-  candidate templates are searched in that data base and the result
-  written to file. This file is finally read back into the program.
-  These steps require intermediate files and memory allocation, both of
-  which are cleaned up at the end.
+  The absence of the remaining templates from the neighborhood is
+  established in a similar way. The neighborhood sequences are converted
+  to a BLAST data base, the candidate templates are searched in that
+  data base and the hits written to file. This file is read back into
+  the program, only this time it contains the templates to be deleted
+  rather than the ones to be kept. Again, intermediate files and their
+  names are generated, which are cleaned up at the end.
 #+end_src
 #+begin_src C <<Check absence from all neighbors>>=
   //<<Generate neighborhood database>>
-  //<<Search database>>
-  //<<Read search result>>
+  //<<Search neighborhood database>>
+  //<<Delete templates found in neighborhood>>
   //<<Clean up neighborhood search>>
 #+end_src
 #+begin_src latex
-  The neighborhood sequences are written to \texttt{makeblastdb}, which
-  converts them to a BLAST database.
+  The neighborhood database is generated.
 #+end_src
 #+begin_src C <<Generate neighborhood database>>=
-  char *db = uniqueFileName(NULL);
+  char *neighborhoodDb = uniqueFileName(".db");
   tmpl = "makeblastdb -dbtype nucl -out %s -title db > /dev/null";
-  sprintf(cmd, tmpl, db);
+  sprintf(cmd, tmpl, neighborhoodDb);
+  fprintf(stderr, "# Making neighborhood db...");
   pp = epopen(cmd, "w");
   for (int i = 0; i < neighborhood->n; i++)
     printSeq(pp, neighborhood->arr[i], -1);
   pclose(pp);
+  fprintf(stderr, "done.\n");
 #+end_src
 #+begin_src latex
-  The BLAST database is deleted after the search, and the name of the
-  database freed.
+  After the search it is deleted and its name is freed.
 #+end_src
 #+begin_src C <<Clean up neighborhood search>>=
   tmpl = "rm %s*";
-  sprintf(cmd, tmpl, db);
-  int status = system(cmd);
-  if (status < 0)
+  sprintf(cmd, tmpl, neighborhoodDb);
+  if (system(cmd) < 0)
     error("fur: couldn't run system call %s\n", cmd);
-  free(db);
+  free(neighborhoodDb);
 #+end_src
 #+begin_src latex
-  Searching the database is done in two steps: First the pipe command is
-  constructed and then the template sequences are written to that pipe.
+  Searching the neighborhood requires a pipe to which the template
+  sequences are written.
 #+end_src
-#+begin_src C <<Search database>>=
-  //<<Construct search pipe>>
-  //<<Write templates to pipe>>
+#+begin_src C <<Search neighborhood database>>=
+  //<<Construct neighborhood pipe>>
+  //<<Write templates to neighborhood pipe>>
 #+end_src
 #+begin_src latex
-  The command of the search pipe has three parts: Run BLAST with a
-  template candidate as query and the neighborhood database as subject,
-  count the number of hits with an AWK script, and write the names of
-  the templates with at least one hit to file.
+  The command of the neighborhood pipe has three parts: Run BLAST with
+  the template candidates as query and the neighborhood database as
+  subject, count the number of hits with an AWK script, and write the
+  names of the templates with at least one hit to file.
 #+end_src
-#+begin_src C <<Construct search pipe>>=
+#+begin_src C <<Construct neighborhood pipe>>=
   tmpl = "blastn -db %s -outfmt 6 | "
     "awk '{n[$1]++} "
     "END {for (a in n) if (n[a]) print a}' > %s";
-  char *bo = uniqueFileName(NULL);
-  sprintf(cmd, tmpl, db, bo);
+  char *neighborhoodOut = uniqueFileName(".out");
+  sprintf(cmd, tmpl, neighborhoodDb, neighborhoodOut);
   pp = epopen(cmd, "w");
 #+end_src
 #+begin_src latex
@@ -768,31 +863,29 @@ int tn = target->arr[j]->l;
 #+end_src
 #+begin_src C <<Clean up neighborhood search>>=
   tmpl = "rm %s";
-  sprintf(cmd, tmpl, bo);
-  status = system(cmd);
-  if (status < 0)
+  sprintf(cmd, tmpl, neighborhoodOut);
+  if (system(cmd) < 0)
     error("couldn't run system call\n", cmd);
-  free(bo);
+  free(neighborhoodOut);
 #+end_src
 #+begin_src latex
-  Now the template candidates found in all targets are written to
-  pipe. The easiest way to make use of the result is to identify the
-  templates by their index in the sequence array. After the search, the
-  pipe is closed.
+  Now the template candidates found in all targets are written to pipe
+  with their index numbers as FASTA identifiers.
 #+end_src
-#+begin_src C <<Write templates to pipe>>=
+#+begin_src C <<Write templates to neighborhood pipe>>=
+  fprintf(stderr, "# Searching neighborhood...");
   for (int i = 0; i < sa->n; i++)
     if (sa->arr[i])
       fprintf(pp, ">%d\n%s\n", i, sa->arr[i]->data);
   pclose(pp);
+  fprintf(stderr, "done.\n");
 #+end_src
 #+begin_src latex
   The BLAST result is read and the template candidates found in the
   neighborhood are deleted.
 #+end_src
-#+begin_src C <<Read search result>>=
-  FILE *fp = efopen(bo, "r");
-  int ii;
+#+begin_src C <<Delete templates found in neighborhood>>=
+  fp = efopen(neighborhoodOut, "r");
   while (fscanf(fp, "%d", &ii) != EOF) {
     fprintf(stderr, "# Found in neighborhood: %s\n", sa->arr[ii]->name);
     freeSeq(sa->arr[ii]);
@@ -801,8 +894,8 @@ int tn = target->arr[j]->l;
   fclose(fp);
 #+end_src
 #+begin_src latex
-  The last step is to print the template sequences that passed the
-  presence/absence test.
+  The last step in \texttt{fur} is to print the template sequences that
+  passed the presence/absence test.
 #+end_src
 #+begin_src C <<Print templates>>=
   for (int i = 0; i < sa->n; i++)
@@ -812,32 +905,13 @@ int tn = target->arr[j]->l;
 #+end_src
 #+begin_src latex
   The program is now ready to be used.
-  \section{Tutorial}
-  To demonstrate the application of \texttt{fur}, example data is taken
-  from a study of \textit{Escherichia coli} ST131, a multi-drug
-  resistant strain that causes urinary tract and blood infections in
-  humans~\cite{pet14:glo}. \emph{E. coli} ST131 belongs to the B2
-  phylogenetic subgroup, which corresponds to serotype O25b:H4.
-  Figure~\ref{fig:eco} shows the phylogeny of 105 \emph{E. coli} B2
-  strains. The clade marked ST131 comprises 95 strains newly sequenced
-  by~\cite{pet14:glo}, plus three STS131 reference genomes, SE15, NA114,
-  and EC958. this clade defines the target strains. The neighborhood
-  comprises the seven remaining \emph{E. coli} strains, which also
-  belong to the B2 group, but not to ST131~\cite{pet14:glo}. The aim is
-  to find regions specific to ST131.
-
-      \begin{figure}
-	\begin{center}
-	  \tiny
-	  \scalebox{1}{\input{eco105}}
-	\end{center}
-	\caption{Phylogeny of 105 strains of \emph{Eschericia coli} computed from whole genome sequences
-	using \texttt{andi}~\cite{hau15:and}.}\label{fig:eco}
-      \end{figure}
-
-  The first step in the Tutorial is to get the data. This is analyzed in
-  a first pass before the analysis is then refined by varying the
-  parameters of \texttt{fur}.
+  \section{Tutorial}\label{sec:tut}
+  To demonstrate the application of \texttt{fur}, the example data shown
+  in Figure~\ref{fig:eco} is analyzed with the aim of finding regions
+  specific to the pathogenic \emph{E. coli} strain ST131.  The first
+  step is to get the data. This is analyzed in an initial pass before
+  the investigation is refined by varying the parameters of
+  \texttt{fur}.
 #+end_src
 #+begin_src sh <<tutorial.sh>>=
   <<Get tutorial data>>
@@ -845,16 +919,16 @@ int tn = target->arr[j]->l;
   <<Refine tutorial analysis>>
 #+end_src
 #+begin_src latex
-  The example data is copied from my computer and unpacked.
+  The example data is copied from a networked computer and unpacked.
 #+end_src
 #+begin_src sh <<Get tutorial data>>=
   wget guanine.evolbio.mpg.de/fur/eco105.tar.gz
   tar -xvzf eco105.tar.gz
 #+end_src
 #+begin_src latex
-  This generates two directories of FASTA files, \texttt{target} and
-  \texttt{neighborhood}. A first pass analysis of these takes
-  approximately half a minute.
+  This generates two directories of genomes in FASTA format,
+  \texttt{target} with 98 genomes, and \texttt{neighborhood} with
+  seven. Analyzing these takes approximately 50 s.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
   fur -t target -n neighborhood > templates.fasta
@@ -864,72 +938,46 @@ int tn = target->arr[j]->l;
   unique file name that differs every time the program is run to prevent
   accidental over-writing of existing files. 
   It then
-  lists six regions present in all targets, followed by one region found
+  lists 13 regions present in all targets, followed by four regions found
   in at least one of the neighborhood sequences. So the final number of
-  sequences in \texttt{templates.fasta} is $6-1=5$.
-  \begin{verbatim}
-  fur -t target -n neighborhood > templates.fasta
-  # Wrote macle index to snkTYM.idx
-  # Present in all targets: target/HVM834.fasta-448650...450450
-  # Present in all targets: target/HVM834.fasta-523600...534100
-  # Present in all targets: target/HVM834.fasta-1106050...1107850
-  # Present in all targets: target/HVM834.fasta-2122500...2124300
-  # Present in all targets: target/HVM834.fasta-3438450...3440250
-  # Present in all targets: target/HVM834.fasta-4856750...4858550
-  # Found in neighborhood: target/HVM834.fasta-3438450...3440250
-  \end{verbatim}
-
-  The index file can be reused to speed up repeated runs of the program
-  with different to vary its parameter settings. Before doing so,
-  however, it is a good idea to save the index file to a more meaningful
-  name.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  mv *.idx macle.idx
+  sequences in \texttt{templates.fasta} is $13-4=9$, which contain 5.8 kb.
 #+end_src
 #+begin_src latex
-The first parameter worth exploring is window length,
-\texttt{-w}. Longer windows result in fewer candidate regions. For
-example, with 1 kb windows, only two templates are found.
+  The first parameter worth exploring is window length,
+  \texttt{-w}. Longer windows result in fewer candidate regions. For
+  example, with 1 kb windows, no templates are found.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
-fur -i macle.idx -t target -n neighborhood -w 1000 
+  fur -t target -n neighborhood -w 1000 
 #+end_src
 #+begin_src latex
-  This run takes approximately six seconds, five times less than without
-  the precomputed index. A further doubling of the window length results
-  in one candidate, but it is also found in the neighborhood, so there
-  are no viable templates.
+  On the other hand, reducing the window length to 250 bp yields 36
+  templates with close to 14 kb. Clearly, \texttt{fur} is highly
+  sensitive to the window length and this should be borne in mind when
+  investigating other pathogens.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
-fur -i macle.idx -t target -n neighborhood -w 2000 
-#+end_src
-#+begin_src latex
-  On the other hand, reducing the window length to 250 bp yields 21
-  templates. Clearly, \texttt{fur} is highly sensitive to the window
-  length and this could be an important factor when investigating other
-  pathogens.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -i macle.idx -t target -n neighborhood -w 250
+  fur -t target -n neighborhood -w 250
 #+end_src
 #+begin_src latex
   The second parameter worth exploring is the $P$-value corresponding to
-  the complexity threshold used by the program, \texttt{-p}. By default
-  this is 0.95; decreasing it to 0.5 leads to a less stringent search
-  where two rather than just one of the candidate regions are found in
-  the neighborhood.
+  the complexity threshold used by the program, \texttt{-p}
+  (Figure~\ref{fig:cdf}). By default this is 0.95; decreasing it to 0.5
+  leads to a less stringent search where seven of the nine candidates
+  are found in the neighborhood resulting in a meager yield of only 1.3
+  kb template.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
-  fur -t target -n neighborhood -i macle.idx -p 0.5
+  fur -t target -n neighborhood -p 0.5
 #+end_src
 #+begin_src latex
   Setting \texttt{-p} to 1 abolishes all candidates. However, setting it
-  just below 1 yields nine templates. So it might well be worth
-  exploring different $P$-values in real world analyses.
+  just below 1 yields 20 templates with 13.2 kb. So it might well be
+  worth exploring different $P$-values and window lengths in real world
+  analyses.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
-  fur -t target -n neighborhood -i macle.idx -p 0.99999
+  fur -t target -n neighborhood -p 0.99999
 #+end_src
 #+begin_src latex
   \section{List of code chunks}

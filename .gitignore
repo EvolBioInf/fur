@@ -13,9 +13,13 @@ doc/fur.toc
 doc/header.tex
 doc/ref.bib
 doc/text.tex
+doc/cdf.eps
+doc/cdf.tex
+doc/eco105.tar.gz
+doc/neighborhood/
+doc/target/
 src/fur
 src/fur.c
 src/*.idx
 src/tutorial.sh
 scripts/tutorial.sh
-
