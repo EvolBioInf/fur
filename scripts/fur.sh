@@ -10,4 +10,4 @@ else
     echo ${DIFF}
 fi
 
-rm -r testFur.idx testTar testNei test.tar.gz tmp.out
+rm -r testTar testNei test.tar.gz tmp.out
