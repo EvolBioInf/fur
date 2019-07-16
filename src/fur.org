@@ -4,11 +4,11 @@
   candidates that also amplify off-target regions. To minimize the
   chance of cross-amplification, primers should be designed from
   template sequences that are unique to the target strain. The program
-  \texttt{fur} \emph{finds unique regions} by comparing the genome of
-  the target strain to the genomes of the closest relatives it is to be
-  distinguished from. The heuristic underlying this approach is that any
-  region that distinguishes a target sequence from its neighborhood,
-  also distinguishes it from all other sequences out there. 
+  \texttt{fur} \emph{finds unique regions} by comparing the genomes of a
+  sample of target strains to the genomes of the closest relatives it is
+  to be distinguished from. The heuristic underlying this approach is
+  that any region that distinguishes a target sequence from its closest
+  relatives, also distinguishes it from all other sequences out there.
 
   Consider, for example, \textit{Escherichia coli} ST131, a multi-drug
   resistant strain that causes urinary tract and blood infections in
@@ -17,45 +17,45 @@
   Figure~\ref{fig:eco} shows the phylogeny of 105 \emph{E. coli} B2
   strains. The clade marked ST131 comprises 95 strains newly sequenced
   by~\cite{pet14:glo}, plus three STS131 reference genomes, SE15, NA114,
-  and EC958. This clade defines the target strains. The neighborhood
-  comprises the seven remaining \emph{E. coli} strains, which also
+  and EC958. This clade defines the \emph{targets}. The seven remaining
+  \emph{E. coli} strains are the \emph{neighbors}. They also
   belong to the B2 group, but not to ST131~\cite{pet14:glo}. The aim is
   to find regions specific to ST131. In Section~\ref{sec:tut} a
-  tutorial-style analysis of this data set shows how to reach this aim.
+  tutorial-style analysis of this data set shows how to reach this aim
+  using \texttt{fur}.
 
       \begin{figure}
 	\begin{center}
 	  \tiny
-	  \scalebox{1}{\input{eco105}}
+	  \resizebox{\textwidth}{!}{\input{eco105}}
 	\end{center}
 	\caption{Phylogeny of 105 strains of \emph{Eschericia coli}
 	  computed from whole genome sequences using
 	  \texttt{andi}~\cite{hau15:and}. The scale bar is the number of
 	  substitutions per site. The clade marked ST131 contains the
-	  pathogenic target strains, the remaining seven strains form
-	  the neighborhood.}\label{fig:eco}
+	  pathogenic targets ($\mathcal{T}$), the remaining seven
+	  strains are the neighbors ($\mathcal{N}$).}\label{fig:eco}
       \end{figure}
 
   The program takes as input a database computed by
   \texttt{makeFurDb}\footnote{\texttt{https://github.com/haubold/makeFurDb/}}
-    from two directories of sequence files, the
-  first contains one or more \emph{target} genomes, the second one or
-  more \emph{neighborhood} genomes. \texttt{fur} uses
-  \texttt{macle}~\cite{pir18:hig} to identify candidate regions that are
-  unique to a representative target sequence when compared to all
-  neighborhood sequences. These candidate regions are then checked for
-  presence in all targets and absence from all neighborhood sequences
-  using BLAST. The resulting templates are finally printed to the
-  standard output stream. They are now ready for submission to a primer
-  design program like Primer-BLAST~\cite{ye12:pri}.
+  from two directories of sequence files, the first contains one or more
+  target genomes, the second one or more neighbor genomes. \texttt{fur}
+  uses \texttt{macle}~\cite{pir18:hig} to identify candidate regions
+  that are unique to a representative target when compared to all
+  neighbors. These candidate regions are then checked for presence in
+  all targets and absence from all neighbors using BLAST. The resulting
+  templates are finally printed to the standard output stream. They are
+  now ready for submission to a primer design program like
+  Primer-BLAST~\cite{ye12:pri}.
 
   \section{Implementation}
   The program is based on arrays of sequences and arrays of intervals on
   those sequences. Arrays of sequences are defined in \texttt{seq.h},
   while intervals and their arrays are still to be defined. Apart from
-  these two data structures, the program consists of the usual include
-  section, declaration and definition of functions, and finally the
-  \texttt{main} function.
+  data structures for intervals and their arrays, the program consists
+  of the usual include section, declarations and definitions of
+  functions, and finally the \texttt{main} function.
 #+end_src
 #+begin_src C <<fur.c>>=
   #include "seq.h"
@@ -67,7 +67,7 @@
 #+end_src
 #+begin_src latex
   \subsection{Arrays of Sequences and of Intervals}
-  Interval arrays are one of the the basic building block of
+  Interval arrays are one of the the basic building blocks of
   \texttt{fur}, so they are defined first. Intervals have a start and an
   end.
 #+end_src
@@ -152,7 +152,8 @@
   void intvArrAdd(IntvArr *ia, Intv *i);
 #+end_src
 #+begin_src latex
-  The definition makes space for the new arrival and then adds it.
+  The definition makes space for the newly arrive interval and then adds
+  it.
 #+end_src
 #+begin_src C <<Function definitions>>=
   void intvArrAdd(IntvArr *ia, Intv *i) {
@@ -163,7 +164,7 @@
 #+end_src
 #+begin_src latex
   \subsection{Sequence Analysis}
-  Interval arrays are now ready to be used. This happens in the
+  Interval arrays are now ready to be used. This is done in the
   \texttt{main} function, which first interacts with the user, then
   analyzes the target and neighborhood sequences, and finally prints the
   desired template sequences. At the end of the program any memory still
@@ -234,9 +235,8 @@
   \subsubsection{Find Unique Templates}
   Analysis of the target and neighborhood sequences proceeds in two
   steps. Unique regions are first identified by comparing one
-  representative target sequence to all neighborhood sequences. Then the
-  unique regions are checked for presence in all targets and absence
-  from all neighborhood sequences.
+  representative target to all neighbors. Then the unique regions are
+  checked for presence in all targets and absence from all neighbors.
 #+end_src
 #+begin_src C <<Analyze sequences>>=
   //<<Identify unique regions>>
@@ -247,18 +247,17 @@
   Unique regions are identified using the external program
   \texttt{macle}~\cite{pir18:hig}. This operates by traversing a
   pre-computed index. The index is contained in the \texttt{fur}
-  database and contains the neighborhood sequences augmented by the
-  representative target sequence. The index is used to compute local
-  complexity values. Based on these local complexity values, unique
-  intervals are found.
+  database and contains the neighbors augmented by the representative
+  target. The index is used to compute local complexity values. Based on
+  these local complexity values, unique intervals are found.
 #+end_src
 #+begin_src C <<Identify unique regions>>=
   //<<Get representative target>>
   //<<Construct unique intervals>>
 #+end_src
 #+begin_src latex
-  To obtain the representative target sequence, its name is needed,
-  which allows retrieval of the actual sequence.
+  To obtain the representative target, its name is needed, which allows
+  retrieval of its sequence.
 #+end_src
 #+begin_src C <<Get representative target>>=
   char rn[256];
@@ -283,7 +282,7 @@
   pclose(pp);
 #+end_src
 #+begin_src latex
-  With the sequence name as handles, the corresponding sequence is
+  With the sequence name as handle, the corresponding sequence is
   extracted from the BLAST database.
 #+end_src
 #+begin_src C <<Get representative sequence>>=
@@ -326,21 +325,22 @@
 #+begin_src C <<Construct unique intervals>>=
   double mc, gc = 0.;
   long len = 0;
+  IntvArr *ia;
   //<<Compute complexity threshold>>
   fprintf(stderr, "# Sliding window anlaysis...");
   //<<Sliding window analysis>>
-  fprintf(stderr, "done.\n");
+  fprintf(stderr, "done; identified %d unique regions.\n", ia->n);
   //<<Prepare array of unique sequences>>
 #+end_src
 #+begin_src latex
   The complexity threshold is a function of aggregate sequence length,
-  GC-content, window length, and value of the cumulative density
-  function (CDF) of the match length null
+  GC-content, window length, and the inverse of the cumulative
+  distribution function (CDF) of the match length null
   distribution. Figure~\ref{fig:cdf} shows this function and how
-  choosing a particular CDF-value on the $y$-axis corresponds to a
-  complexity-threshold on the $x$-axis. Sequence length and GC content
-  are looked up in the \texttt{macle} index, window length and
-  probability supplied by the user.
+  choosing a particular CDF-value, on the $y$-axis, 0.95 in the example,
+  corresponds to a complexity-threshold on the $x$-axis, 0.019. Sequence
+  length and GC content are looked up in the \texttt{macle} index,
+  window length and probability supplied by the user.
 
   \begin{figure}
     \begin{center}
@@ -349,9 +349,9 @@
     \caption{Cumulative density function (CDF) of the match complexity
       ($C_{\rm m}$) in 500 bp windows over a 35.5 Mb data set with
       GC-content 0.5~\cite{pir18:hig}. The parameter choice corresponds
-      to the neighborhood data set of \emph{E. coli} genomes depicted in
-      Figure~\ref{fig:eco}. The vertical line indicates the complexity
-      threshold for a cumulative density of 0.95.}\label{fig:cdf}
+      to the neighbors depicted in Figure~\ref{fig:eco}. The vertical
+      line indicates the complexity threshold for a cumulative density
+      of 0.95.}\label{fig:cdf}
   \end{figure}
 #+end_src
 #+begin_src C <<Compute complexity threshold>>=
@@ -398,13 +398,12 @@
 #+begin_src latex
   The sliding window analysis requires the opening of a pipe for reading
   \texttt{macle} output. The pipe command consists of three steps. The
-  first calls \texttt{macle}, the second cuts the second and third
-  column from the output, which form the $(m,C_{\rm m})$ pairs, and the
-  third filters out windows without reliable sequence data, where
-  $C_{\rm m}=-1$. In addition, the sliding window analysis requires
-  variables for holding the current midpoint and complexity values, the
-  interval array, and a variable to indicate whether the program is
-  inside a unique interval or not.
+  first calls \texttt{macle}, the second cuts the $(m,C_{\rm m})$ pairs
+  from the output, and the third removes windows without reliable
+  sequence data, where $C_{\rm m}=-1$. In addition, the sliding window
+  analysis requires variables for holding the current midpoint and
+  complexity values, the interval array, and a variable to indicate
+  whether the program is inside a unique interval or not.
 #+end_src
 #+begin_src C <<Prepare sliding window analysis>>=
   tmpl =
@@ -414,7 +413,7 @@
   sprintf(cmd, tmpl, args->d, rn, args->w);
   pp = epopen(cmd, "r");
   float m, c;
-  IntvArr *ia = newIntvArr();
+  ia = newIntvArr();
   int is, ie, in = 0;
 #+end_src
 #+begin_src latex
@@ -422,14 +421,14 @@
   / 2$, where $w$ is the window length. To get the borders exactly
   right, consider a sequence of length 100, for which \texttt{macle}
   prints a mid-point of 50. To recover the correct start and end
-  positions from this, that is, 1 and 100, computed
-  \begin{eqnarr*}
-    \mbox{start} & = & \mbox{midPoint} - w / 2 + 1\\
-    \mbox{end} & = & \mbox{midPoint} + w / 2
-  \end{eqnarr*}
+  positions of 1 and 100 from this, compute
+  \begin{eqnarray*}
+    \mbox{start} & = & m - w / 2 + 1\\
+    \mbox{end}   & = & m + w / 2
+  \end{eqnarray*}                 
   Since positions in strings are zero-based, while \texttt{macle} output
-  is one-based, the final start and end are shifted by one position to
-  the left.
+  is one-based, the final start and end values are shifted by one
+  position to the left.
 #+end_src
 #+begin_src C <<Determine window start and end>>=
   int ws = m - args->w / 2;
@@ -462,8 +461,8 @@
 #+end_src
 #+begin_src latex
   The array of unique intervals is now converted to the corresponding
-  array of sequences. The templates are numbered and their length is
-  included in the header. Once the templates have been written, the
+  array of sequences. The templates are numbered and their lengths are
+  included in the headers. Once the templates have been written, the
   interval array is freed.
 #+end_src
 #+begin_src C <<Prepare array of unique sequences>>=
@@ -494,7 +493,7 @@
   before they are printed, they are checked for presence in all targets
   and absence from all neighbors using BLAST. Presence in all targets is
   checked first by searching template candidates and those templates not
-  found in every target get deleted.
+  found in every target are deleted.
 #+end_src
 #+begin_src C <<Check presence in all targets>>=
   //<<Search targets>>
@@ -522,6 +521,7 @@
   pp = epopen(cmd, "r");
   if (fscanf(pp, "%d", &nt) == EOF)
     error("couldn't run %s\n", cmd);
+  fprintf(stderr, "# Number of targets: %d\n", nt);
   pclose(pp);
 #+end_src
 #+begin_src latex
@@ -536,8 +536,8 @@
   identification of templates, their indexes in the sequence array are
   used as FASTA identifiers. Indexes are numbers, so these get sorted to
   facilitate their subsequent handling. The output of the BLAST pipe is
-  written to an output file located in the directory that also houses
-  the \texttt{fur} database.
+  written to a file located in the directory that also houses the
+  \texttt{fur} database.
 #+end_src
 #+begin_src C <<Construct target pipe>>=
   tmpl = "blastn -db %s/blastdb -num_threads %d -outfmt "
@@ -600,11 +600,14 @@
   output file has entries 5 and 7. Scanning it leads to the removal of
   templates 1--4 and 6. Removal consists of freeing the memory and
   setting its pointer to NULL. The names of the files not deleted are
-  printed to the standard error stream.
+  printed to the standard error stream and the number of templates
+  remaining is tracked.
 #+end_src
 #+begin_src C <<Scan output file>>=
+  int nTmpl = sa->n;
   while (fscanf(fp, "%d", &index) != EOF) {
     for ( ; ii < index; ii++) {
+      nTmpl--;
       freeSeq(sa->arr[ii]);
       sa->arr[ii] = NULL;
     }
@@ -613,14 +616,17 @@
   }
 #+end_src
 #+begin_src latex
-  After the output file just imagined has been scanned, templates 8--10
-  still need to be removed.
+  Recall that our example file has entries 5 and 7. After it has been
+  scanned, templates 8--10 still need to be removed. Finally, the number
+  of templates remaining is reported.
 #+end_src
 #+begin_src C <<Remove remaining sequences>>=
   for ( ; ii < sa->n; ii++) {
+    nTmpl--;
     freeSeq(sa->arr[ii]);
     sa->arr[ii] = NULL;
   }
+  fprintf(stderr, "# Number of templates: %d\n", nTmpl);
 #+end_src
 #+begin_src latex
   The absence of the remaining templates from the neighborhood is
@@ -635,8 +641,7 @@
 #+end_src
 #+begin_src latex
   The neighborhood database is searched by constructing the
-  \texttt{blastn} pipe and then ending the neighborhood sequences down
-  that pipe.
+  \texttt{blastn} pipe and then sending the neighbors down that pipe.
 #+end_src
 #+begin_src C <<Search neighborhood>>=
   //<<Construct neighborhood pipe>>
@@ -670,20 +675,22 @@
 #+end_src
 #+begin_src latex
   The BLAST result is read and the template candidates found in the
-  neighborhood are deleted.
+  neighborhood are deleted and accounted for.
 #+end_src
 #+begin_src C <<Delete templates found in neighborhood>>=
   fp = efopen(of, "r");
   while (fscanf(fp, "%d", &ii) != EOF) {
+    nTmpl--;
     fprintf(stderr, "# Found in neighborhood: %s\n", sa->arr[ii]->name);
     freeSeq(sa->arr[ii]);
     sa->arr[ii] = NULL;
   }
   fclose(fp);
+  fprintf(stderr, "# Number of templates: %d\n", nTmpl);
 #+end_src
 #+begin_src latex
   The last step in \texttt{fur} is to print the template sequences that
-  passed the presence/absence test.
+  passed both the presence and the absence test.
 #+end_src
 #+begin_src C <<Print templates>>=
   for (int i = 0; i < sa->n; i++)
@@ -716,13 +723,13 @@
 #+end_src
 #+begin_src latex
   This generates two directories of genomes in FASTA format,
-  \texttt{target} with 98 genomes, and \texttt{neighborhood} with
+  \texttt{targets} with 98 genomes, and \texttt{neighbors} with
   seven. These are converted to a \texttt{fur} database using
   \texttt{makeFurDb}\footnote{\texttt{https://github.com/haubold/makeFurDb}},
   which takes approximately 35 s.
 #+end_src
 #+begin_src sh <<Make fur database>>=
-  makeFurDb -t target -n neighborhood -d furDb
+  makeFurDb -t targets -n neighbors -d furDb
 #+end_src
 #+begin_src latex
   Unique templates are found by applying \texttt{fur} to this database,
@@ -739,12 +746,13 @@
   AWK to find that their combined length is 2.1 kb.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
-  awk '/^>/{c++; s += $2} END {printf "%d tmp, %d bp\n", c, s}' tmpl.fasta
+  awk '/^>/{c++; s += $2} END {printf "%d tmp, %d bp\n", c, s}' \
+      tmpl.fasta
 #+end_src
 #+begin_src latex
-  The first parameter worth exploring is window length,
-  \texttt{-w}. Longer windows result in fewer candidate regions. For
-  example, with 1 kb windows, no templates are found.
+  The first parameter to explore is window length, \texttt{-w}. Longer
+  windows result in fewer candidate regions. For example, with 1 kb
+  windows, no templates are found.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
   fur -d furDb -w 1000 
@@ -760,14 +768,15 @@
       awk '/^>/{c++; s += $2} END {printf "%d tmp, %d bp\n", c, s}'
 #+end_src
 #+begin_src latex
-  The second parameter worth exploring is the $P$-value corresponding to
-  the complexity threshold used by the program, \texttt{-p}
-  (Figure~\ref{fig:cdf}). By default this is 0.95. Increasing it to 1
-  abolishes all templates, but $P=0.999$ increases the yield to 29
-  templates with 9.1 kb. So it might well be worth exploring different
-  $P$-values and window lengths in other analyses. This can be done
-  conveniently because each run of \texttt{fur} takes only a few seconds
-  once the underlying database has been computed.
+  The second parameter to explore is the CDF-value, or $P$-value
+  corresponding to the complexity threshold used by the program,
+  \texttt{-p} (Figure~\ref{fig:cdf}). By default this is
+  0.95. Increasing it to 1 abolishes all templates, but $P=0.999$
+  increases the yield to 29 templates with 9.1 kb. So it might well be
+  worth testing different $P$-values and window lengths in other
+  analyses. This can be done conveniently because each run of
+  \texttt{fur} takes only a few seconds once the underlying database has
+  been computed.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
   fur -d furDb -w 250 -p 0.99999 |
