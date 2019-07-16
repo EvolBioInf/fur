@@ -20,6 +20,23 @@ void freeSeq(Seq *s) {
   free(s->name);
   free(s);
 }
+SeqArr *newSeqArr() {
+  SeqArr *sa = emalloc(sizeof(SeqArr));
+  sa->arr = NULL;
+  sa->n = 0;
+  return sa;
+}
+void freeSeqArr(SeqArr *sa) {
+  for (int i = 0; i < sa->n; i++)
+    if (sa->arr[i])
+        freeSeq(sa->arr[i]);
+  free(sa->arr);
+  free(sa);
+}
+void seqArrAdd(SeqArr *sa, Seq *s) {
+  sa->arr = (Seq **)erealloc(sa->arr, (sa->n + 1) * sizeof(Seq *));
+  sa->arr[sa->n++] = s;
+}
 Seq *getJoinedSeq(char *fileName) {
   char *p = strrchr(fileName, '.');
   if (p)
@@ -88,6 +105,9 @@ Seq *getSeq(FILE *fp) {
 }
 void printSeq(FILE *fp, Seq *s, int l) {
   fprintf(fp, ">%s\n", s->name);
+  printSeqData(fp, s, l);
+}
+void printSeqData(FILE *fp, Seq *s, int l) {
   if (l <= 0)
     l = DEFAULT_LINE_LEN;
   for (int i = 0; i < s->l; i++) {

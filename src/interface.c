@@ -19,44 +19,27 @@ Args *newArgs() {
   args->h   = 0;
   args->v   = 0;
   args->err = 0;
-  args->t   = NULL;
-  args->n   = NULL;
-  args->i   = NULL;
-  args->I   = NULL;
+  args->d   = NULL;
   args->w   = DEFAULT_W;
   args->p   = DEFAULT_P;
-  args->T   = DEFAULT_TT;
+  args->t   = DEFAULT_T;
   return args;
 }
 
 void freeArgs(Args *args) {
-  free(args->t);
-  free(args->n);
-  if (args->i)
-    free(args->i);
+  free(args->d);
   free(args);
 }
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvt:n:i:I:w:p:T:";
+  char *optString = "hvd:w:p:t:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
     switch(c) {
-    case 't': /* targets */
-      args->t = estrdup(optarg);
-      break;
-    case 'n': /* neighborhood */
-      args->n = estrdup(optarg);
-      break;
-    case 'i': /* index file */
-      args->i = estrdup(optarg);
-      break;
-    case 'I': /* name of file index is written to */
-      args->I = estrdup(optarg);
-      if (access(args->I, F_OK) != -1)
-	error("%s already exists, please chose another name for the index file.\n", args->I);
+    case 'd': /* database */
+      args->d = estrdup(optarg);
       break;
     case 'w': /* window length */
       args->w = atoi(optarg);
@@ -64,8 +47,8 @@ Args *getArgs(int argc, char *argv[]) {
     case 'p': /* p-value */
       args->p = atof(optarg);
       break;
-    case 'T': /* number of threads */
-      args->T = atoi(optarg);
+    case 't': /* number of threads */
+      args->t = atoi(optarg);
       break;
     case 'h': /* help       */
       args->h = 1;
@@ -88,8 +71,8 @@ Args *getArgs(int argc, char *argv[]) {
   }
   args->fi = argv + optind;
   args->nf = argc - optind;
-  if (!args->t || !args->n) {
-    printf("ERROR[fur]: Please specify a target and a neighborhood directory.\n");
+  if (!args->d) {
+    printf("ERROR[fur]: Please specify a fur database.\n");
     args->err = 1;
   }
   return args;
@@ -98,15 +81,12 @@ Args *getArgs(int argc, char *argv[]) {
 void printUsage() {
   printf("Usage: %s [options] [inputFiles]\n", getprogname());
   printf("Find uniqe genomic regions\n");
-  printf("Example: %s -t target -n neighborhood\n", getprogname());
+  printf("Example: %s -d furDb\n", getprogname());
   printf("Options:\n");
-  printf("\t-t <STR> target directory\n");
-  printf("\t-n <STR> neighborhood directory\n");
-  printf("\t[-i <STR> macle index; default: computed from scratch (slow)]\n");
-  printf("\t[-I <STR> name of file to write macle index to; default: generated internally]\n");
+  printf("\t-d <STR> database\n");
   printf("\t[-w <NUM> window length; default: %d]\n", DEFAULT_W);
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
-  printf("\t[-T <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_TT);
+  printf("\t[-T <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-h print this help message and exit]\n");
   printf("\t[-v print version & program information and exit]\n");
   exit(0);

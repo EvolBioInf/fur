@@ -18,8 +18,14 @@ doc/cdf.tex
 doc/eco105.tar.gz
 doc/neighborhood/
 doc/target/
+doc/furDb/
+doc/tmpl.fasta
 src/fur
 src/fur.c
 src/*.idx
 src/tutorial.sh
 scripts/tutorial.sh
+
+
+
+
