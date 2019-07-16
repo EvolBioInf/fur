@@ -16,8 +16,9 @@ doc/text.tex
 doc/cdf.eps
 doc/cdf.tex
 doc/eco105.tar.gz
-doc/neighborhood/
-doc/target/
+doc/neighbors/
+doc/targets/
+doc/furDb
 src/fur
 src/fur.c
 src/*.idx
