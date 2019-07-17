@@ -1,6 +1,7 @@
-wget guanine.evolbio.mpg.de/fur/test.tar.gz
+wget -q guanine.evolbio.mpg.de/fur/test.tar.gz
 tar -xzf test.tar.gz
-./fur -I testFur.idx -t testTar -n testNei 2>/dev/null > tmp.out
+makeFurDb -t testTar -n testNei -d furDb 2>/dev/null
+./fur -d furDb > tmp.out 2>/dev/null
 DIFF=$(diff tmp.out ../data/fur.out)
 if [ "$DIFF" == "" ] 
 then
@@ -10,4 +11,4 @@ else
     echo ${DIFF}
 fi
 
-rm -r testTar testNei test.tar.gz tmp.out
+rm -r testTar testNei test.tar.gz furDb tmp.out
