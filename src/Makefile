@@ -5,7 +5,7 @@ CFLAGS         = -DVERSION=\"$(VERSION)\" -DDATE=\"$(DATE)\" -O3 -Wall -Wshadow 
 
 SRCFILES  = fur.c interface.c
 OBJFILES  = fur.o interface.o
-LIBS      = -lcommon -lm -lbsd -lgsl -lblas
+LIBS      = -lcommon -lm -lbsd -lgsl -lgslcblas
 EXECFILE  = fur
 
 .PHONY : all

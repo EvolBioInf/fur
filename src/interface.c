@@ -71,7 +71,7 @@ Args *getArgs(int argc, char *argv[]) {
   }
   args->fi = argv + optind;
   args->nf = argc - optind;
-  if (!args->d) {
+  if (!args->d && !args->h && !args->v) {
     printf("ERROR[fur]: Please specify a fur database.\n");
     args->err = 1;
   }
