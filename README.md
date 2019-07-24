@@ -10,6 +10,7 @@ Find unique genomic regions.
 * ncbi-blast+
 * GSL (Gnu Scientific Library)
 * `wget`
+* `gnuplot`
 ## Compile
 Compile the sources using `make`; the executable `fur` is now in the directory `build`
 ## Documentation
