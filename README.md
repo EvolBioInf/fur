@@ -9,6 +9,7 @@ Find unique genomic regions.
 * [`macle`](https://github.com/evolbioinf/macle)
 * ncbi-blast+
 * GSL (Gnu Scientific Library)
+* `wget`
 ## Compile
 Compile the sources using `make`; the executable `fur` is now in the directory `build`
 ## Documentation
