@@ -4,14 +4,15 @@ Bernhard Haubold, `haubold@evolbio.mpg.de`
 ## Description
 Find unique genomic regions.
 ## Dependencies
-* `noweb`
-* `latex`
-* [`macle`](https://github.com/evolbioinf/macle)
-* ncbi-blast+
-* GSL (Gnu Scientific Library)
-* `wget`
 * `gnuplot`
-* the inconsolata font, e. g. in package texlive-fonts-extra
+* gsl (Gnu Scientific Library)
+* `latex`
+* libbsd
+* [`macle`] (https://github.com/evolbioinf/macle)
+* ncbi-blast+
+* `noweb`
+* pst-tools
+* `wget`
 ## Compile
 Compile the sources using `make`; the executable `fur` is now in the directory `build`
 ## Documentation
