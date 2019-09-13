@@ -477,6 +477,11 @@
     seqArrAdd(sa, s);
   }
   freeIntvArr(ia);
+  if (args->u) {
+    for (int i = 0; i < sa->n; i++)
+      printSeq(stdout, sa->arr[i], -1);
+    exit(0);
+  }
 #+end_src
 #+begin_src latex
   To copy the sequence data, memory is allocated, each nucleotide

@@ -24,7 +24,7 @@ typedef struct args{
   int     w; /* window length */
   float   p; /* p-value */
   int     t; /* number of threads */
-
+  char    u; /* print unique seq */
 } Args;
 
 Args *getArgs(int argc, char *argv[]);
