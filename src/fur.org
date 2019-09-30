@@ -437,14 +437,17 @@
 #+end_src
 #+begin_src latex
   If a unique \emph{window} overlaps an existing unique \emph{interval},
-  the interval is extended to the right
-  (Figure~\ref{fig:sw}). Otherwise, the interval is ``closed'' at the
-  endpoint found in the previous round, and added to the interval array.
+  the interval is extended to the right (Figure~\ref{fig:sw}). If the
+  unique window lies beyond the existing interval, the interval is
+  ``closed'' at the endpoint found in the last extension and added to
+  the interval array. Note that the interval is \emph{not} closed as
+  soon as it cannot be extended. Such a rule could lead to overlapping
+  intervals.
 #+end_src
 #+begin_src C <<Inside unique interval>>=
   if (ws <= ie && c >= mc)
     ie = we;
-  else {
+  else if (ws > ie) {
     in = 0;
     intvArrAdd(ia, newIntv(is, ie));
   }
