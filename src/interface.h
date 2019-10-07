@@ -18,13 +18,13 @@ typedef struct args{
   char    v; /* version message? */
   char  err; /* error */
   char **fi; /* input files */
+  char    u; /* print unique regions */
   int    nf; /* number of input files */
 
   char   *d; /* database */
   int     w; /* window length */
   float   p; /* p-value */
   int     t; /* number of threads */
-  char    u; /* print unique seq */
 } Args;
 
 Args *getArgs(int argc, char *argv[]);

@@ -38,7 +38,7 @@
 	  strains are the neighbors ($\mathcal{N}$).}\label{fig:eco}
       \end{figure}
 
-  The program takes as input a database computed by
+  The program takes as input a database computed using
   \texttt{makeFurDb}\footnote{\texttt{https://github.com/haubold/makeFurDb/}}
   from two directories of sequence files, the first contains one or more
   target genomes, the second one or more neighbor genomes. \texttt{fur}
@@ -67,10 +67,10 @@
   //<<Main function>>
 #+end_src
 #+begin_src latex
-  \subsection{Arrays of Sequences and of Intervals}
-  Interval arrays are one of the the basic building blocks of
-  \texttt{fur}, so they are defined first. Intervals have a start and an
-  end.
+  \subsection{Arrays of Intervals}
+  Intervals and their arrays are the basic hitherto undefined building
+  blocks of \texttt{fur}, so they are defined first. Intervals have a
+  start and an end.
 #+end_src
 #+begin_src C <<Data structures>>=
   typedef struct intv {
@@ -78,7 +78,7 @@
   } Intv;
 #+end_src
 #+begin_src latex
-  An arbitrary number of $n$ intervals is stored in an interval array.
+  An arbitrary number of $n$ intervals is stored in an \emph{interval array}.
 #+end_src
 #+begin_src C <<Data structures>>=
   typedef struct intvArr {
@@ -164,7 +164,6 @@
   }
 #+end_src
 #+begin_src latex
-  \subsection{Sequence Analysis}
   Interval arrays are now ready to be used. This is done in the
   \texttt{main} function, which first interacts with the user, then
   analyzes the targets and neighbors, and finally prints the desired
@@ -180,7 +179,7 @@
   }
 #+end_src
 #+begin_src latex
-  \subsubsection{User Interaction}
+  \subsection{User Interaction}
   Whenever the program interacts with the user, it identifies itself, so
   its name is set.
 #+end_src
@@ -233,7 +232,7 @@
     printSplash(args);
 #+end_src
 #+begin_src latex
-  \subsubsection{Find Unique Templates}
+  \subsection{Find Unique Templates}
   Analysis of the targets and neighbors proceeds in two steps. Unique
   regions are first identified by comparing one representative target to
   all neighbors. Then the unique regions are checked for presence in all
@@ -307,8 +306,9 @@
   of local complexity. Figure~\ref{fig:sw} shows a cartoon of a sliding
   window analysis. The overlapping windows returned by \texttt{macle}
   are characterized by their mid-points (dots) and are either unique
-  (lightgray) or not (black). The unique windows are summarized into
-  unique intervals (dashed). The array of unique intervals is eventually
+  (lightgray) or not (black). Unique windows are summarized into unique
+  intervals (dashed). The user is told about the size of the preliminary
+  template set, and the array of unique intervals is eventually
   converted into an array of unique sequences, the template candidates.
 
   \begin{figure}
@@ -317,8 +317,9 @@
     \end{center}
     \caption{Sliding window analysis of a genome sequence. The
       overlapping windows are centered on their mid-points (dots) and
-      are either unique (lightgray), or not (black). Unique windows are
-      summarized into unique intervals (dashed).}\label{fig:sw}
+      their complexity is either greater than the threshold, which makes
+      them unique (lightgray), or not (black). Unique windows are
+      summarized into the unique intervals $I_1$ and $I_2$ (dashed).}\label{fig:sw}
   \end{figure}
 
 #+end_src
@@ -327,9 +328,8 @@
   long len = 0;
   IntvArr *ia;
   //<<Compute complexity threshold>>
-  fprintf(stderr, "# Sliding window anlaysis...");
   //<<Sliding window analysis>>
-  fprintf(stderr, "done.\n");
+  //<<Report result of sliding window analysis>>
   //<<Prepare array of unique sequences>>
 #+end_src
 #+begin_src latex
@@ -441,7 +441,8 @@
   unique window lies beyond the existing interval, the interval is
   ``closed'' at the endpoint found in the last extension and added to
   the interval array. Note that the interval is \emph{not} closed as
-  soon as it cannot be extended. Such a rule could lead to overlapping
+  soon as it cannot be extended. Such a rule would break up $I_1$ in
+  Figure~\ref{fig:sw} into two overlapping and hence redundant
   intervals.
 #+end_src
 #+begin_src C <<Inside unique interval>>=
@@ -464,10 +465,24 @@
   }
 #+end_src
 #+begin_src latex
+  The result of the sliding window analysis is reported.
+#+end_src
+#+begin_src C <<Report result of sliding window analysis>>=
+  long nn = 0;
+  for (int i = 0; i < ia->n; i++)
+    nn += ia->arr[i]->e - ia->arr[i]->s + 1;
+  char *h1 = "# Step                    Sequences  Nucleotides";
+  char *h2 = "# ----------------------------------------------";
+  fprintf(stderr, "%s\n%s\n", h1, h2);
+  tmpl = "# Sliding window             %6d     %8ld\n";
+  fprintf(stderr, tmpl, ia->n, nn);
+#+end_src
+#+begin_src latex
   The array of unique intervals is now converted to the corresponding
   array of sequences. The templates are numbered and their lengths are
   included in the headers. Once the templates have been written, the
-  interval array is freed.
+  interval array is freed. For debugging purposes, the program can also
+  print the unique sequences.
 #+end_src
 #+begin_src C <<Prepare array of unique sequences>>=
   SeqArr *sa = newSeqArr();
@@ -480,6 +495,12 @@
     seqArrAdd(sa, s);
   }
   freeIntvArr(ia);
+  //<<Print unique sequences?>>
+#+end_src
+#+begin_src latex
+  After printing the unique sequences, the program exits.
+#+end_src
+#+begin_src C <<Print unique sequences?>>=
   if (args->u) {
     for (int i = 0; i < sa->n; i++)
       printSeq(stdout, sa->arr[i], -1);
@@ -497,15 +518,17 @@
   s->data[s->l] = '\0';
 #+end_src
 #+begin_src latex
-  \subsubsection{Check Unique Templates}
+  \subsection{Check Unique Templates}
   The intervals in hand are candidates for template sequences. But
   before they are printed, they are checked for presence in all targets
   and absence from all neighbors using BLAST. Presence in all targets is
-  done first and templates not found in every target are deleted.
+  done first and templates not found in every target are deleted. The
+  current size of the result set is reported.
 #+end_src
 #+begin_src C <<Check presence in all targets>>=
   //<<Search targets>>
   //<<Delete non-ubiquitous templates>>
+  //<<Report result of presence test>>
 #+end_src
 #+begin_src latex
   Before searching among the targets, they are counted. The search pipe
@@ -579,17 +602,15 @@
   The templates are written to the target pipe.
 #+end_src
 #+begin_src C <<Write templates to target pipe>>=
-  fprintf(stderr, "# Searching targets...");
   pp = epopen(cmd, "w");
   for (int i = 0; i < sa->n; i++)
     printSeq(pp, sa->arr[i], -1);
   pclose(pp);
-  fprintf(stderr, "done.\n");
 #+end_src
 #+begin_src latex
   The output of the search consists of the templates \emph{not} to be
   deleted. Since they are in numerical order, deleting all other
-  templates is achieved in two succinct steps. First parse the output
+  templates is achieved in two succinct steps. First, parse the output
   file and delete everything but the sequences listed there, then delete
   the remaining sequences.
 #+end_src
@@ -613,8 +634,7 @@
       freeSeq(sa->arr[ii]);
       sa->arr[ii] = NULL;
     }
-    fprintf(stderr, "# Found in all targets: %s\n",
-	    sa->arr[ii++]->name);
+    ii++;
   }
 #+end_src
 #+begin_src latex
@@ -628,15 +648,31 @@
   }
 #+end_src
 #+begin_src latex
+  The user is told about the result of the presence test.
+#+end_src
+#+begin_src C <<Report result of presence test>>=
+  nn = 0;
+  int ns = 0;
+  for (int i = 0; i < sa->n; i++)
+    if (sa->arr[i]) {
+      nn += sa->arr[i]->l;
+      ns++;
+    }
+  tmpl = "# Presence in targets        %6d     %8ld\n";
+  fprintf(stderr, tmpl, ns, nn);
+#+end_src
+#+begin_src latex
   The absence of the remaining templates among the neighbors is
   established in a similar way. The candidate templates are searched in
   the BLAST database and the hits written to file. This file is read
   back into the program, only this time it contains the templates to be
-  deleted rather than the ones to be kept.
+  deleted rather than the ones to be kept. At the end, the result of
+  this absence test is reported.
 #+end_src
 #+begin_src C <<Check absence from all neighbors>>=
   //<<Search neighbors>>
   //<<Delete templates found among neighbors>>
+  //<<Report result of absence test>>
 #+end_src
 #+begin_src latex
   The neighborhood database is searched by constructing the
@@ -665,12 +701,10 @@
   written to pipe with their index numbers as FASTA identifiers.
 #+end_src
 #+begin_src C <<Write templates to neighbor pipe>>=
-  fprintf(stderr, "# Searching neighbors...");
   for (int i = 0; i < sa->n; i++)
     if (sa->arr[i])
       fprintf(pp, ">%d\n%s\n", i, sa->arr[i]->data);
   pclose(pp);
-  fprintf(stderr, "done.\n");
 #+end_src
 #+begin_src latex
   The BLAST result is read and the template candidates found among the
@@ -679,11 +713,25 @@
 #+begin_src C <<Delete templates found among neighbors>>=
   fp = efopen(of, "r");
   while (fscanf(fp, "%d", &ii) != EOF) {
-    fprintf(stderr, "# Found among neighbors: %s\n", sa->arr[ii]->name);
     freeSeq(sa->arr[ii]);
     sa->arr[ii] = NULL;
   }
   fclose(fp);
+#+end_src
+#+begin_src latex
+  The result of the absence test is also the final result of the
+  analysis.
+#+end_src
+#+begin_src C  <<Report result of absence test>>=
+  nn = 0;
+  ns = 0;
+  for (int i = 0; i < sa->n; i++)
+    if (sa->arr[i]) {
+      nn += sa->arr[i]->l;
+      ns++;
+    }
+  tmpl = "# Absence from neighbors     %6d     %8ld\n";
+  fprintf(stderr, tmpl, ns, nn);
 #+end_src
 #+begin_src latex
   The last step in \texttt{fur} is to print the template sequences that
@@ -699,11 +747,11 @@
   The program is now ready to be used.
   \section{Tutorial}\label{sec:tut}
   To demonstrate the application of \texttt{fur}, the example data shown
-  in Figure~\ref{fig:eco} is analyzed with the aim of finding regions
-  specific to the pathogenic \emph{E. coli} strain ST131.  The first
-  step is to get the data. This is converted into a \texttt{fur}
-  database and analyzed in an initial pass before the investigation is
-  refined by varying the parameters of \texttt{fur}.
+  in Figure~\ref{fig:eco} is analyzed to find regions specific to the
+  pathogenic \emph{E. coli} strain ST131.  The first step is to get the
+  data. This is converted into a \texttt{fur} database and analyzed in
+  an initial pass before the investigation is refined by varying the
+  parameters of \texttt{fur}.
 #+end_src
 #+begin_src sh <<tutorial.sh>>=
   <<Get tutorial data>>
@@ -730,57 +778,114 @@
 #+end_src
 #+begin_src latex
   Unique templates are found by applying \texttt{fur} to this database,
-  which takes only 5.4 s. The template sequences are stored in
+  which takes only 4.4 s. The template sequences are stored in
   \texttt{tmpl.fasta}.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
   fur -d furDb > tmpl.fasta
+  # Step                    Sequences  Nucleotides
+  # ----------------------------------------------
+  # Sliding window                185       638000
+  # Presence in targets             6         5450
+  # Absence from neighbors          3         2150
 #+end_src
 #+begin_src latex
-  The program lists thirteen regions present in all targets, followed by
-  four found among the neighbors. So there are $13-4=9$ templates in
-  \texttt{tmpl.fasta}. Use AWK to find that their combined length is 5.8
-  kb.
-#+end_src
-#+begin_src sh <<Analyze tutorial data>>=
-  awk '/^>/{c++; s += $2} END {printf "%d tmpl, %d bp\n", c, s}' \
-      tmpl.fasta
-#+end_src
-#+begin_src latex
-  The first parameter to explore is window length, \texttt{-w}. Longer
-  windows result in fewer candidate regions. For example, with 1 kb
-  windows, one template is found in all targets, but it is also found
-  among the neighbors, so no template is returned.
+  The hash-tagged progress information lists the three steps of the
+  algorithm and the number of sequences and nucleotides contained in the
+  template set after each one. So the initial sliding analysis uncovers
+  185 sequences totaling 638 kb. After checking for presence in all
+  target sequences, 6 sequences with 5.5 kb remain. The final step of
+  checking for absence from the neighborhood leaves three sequences with
+  2.2 kb as the template set.
+
+  To make the process of template selection more transparent, the
+  \texttt{-u} option prints the unique regions found in the sliding
+  window analysis and exits.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -w 1000 
+  fur -d furDb -u > unique.fasta
 #+end_src
 #+begin_src latex
-  On the other hand, reducing the window length to 250 bp yields 36
-  templates with 13.9 kb. Clearly, \texttt{fur} is highly sensitive to
+  The file \texttt{unique.fasta} now contains 185 sequences with 638000
+  nucleotides, which can be checked using a short AWK script.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  awk '/^>/{c++; s += $2} END {printf "# %s tmpl, %d bp\n", c, s}' \
+      unique.fasta
+  # 185 tmpl, 638000 bp
+#+end_src
+#+begin_src latex
+  The first parameter of \texttt{fur} to explore is window length,
+  \texttt{-w}. Longer windows result in sequences that are more
+  difficult to find as exact matches among all targets. For example,
+  with 1 kb windows, there are 111 candidate regions, of which only one
+  is present in all targets. However, it is also found among the
+  neighbor sequences, leaving no templates. This is in spite of the fact
+  that the amount of nucleotides returned from the sliding window
+  analysis, 635 kb, is hardly changed from the previous 638 kb.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  fur -d furDb -w 1000
+  # Step                    Sequences  Nucleotides
+  # ----------------------------------------------
+  # Sliding window                111       634900
+  # Presence in targets             1         1400
+  # Absence from neighbors          0            0
+#+end_src
+#+begin_src latex
+  On the other hand, reducing the window length to 250 bp yields 14
+  templates with 6.6 kb. Clearly, \texttt{fur} is highly sensitive to
   the window length and this should be borne in mind when investigating
   other pathogens.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -w 250 |
-      awk '/^>/{c++; s += $2} END {printf "%d tmpl, %d bp\n", c, s}'
+  fur -d furDb -w 250 > tmpl.fasta
+  # Step                    Sequences  Nucleotides
+  # ----------------------------------------------
+  # Sliding window                288       665550
+  # Presence in targets            18         9575
+  # Absence from neighbors         14         6625
 #+end_src
 #+begin_src latex
   The second parameter to explore is the CDF-value, or $P$-value
   corresponding to the complexity threshold used by the program,
   \texttt{-p} (Figure~\ref{fig:cdf}). By default this is
   0.95. Increasing it to 1 abolishes all templates, but setting it just
-  below 1 to $P=0.99999$ increases the yield to 20 templates with 13.3
-  kb. So it might well be worth testing different $P$-values and window
+  below 1 to $P=0.99999$ increases the yield to 6 templates with 4.4
+  kb. The reason for this is, presumably, that with $P=0.99999$ the
+  unique intervals returned by the sliding window analysis are shorter
+  than with the default $P$-value, and shorter sequences stand a better
+  chance of being found as exact matches in all targets.
+
+  To test this, repeat the analysis with a window of 250 bp instead of
+  the default 500 bp. This returns 32 sequences with 12.7 kb.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  fur -d furDb -p 0.99999 -w 250 > tmpl.fasta
+  # Step                    Sequences  Nucleotides
+  # ----------------------------------------------
+  # Sliding window                656       464175
+  # Presence in targets            32        12700
+  # Absence from neighbors         32        12700
+#+end_src
+#+begin_src latex
+  Now, what happens if the window length is halved again? This returns
+  101 template sequences with a total of 20.6 kb, the largest yield so
+  far.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+  fur -d furDb -p 0.99999 -w 125 > tmpl.fasta
+  # Step                    Sequences  Nucleotides
+  # ----------------------------------------------
+  # Sliding window               1249       337360
+  # Presence in targets           101        20636
+  # Absence from neighbors        101        20636
+#+end_src
+#+begin_src latex
+  So it might well be worth testing different $P$-values and window
   lengths in other analyses. This can be done conveniently because each
   run of \texttt{fur} takes only a few seconds once the underlying
   database has been computed.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -p 0.99999 |
-      awk '/^>/{c++; s += $2} END {printf "%s tmpl, %d bp\n", c, s}'
-#+end_src
-#+begin_src latex
   \section{List of code chunks}
   \nowebchunks
 #+end_src

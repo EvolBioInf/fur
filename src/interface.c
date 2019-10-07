@@ -24,6 +24,7 @@ Args *newArgs() {
   args->w   = DEFAULT_W;
   args->p   = DEFAULT_P;
   args->t   = DEFAULT_T;
+  args->u   = 0;
   return args;
 }
 
@@ -51,11 +52,11 @@ Args *getArgs(int argc, char *argv[]) {
     case 't': /* number of threads */
       args->t = atoi(optarg);
       break;
+    case 'u': /* print unique regions */
+      args->u = 1;
+      break;
     case 'h': /* help       */
       args->h = 1;
-      break;
-    case 'u': /* print unique seq */
-      args->u = 1;
       break;
     case 'v': /* version    */
       args->v = 1;
@@ -91,7 +92,7 @@ void printUsage() {
   printf("\t[-w <NUM> window length; default: %d]\n", DEFAULT_W);
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
   printf("\t[-T <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
-  printf("\t[-u print unique sequences and exit]\n");
+  printf("\t[-u print unique regions and exit]\n");
   printf("\t[-h print this help message and exit]\n");
   printf("\t[-v print version & program information and exit]\n");
   exit(0);
