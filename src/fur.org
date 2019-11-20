@@ -556,22 +556,24 @@
 #+begin_src latex
   The command of the target pipe begins with a BLAST search among the
   targets. This is filtered by an AWK script to count the number of
-  exact matches per template. The names of templates that match every
-  target are written to file. Since \emph{exact} matches are required,
-  the BLAST search is customized, such that it contains the query length
-  in its output. Only hits where the query length is equal to the
-  alignment length without mismatches are counted. Also, multiple hits
-  to the same subject are counted only once. To facilitate the
+  matches per template. The names of templates that match every target
+  are written to file. Since \emph{exact} matches are required by
+  default, the BLAST search is customized, such that it contains the
+  query length in its output. Only hits where the query length is equal
+  to the alignment length without mismatches are counted. However, the
+  user can change this default behavior by setting a minimum length of
+  the alignment and/or a minimum percent identity. In addition, multiple
+  hits to the same subject are counted only once. To facilitate the
   identification of templates, their names are reduced to their indexes
-  in the template array. So \texttt{template\_x} becomes
-  \texttt{x}. The indexes are sorted and written to a file located in
-  the directory that also houses the \texttt{fur} database.
+  in the template array. So \texttt{template\_x} becomes \texttt{x}. The
+  indexes are sorted and written to a file located in the directory that
+  also houses the \texttt{fur} database.
 #+end_src
 #+begin_src C <<Construct target pipe>>=
   tmpl = "blastn -db %s/blastdb -num_threads %d -outfmt "
-    "\"6 sacc qacc qlen length mismatch\" | "
+    "\"6 sacc qacc qlen length pident\" | "
     "grep '^t' | "
-    "awk -v n=%d '$3==$4 && $5==0 "
+    "awk -v n=%d -v l=%d '((!l && $3==$4) || (l && $4>=l)) && $5>=%.3f "
     "{i = $1 $2; if (!u[i]) {u[i]++; c[$2]++}} "
     "END {for (a in c) if (c[a] == n) print a}' | "
     "sed 's/template_//' | awk '{print --$1}' | "
@@ -579,7 +581,7 @@
   char *of = estrdup(args->d);
   of = erealloc(of, strlen(of) + 5);
   strcat(of, "/out");
-  sprintf(cmd, tmpl, args->d, args->t, nt, of);
+  sprintf(cmd, tmpl, args->d, args->t, nt, args->l, args->i, of);
 #+end_src
 #+begin_src latex
   The functions \texttt{strlen} and \texttt{strcat} are declared in
@@ -792,15 +794,15 @@
 #+begin_src latex
   The hash-tagged progress information lists the three steps of the
   algorithm and the number of sequences and nucleotides contained in the
-  template set after each one. So the initial sliding analysis uncovers
-  185 sequences totaling 638 kb. After checking for presence in all
-  target sequences, 6 sequences with 5.5 kb remain. The final step of
-  checking for absence from the neighborhood leaves three sequences with
-  2.2 kb as the template set.
+  template set after each one. So the initial sliding window analysis
+  uncovers 185 sequences totaling 638 kb. After checking for presence in
+  all target sequences, 6 sequences with 5.5 kb remain. The final step
+  of checking for absence from the neighborhood leaves three sequences
+  with 2.2 kb as the template set.
 
   To make the process of template selection more transparent, the
-  \texttt{-u} option prints the unique regions found in the sliding
-  window analysis and exits.
+  \texttt{-u} option is used to print the unique regions found in the
+  sliding window analysis and exits.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
   fur -d furDb -u > unique.fasta
@@ -847,7 +849,37 @@
   # Absence from neighbors         14         6625
 #+end_src
 #+begin_src latex
-  The second parameter to explore is the CDF-value, or $P$-value
+  The second parameter of interest is the minimum percent identity a
+  BLAST hits to the target sequences. By default this is 100, but if
+  lowered to 99, the default 500 bp windows analysis yields template
+  candidates five with 3.6 kb instead of the previous three templates
+  with 2.2 kb.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+fur -d furDb -i 99 | cchar
+# Step                    Sequences  Nucleotides
+# ----------------------------------------------
+# Sliding window                185       638000
+# Presence in targets             9         7500
+# Absence from neighbors          5         3550
+#+end_src
+#+begin_src latex
+  If the minimum length of a target hit is now also reduced from the
+  query length to 250 bp, the number of template candidates grows to 23
+  with 73.9 kb. These would still have to be inspected in a multiple
+  sequence alignment to find their intersection before primer design can
+  begin.
+#+end_src
+#+begin_src sh <<Refine tutirial aslysis>>=
+  fur -d furDb -i 99 -l 250 
+  # Step                    Sequences  Nucleotides
+  # ----------------------------------------------
+  # Sliding window                185       638000
+  # Presence in targets            32       101450
+  # Absence from neighbors         23        73900
+#+end_src
+#+begin_src latex
+  The final parameter to explore is the CDF-value, or $P$-value
   corresponding to the complexity threshold used by the program,
   \texttt{-p} (Figure~\ref{fig:cdf}). By default this is
   0.95. Increasing it to 1 abolishes all templates, but setting it just
@@ -882,10 +914,11 @@
   # Absence from neighbors        101        20636
 #+end_src
 #+begin_src latex
-  So it might well be worth testing different $P$-values and window
-  lengths in other analyses. This can be done conveniently because each
-  run of \texttt{fur} takes only a few seconds once the underlying
-  database has been computed.
+  So it might well be worth testing different window lengths
+  (\texttt{-w}), alignment lengths (\texttt{-l}), percent identity
+  (\texttt{-i}), and $P$-values (\texttt{-p}) in other analyses. This
+  can be done conveniently because each run of \texttt{fur} takes only a
+  few seconds once the underlying database has been computed.
   \section{List of code chunks}
   \nowebchunks
 #+end_src

@@ -24,6 +24,8 @@ Args *newArgs() {
   args->w   = DEFAULT_W;
   args->p   = DEFAULT_P;
   args->t   = DEFAULT_T;
+  args->i   = DEFAULT_I;
+  args->l   = DEFAULT_L;
   args->u   = 0;
   return args;
 }
@@ -35,7 +37,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvud:w:p:t:";
+  char *optString = "hvud:w:p:t:i:l:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -51,6 +53,12 @@ Args *getArgs(int argc, char *argv[]) {
       break;
     case 't': /* number of threads */
       args->t = atoi(optarg);
+      break;
+    case 'i': /* minimum percent identity */
+      args->i = atof(optarg);
+      break;
+    case 'l': /* minimum length of alignment */
+      args->l = atoi(optarg);
       break;
     case 'u': /* print unique regions */
       args->u = 1;
@@ -91,6 +99,8 @@ void printUsage() {
   printf("\t-d <STR> database\n");
   printf("\t[-w <NUM> window length; default: %d]\n", DEFAULT_W);
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
+  printf("\t[-i <NUM> minimum percent identity in target; default: %.3f]\n", DEFAULT_I);
+  printf("\t[-l <NUM> minimum alignment length in target; default: query lengt]\n");
   printf("\t[-T <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-u print unique regions and exit]\n");
   printf("\t[-h print this help message and exit]\n");
