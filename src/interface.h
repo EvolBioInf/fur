@@ -29,6 +29,7 @@ typedef struct args{
   float   i; /* minimum percent identity */
   int     l; /* minimum alignment length */
   int     t; /* number of threads */
+  int     k; /* step length */
 } Args;
 
 Args *getArgs(int argc, char *argv[]);

@@ -27,6 +27,7 @@ Args *newArgs() {
   args->i   = DEFAULT_I;
   args->l   = DEFAULT_L;
   args->u   = 0;
+  args->k   = 0;
   return args;
 }
 
@@ -37,7 +38,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvud:w:p:t:i:l:";
+  char *optString = "hvud:w:p:t:i:l:k:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -59,6 +60,9 @@ Args *getArgs(int argc, char *argv[]) {
       break;
     case 'l': /* minimum length of alignment */
       args->l = atoi(optarg);
+      break;
+    case 'k': /* step length of sliding window analysis */
+      args->k = atoi(optarg);
       break;
     case 'u': /* print unique regions */
       args->u = 1;
@@ -88,6 +92,8 @@ Args *getArgs(int argc, char *argv[]) {
     printf("ERROR[fur]: Please specify a fur database.\n");
     args->err = 1;
   }
+  if (!args->k)
+    args->k = (int)(args->w / 10.);
   return args;
 }
 
@@ -102,6 +108,7 @@ void printUsage() {
   printf("\t[-i <NUM> minimum percent identity in target; default: %.3f]\n", DEFAULT_I);
   printf("\t[-l <NUM> minimum alignment length in target; default: query lengt]\n");
   printf("\t[-T <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
+  printf("\t[-k <NUM> step length of sliding window analysis; default: w/10]\n");
   printf("\t[-u print unique regions and exit]\n");
   printf("\t[-h print this help message and exit]\n");
   printf("\t[-v print version & program information and exit]\n");

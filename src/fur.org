@@ -408,10 +408,10 @@
 #+end_src
 #+begin_src C <<Prepare sliding window analysis>>=
   tmpl =
-    "macle -i %s/macle.idx -n %s -w %d | "
+    "macle -i %s/macle.idx -n %s -w %d -k %d | "
     "cut -f 2,3 | "
     "awk '$2 > -1'";
-  sprintf(cmd, tmpl, args->d, rn, args->w);
+  sprintf(cmd, tmpl, args->d, rn, args->w, args->k);
   pp = epopen(cmd, "r");
   float m, c;
   ia = newIntvArr();
