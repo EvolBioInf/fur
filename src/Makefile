@@ -16,9 +16,10 @@ interface.o: interface.h
 
 fur.c: fur.org
 	bash ../scripts/org2nw fur.org | notangle -Rfur.c > fur.c
-tutorial: fur.org
+tutorial: fur.org  count.awk
 	bash ../scripts/org2nw fur.org | notangle -Rtutorial.sh > tutorial.sh
-
+count.awk: fur.org
+	bash ../scripts/org2nw fur.org | notangle -Rcount.awk > count.awk
 clean:
 	rm -f *.o *~
 test:

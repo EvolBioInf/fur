@@ -21,6 +21,7 @@ doc/tmpl.fasta
 src/fur
 src/fur.c
 src/*.idx
+src/*.awk
 src/tutorial.sh
 scripts/tutorial.sh
 

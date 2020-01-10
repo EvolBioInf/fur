@@ -27,6 +27,7 @@ Args *newArgs() {
   args->i   = DEFAULT_I;
   args->l   = DEFAULT_L;
   args->u   = 0;
+  args->U   = 0;
   args->k   = 0;
   return args;
 }
@@ -38,7 +39,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvud:w:p:t:i:l:k:";
+  char *optString = "hvuUd:w:p:t:i:l:k:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -64,8 +65,11 @@ Args *getArgs(int argc, char *argv[]) {
     case 'k': /* step length of sliding window analysis */
       args->k = atoi(optarg);
       break;
-    case 'u': /* print unique regions */
+    case 'u': /* print unique regions after sliding window Analysis */
       args->u = 1;
+      break;
+    case 'U': /* print unique regions after checking for presence among templates */
+      args->U = 1;
       break;
     case 'h': /* help       */
       args->h = 1;
@@ -107,9 +111,10 @@ void printUsage() {
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
   printf("\t[-i <NUM> minimum percent identity in target; default: %.3f]\n", DEFAULT_I);
   printf("\t[-l <NUM> minimum alignment length in target; default: query lengt]\n");
-  printf("\t[-T <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
+  printf("\t[-t <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-k <NUM> step length of sliding window analysis; default: w/10]\n");
-  printf("\t[-u print unique regions and exit]\n");
+  printf("\t[-u print unique regions after sliding window analysis and exit]\n");
+  printf("\t[-U print unique regions after checking for presence in templates and exit]\n");
   printf("\t[-h print this help message and exit]\n");
   printf("\t[-v print version & program information and exit]\n");
   exit(0);

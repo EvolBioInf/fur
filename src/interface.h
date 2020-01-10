@@ -8,7 +8,7 @@
 #ifndef INTERFACE
 #define INTERFACE
 
-#define DEFAULT_W 500
+#define DEFAULT_W 80
 #define DEFAULT_P 0.95
 #define DEFAULT_T 8
 #define DEFAULT_L 0
@@ -20,7 +20,8 @@ typedef struct args{
   char    v; /* version message? */
   char  err; /* error */
   char **fi; /* input files */
-  char    u; /* print unique regions */
+  char    u; /* print unique regions after sliding window analysis */
+  char    U; /* print unique regions after checking for presence among targets */
   int    nf; /* number of input files */
 
   char   *d; /* database */
