@@ -13,6 +13,7 @@
 #define DEFAULT_T 8
 #define DEFAULT_L 0
 #define DEFAULT_I 100.0
+#define DEFAULT_E 1e-5
 
 /* define argument container */
 typedef struct args{
@@ -28,6 +29,7 @@ typedef struct args{
   int     w; /* window length */
   float   p; /* p-value */
   float   i; /* minimum percent identity */
+  double  e; /* E-value for neighborhood search */
   int     l; /* minimum alignment length */
   int     t; /* number of threads */
   int     k; /* step length */

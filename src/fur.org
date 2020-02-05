@@ -572,8 +572,8 @@
   also houses the \texttt{fur} database.
 #+end_src
 #+begin_src C <<Construct target pipe>>=
-  tmpl = "blastn -db %s/blastdb -num_threads %d -outfmt "
-    "\"6 sacc qacc qlen length pident\" | "
+  tmpl = "blastn -db %s/blastdb -num_threads %d "
+    "-outfmt \"6 sacc qacc qlen length pident\" | "
     "grep '^t' | "
     "awk -v n=%d -v l=%d '((!l && $3==$4) || (l && $4>=l)) && $5>=%.3f "
     "{i = $1 $2; if (!u[i]) {u[i]++; c[$2]++}} "
@@ -703,12 +703,12 @@
   templates with at least one hit to file.
 #+end_src
 #+begin_src C <<Construct neighbor pipe>>=
-  tmpl = "blastn -db %s/blastdb -num_threads %d "
-    "-outfmt \"6 sacc qacc\" | "
+  tmpl = "blastn -task blastn -db %s/blastdb -num_threads %d "
+    "-evalue %e -outfmt \"6 sacc qacc\" | "
     "grep '^n' | "
     "awk '{n[$2]++} "
     "END {for (a in n) if (n[a]) print a}' > %s";
-  sprintf(cmd, tmpl, args->d, args->t, of);
+  sprintf(cmd, tmpl, args->d, args->t, args->e, of);
   pp = epopen(cmd, "w");
 #+end_src
 #+begin_src latex
@@ -786,14 +786,14 @@
   \texttt{targets} with 98 genomes, and \texttt{neighbors} with
   seven. These are converted to a \texttt{fur} database using
   \texttt{makeFurDb}\footnote{\texttt{https://github.com/haubold/makeFurDb}},
-  which takes approximately 35 s.
+  which takes approximately half a minute.
 #+end_src
 #+begin_src sh <<Make fur database>>=
   makeFurDb -t targets -n neighbors -d furDb
 #+end_src
 #+begin_src latex
   Unique templates are found by applying \texttt{fur} to this database,
-  which takes only 9.8 s. The template sequences are stored in
+  which takes roughly ten seconds. The template sequences are stored in
   \texttt{tmpl.fasta}.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
@@ -802,7 +802,7 @@
   # ----------------------------------------------
   # Sliding window               1005       681264
   # Presence in targets           137        25528
-  # Absence from neighbors        133        24232
+  # Absence from neighbors         29         8848
 #+end_src
 #+begin_src latex
   The hash-tagged progress information lists the three steps of the
@@ -810,28 +810,28 @@
   template set after each one. So the initial sliding window analysis
   uncovers 1005 sequences totaling 681.3 kb. After checking for presence
   in all target sequences, 137 sequences with 25.5 kb remain. The final
-  step of checking for absence from the neighborhood leaves 133
-  sequences with 24.2 kb as the template set.
+  step of checking for absence from the neighborhood leaves 29 sequences
+  with 8.8 kb as the template set.
 
   The file \texttt{tmpl.fasta} consists of headers followed by sequence
   data. Each header in turn consists of a name and the sequence length.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
-  head tmpl.fasta 
-  >template_2 120
-  AAATTCCCAACCGGCGCTGGTTTGCCAGGTGCCATGACGACCAAACTGTGAGTTATCGTCGCTACGTGCT
-  GCGCCTTCAAAGGTAAAATCGCCAACTTGTTGCAGCCCGGTCAGATAGAT
-  >template_3 80
-  GCGCACATAAAGGCCACATCTCAAATGCCATTCGAATTATGGGTCAGTCGGGCCACTCCAGCGATCCGTC
-  GCGCGGGGTT
-  >template_4 88
-  GCCTGTAAGTCGTTTGGTTGCCGTAATTTAGGGCAGCCAACATCGACAGATTATAGCTGGCCCGACTATC
-  GACTGGGTTATCCGGCAC
-  >template_5 80
+  head tmpl.fasta
+  >template_21 144
+  CGCTGCCGGTAAAACCAAGCCATTGCGTGCCGTGTGAGGCGAGAGTGAATGTTGCCGACACGGGTGCCAG
+  TTCCGTCAATACCATCACATTTGCTGCCGTGTTTACAATGGTTCCTGAGCGGCTCATCGCATTATCACGC
+  CTGA
+  >template_25 80
+  TCTTTTTGCCTGGTGAATCACAAAAATCCCCCTACCCCGTCACGCTCGCCCCAGGGTAACCCTGACCATT
+  ATTTGCTATA
+  >template_26 424
+  GACAAGATAGCACTTTCCCGCAAAAGATGGGGACGAGCGATTCATTTTACGAGTCGCGTTCCGAAAAAAG
+  ACTGTTGCGGCCAGTCGGTAGAGAAAAAGCGCTACCATGCCGCGTTCACATTGATATGTATTCACAGGGA
 #+end_src
 #+begin_src latex
-  The file \texttt{tmpl.fasta} is supposed to contain 133 sequences with
-  a total of 24,232 bp. To check this, we write the AWK script
+  The file \texttt{tmpl.fasta} is supposed to contain 29 sequences with
+  a total of 8,848 bp. To check this, we write the AWK script
   \texttt{count.awk}. It counts the headers and sums the sequence
   lengths before reporting the number of templates and nucleotides.
 #+end_src
@@ -845,11 +845,11 @@
   }
 #+end_src
 #+begin_src latex
-  The script is run to find the expected 133 templates with 24.2 kb.
+  Run the script to find the expected 29 templates with 8.8 kb.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
   awk -f count.awk tmpl.fasta 
-  # 133 tmpl, 24232 bp
+  # 29 tmpl, 8848 bp
 #+end_src
 #+begin_src latex
   To make the process of template selection more transparent, the
@@ -897,7 +897,8 @@
   regions, of which only one is present in all targets. However, it is
   also found among the neighbor sequences, leaving no templates. This is
   in spite of the fact that the amount of nucleotides returned from the
-  sliding window analysis, 635 kb, is similar to the previous 681 kb.
+  sliding window analysis, 635 kb, is similar to the 681 kb found with
+  80 bp windows.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
   fur -d furDb -w 1000
@@ -909,7 +910,7 @@
 #+end_src
 #+begin_src latex
   On the other hand, a small increase in window length to 90 bp happens
-  yield 163 templates with 31.9 kb. Clearly, \texttt{fur} is highly
+  to yield 85 templates with 18.9 kb. Clearly, \texttt{fur} is highly
   sensitive to the window length and this should be borne in mind when
   investigating other pathogens.
 #+end_src
@@ -919,14 +920,14 @@
   # ----------------------------------------------
   # Sliding window               1610       609930
   # Presence in targets           163        31869
-  # Absence from neighbors        163        31869
+  # Absence from neighbors         85        18936
 #+end_src
 #+begin_src latex
-  The second parameter of interest is the minimum percent identity a
+  The second parameter of interest is the minimum percent identity of
   BLAST hits to the target sequences. By default this is 100, but if
-  lowered to 99, the default 80 bp windows analysis yields 160 template
-  candidates with 35.0 kb instead of the previous 133 templates with
-  24.2 kb.
+  lowered to 99, the default 80 bp windows analysis yields 36 template
+  candidates with 11.9 kb instead of the previous 29 templates with 8.8
+  kb.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis>>=
   fur -d furDb -i 99 > tmpl.fasta
@@ -934,29 +935,45 @@
   # ----------------------------------------------
   # Sliding window               1005       681264
   # Presence in targets           164        36248
-  # Absence from neighbors        160        34952
+  # Absence from neighbors         36        11904
 #+end_src
 #+begin_src latex
-  If the minimum length of a target hit is now also reduced from the
-  query length to 500 bp, the number of template candidates shrinks to
-  with 51 as many short templates are excluded. However, the total
-  number of nucleotides grows to 71.7 kb. These would still have to be
-  inspected in a multiple sequence alignment to find their intersection
-  before primer design can begin.
+  The third parameter that can be tuned to optimize searches is the
+  minimum length of the alignment between a target and a candidate. By
+  default this is the candidate length. If reduced to 500 bp, one
+  template candidate fewer is retained. However, the total number of
+  nucleotides grows over fourfold to 40.8 kb. These would still have to
+  be inspected in a multiple sequence alignment to find their
+  intersection before primer design can begin.
 #+end_src
-#+begin_src sh <<Refine tutirial aslysis>>=
+#+begin_src sh <<Refine tutorial aslysis>>=
   fur -d furDb -i 99 -l 500 > tmpl.fasta
   # Step                    Sequences  Nucleotides
   # ----------------------------------------------
   # Sliding window               1005       681264
   # Presence in targets            52        72496
-  # Absence from neighbors         51        71688
+  # Absence from neighbors         28        40776
 #+end_src
 #+begin_src latex
-  So it might well be worth testing different window lengths
-  (\texttt{-w}), alignment lengths (\texttt{-l}), and percent identity
-  (\texttt{-i}), in other analyses. This can be done conveniently
-  because each run of \texttt{fur} is reasonably fast once the
+  The fourth and last parameter we explore in this tutorial is the
+  $E$-value for the BLAST-search among the neighborhood sequences, which
+  is $10^{-5}$ by default. When decreased to, say, $10^{-20}$, the yield
+  increases from the original 29 fragments with 8.8 kb to 52 fragments
+  with 12.4 kb. However, the candidates might now be less specific.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis>>=
+fur -d furDb -e 1e-20 > tmpl.fasta
+# Step                    Sequences  Nucleotides
+# ----------------------------------------------
+# Sliding window               1005       681264
+# Presence in targets           137        25528
+# Absence from neighbors         52        12392
+#+end_src
+#+begin_src latex
+  So it might well be worth varying the window length (\texttt{-w}),
+  percent identity (\texttt{-i}), alignment length (\texttt{-l}), and
+  the $E$-value (\texttt{-e}), in your own analyses. This can be done
+  conveniently, as each run of \texttt{fur} is reasonably fast once the
   underlying database has been computed.
   \section{List of code chunks}
   \nowebchunks

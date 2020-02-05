@@ -26,6 +26,7 @@ Args *newArgs() {
   args->t   = DEFAULT_T;
   args->i   = DEFAULT_I;
   args->l   = DEFAULT_L;
+  args->e   = DEFAULT_E;
   args->u   = 0;
   args->U   = 0;
   args->k   = 0;
@@ -39,7 +40,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvuUd:w:p:t:i:l:k:";
+  char *optString = "hvuUd:w:p:t:i:l:k:e:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -58,6 +59,9 @@ Args *getArgs(int argc, char *argv[]) {
       break;
     case 'i': /* minimum percent identity */
       args->i = atof(optarg);
+      break;
+    case 'e': /* E-value in neighborhood search */
+      args->e = atof(optarg);
       break;
     case 'l': /* minimum length of alignment */
       args->l = atoi(optarg);
@@ -111,6 +115,7 @@ void printUsage() {
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
   printf("\t[-i <NUM> minimum percent identity in target; default: %.3f]\n", DEFAULT_I);
   printf("\t[-l <NUM> minimum alignment length in target; default: query lengt]\n");
+  printf("\t[-e <NUM> e-value for neighborhood search; default: %g]\n", DEFAULT_E);
   printf("\t[-t <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-k <NUM> step length of sliding window analysis; default: w/10]\n");
   printf("\t[-u print unique regions after sliding window analysis and exit]\n");
