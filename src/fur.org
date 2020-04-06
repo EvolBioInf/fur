@@ -479,17 +479,17 @@
 #+end_src
 #+begin_src latex
   The array of unique intervals is now converted to the corresponding
-  array of sequences. The templates are numbered and their lengths are
-  included in the headers. Once the templates have been written, the
-  interval array is freed. For debugging purposes, the program can also
-  print the unique sequences.
+  array of sequences. The templates are numbered and the fragment
+  coordinates are included in the headers. Once the templates have been
+  written, the interval array is freed. For debugging purposes, the
+  program can also print the unique sequences.
 #+end_src
 #+begin_src C <<Prepare array of unique sequences>>=
   SeqArr *sa = newSeqArr();
   char name[1024];
   for (int i = 0; i < ia->n; i++) {
     Intv *iv = ia->arr[i];
-    sprintf(name, "template_%d %d\n", i + 1, iv->e - iv->s + 1);
+    sprintf(name, "template_%d %d-%d\n", i + 1, iv->s + 1, iv->e + 1);
     Seq *s = newSeq(name);
     //<<Copy sequence data>>
     seqArrAdd(sa, s);
@@ -814,18 +814,19 @@
   with 8.8 kb as the template set.
 
   The file \texttt{tmpl.fasta} consists of headers followed by sequence
-  data. Each header in turn consists of a name and the sequence length.
+  data. Each header in turn consists of a name and the start and end
+  positions on the target representative.
 #+end_src
 #+begin_src sh <<Analyze tutorial data>>=
   head tmpl.fasta
-  >template_21 144
+  >template_21 240105-240248
   CGCTGCCGGTAAAACCAAGCCATTGCGTGCCGTGTGAGGCGAGAGTGAATGTTGCCGACACGGGTGCCAG
   TTCCGTCAATACCATCACATTTGCTGCCGTGTTTACAATGGTTCCTGAGCGGCTCATCGCATTATCACGC
   CTGA
-  >template_25 80
+  >template_25 280537-280616
   TCTTTTTGCCTGGTGAATCACAAAAATCCCCCTACCCCGTCACGCTCGCCCCAGGGTAACCCTGACCATT
   ATTTGCTATA
-  >template_26 424
+  >template_26 306185-306608
   GACAAGATAGCACTTTCCCGCAAAAGATGGGGACGAGCGATTCATTTTACGAGTCGCGTTCCGAAAAAAG
   ACTGTTGCGGCCAGTCGGTAGAGAAAAAGCGCTACCATGCCGCGTTCACATTGATATGTATTCACAGGGA
 #+end_src
