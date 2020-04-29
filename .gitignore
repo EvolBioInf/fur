@@ -32,9 +32,7 @@ src/*.idx
 src/*.awk
 src/checkTut.sh
 src/furTut.sh
-src/tutorial.sh
-scripts/tutorial.sh
-
-
-
-
+src/makeFurDb
+src/makeFurDb.c
+scripts/checkTut.sh
+scripts/furTut.sh

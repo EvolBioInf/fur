@@ -4,7 +4,7 @@ all:
 	make -C src tutorial
 	mkdir -p build
 	cp src/fur build
-	cp src/tutorial.sh scripts
+	cp src/checkTut.sh src/furTut.sh scripts
 test:
 	@make -s -C src test
 eco105:
