@@ -1,4 +1,4 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper]{book}
 \usepackage{graphics,color,eurosym,latexsym}
 \usepackage{times}
 %%\usepackage[nodayofweek]{datetime}
@@ -9,3 +9,8 @@
 \usepackage{psfrag}
 \usepackage{inconsolata}
 \bibliographystyle{plain}
+\usepackage{amsthm, thmtools}
+\newtheorem{prog}{Program}[chapter]
+\newtheorem{lib}{Library}[chapter]
+\newtheorem{script}{Script}[chapter]
+\renewcommand{\listtheoremname}{List of Programs}

@@ -1,5 +1,6 @@
 \input{header}
 \begin{document}
+\frontmatter
 \pagestyle{noweb}
 
 \title{\texttt{fur} \input{version}: Find Unique Genome
@@ -9,9 +10,27 @@ Regions\\\small \texttt{https://github.com/haubold/fur}}
 %%\date{\displaydate{tagDate}}
 \maketitle
 
+%%\listoftheorems[ignoreall,show={tdefn}]
 \tableofcontents
-\input{text}
+\listoftheorems[show={tdefn}]
+\mainmatter
+\chapter{Make \texttt{fur} Database, \texttt{makeFurDb}}\label{ch:makeFurDb}
+\input{makeFurDb}
+\chapter{Find Unique Regions, \texttt{fur}}
+\input{furIn}
+\chapter{Convert Unique Regions to Input for \texttt{primer3}, \texttt{fur2prim.awk}}
+\input{fur2prim}
+\chapter{Extract Primers from \texttt{primer3}
+Output, \texttt{prim2fasta.awk}}
+\input{prim2fasta}
+\chapter{Check Primers, \texttt{checkPrim.awk}}
+\input{checkPrim}
+\chapter{Tutorial}
+\input{tutorial.tex}
 
+\backmatter
+\chapter{List of code chunks}
+\nowebchunks
 \bibliography{ref}
 \end{document}
 

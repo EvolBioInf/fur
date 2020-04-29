@@ -18,10 +18,20 @@ doc/neighbors/
 doc/targets/
 doc/furDb/
 doc/tmpl.fasta
+doc/checkPrim.tex
+doc/fur.loe
+doc/fur2prim.tex
+doc/furDoc.tex
+doc/furIn.tex
+doc/makeFurDb.tex
+doc/prim2fasta.tex
+doc/tutorial.tex
 src/fur
 src/fur.c
 src/*.idx
 src/*.awk
+src/checkTut.sh
+src/furTut.sh
 src/tutorial.sh
 scripts/tutorial.sh
 

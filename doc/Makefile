@@ -1,9 +1,9 @@
 TAG     := $(shell git describe | sed 's/-.*//')
 DATE    := $(shell git log -1 --format=%ai $(TAG) | sed 's/-/ /g' | awk '{printf "\\\\newdate{tagDate}{%s}{%s}{%s}\n", $$3, $$2, $$1}')
 VERSION := $(shell git describe | sed 's/^[vV]//; s/-.*//')
-NAME    = fur
+NAME   = fur
 
-all: $(NAME).tex text.tex header.tex ref.bib cdf.tex
+all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex fur2prim.tex checkPrim.tex prim2fasta.tex tutorial.tex
 	printf "%s\n" $(VERSION) > version.tex
 	printf "%s\n" $(DATE)    > date.tex
 	latex $(NAME)
@@ -11,9 +11,19 @@ all: $(NAME).tex text.tex header.tex ref.bib cdf.tex
 	latex $(NAME)
 	latex $(NAME)
 	dvipdf $(NAME)
-text.tex: ../src/$(NAME).org 
-	bash ../scripts/org2nw ../src/$(NAME).org | noweave -n -x > text.tex
+makeFurDb.tex: ../src/makeFurDb.org
+	bash ../scripts/org2nw ../src/makeFurDb.org | noweave -n -x > makeFurDb.tex
+furIn.tex: ../src/$(NAME).org 
+	bash ../scripts/org2nw ../src/$(NAME).org | noweave -n -x > furIn.tex
 cdf.tex: fig.gp cdf.dat
 	gnuplot fig.gp
+checkPrim.tex: ../src/checkPrim.org
+	bash ../scripts/org2nw ../src/checkPrim.org | noweave -n -x > checkPrim.tex
+fur2prim.tex: ../src/fur2prim.org
+	bash ../scripts/org2nw ../src/fur2prim.org | noweave -n -x > fur2prim.tex
+prim2fasta.tex: ../src/prim2fasta.org
+	bash ../scripts/org2nw ../src/prim2fasta.org | noweave -n -x > prim2fasta.tex
+tutorial.tex: ../src/tutorial.org
+	bash ../scripts/org2nw ../src/tutorial.org | noweave -n -x > tutorial.tex
 clean:
-	rm -f text.tex $(NAME).pdf
+	rm -f text.tex $(NAME).pdf makeFurDb.tex furIn.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex

@@ -21,7 +21,7 @@
   in Figure~\ref{fig:eco}. The seven remaining
   \emph{E. coli} strains are the \emph{neighbors}, $\mathcal{N}$. They also
   belong to the B2 group, but not to ST131~\cite{pet14:glo}. The aim is
-  to find regions specific to ST131. In Section~\ref{sec:tut} a
+  to find regions specific to ST131. In Section~\ref{sec:furTut} a
   tutorial-style analysis of this data set shows how to do this
   using \texttt{fur}.
 
@@ -57,22 +57,25 @@
   data structures for intervals and their arrays, the program consists
   of the usual include section, declarations and definitions of
   functions, and finally the \texttt{main} function.
+  \begin{prog}[\texttt{fur.c}]\label{fur}
+    \textcolor{white}{}
 #+end_src
 #+begin_src C <<fur.c>>=
   #include "seq.h"
-  //<<Include headers>>
-  //<<Data structures>>
-  //<<Function declarations>>
-  //<<Function definitions>>
-  //<<Main function>>
+  //<<Include headers, P. \ref{fur}>>
+  //<<Data structures, P. \ref{fur}>>
+  //<<Function declarations, P. \ref{fur}>>
+  //<<Function definitions, P. \ref{fur}>>
+  //<<Main function, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
+  \end{prog}
   \subsection{Arrays of Intervals}
   Intervals and their arrays are the basic hitherto undefined building
   blocks of \texttt{fur}, so they are defined first. Intervals have a
   start and an end.
 #+end_src
-#+begin_src C <<Data structures>>=
+#+begin_src C <<Data structures, P. \ref{fur}>>=
   typedef struct intv {
     int s, e;
   } Intv;
@@ -80,7 +83,7 @@
 #+begin_src latex
   An arbitrary number of $n$ intervals is stored in an \emph{interval array}.
 #+end_src
-#+begin_src C <<Data structures>>=
+#+begin_src C <<Data structures, P. \ref{fur}>>=
   typedef struct intvArr {
     Intv **arr;
     int n;
@@ -91,13 +94,13 @@
   addition. Construction is declared with start and end positions
   supplied as parameters.
 #+end_src
-#+begin_src C <<Function declarations>>=
+#+begin_src C <<Function declarations, P. \ref{fur}>>=
   Intv *newIntv(int s, int e);
 #+end_src
 #+begin_src latex
   These positions are saved once space has been made for them.
 #+end_src
-#+begin_src C <<Function definitions>>=
+#+begin_src C <<Function definitions, P. \ref{fur}>>=
   Intv *newIntv(int s, int e) {
     Intv *i = (Intv *)emalloc(sizeof(Intv));
     i->s = s;
@@ -108,19 +111,19 @@
 #+begin_src latex
   The function \texttt{emalloc} is declared in \texttt{error.h}.
 #+end_src
-#+begin_src C <<Include headers>>=
+#+begin_src C <<Include headers, P. \ref{fur}>>=
   #include "error.h"
 #+end_src
 #+begin_src latex
   Next, the construction of an interval array is declared.
 #+end_src
-#+begin_src C <<Function declarations>>=
+#+begin_src C <<Function declarations, P. \ref{fur}>>=
   IntvArr *newIntvArr();
 #+end_src
 #+begin_src latex
   Its definition returns an empty array of intervals.
 #+end_src
-#+begin_src C <<Function definitions>>=
+#+begin_src C <<Function definitions, P. \ref{fur}>>=
   IntvArr *newIntvArr() {
     IntvArr *ia = (IntvArr *)emalloc(sizeof(IntvArr));
     ia->arr = NULL;
@@ -131,14 +134,14 @@
 #+begin_src latex
   And to deconstruct, the freeing of an interval array is declared.
 #+end_src
-#+begin_src C <<Function declarations>>=
+#+begin_src C <<Function declarations, P. \ref{fur}>>=
   void freeIntvArr(IntvArr *ia);
 #+end_src
 #+begin_src latex
   Its definition frees each interval in turn before freeing the interval
   array itself.
 #+end_src
-#+begin_src C <<Function definitions>>=
+#+begin_src C <<Function definitions, P. \ref{fur}>>=
   void freeIntvArr(IntvArr *ia) {
     for (int i = 0; i < ia->n; i++)
       free(ia->arr[i]);
@@ -149,14 +152,14 @@
 #+begin_src latex
   Declare the addition of an interval to an existing interval array.
 #+end_src
-#+begin_src C <<Function declarations>>=
+#+begin_src C <<Function declarations, P. \ref{fur}>>=
   void intvArrAdd(IntvArr *ia, Intv *i);
 #+end_src
 #+begin_src latex
   The definition makes space for the newly arrived interval and then
   adds it.
 #+end_src
-#+begin_src C <<Function definitions>>=
+#+begin_src C <<Function definitions, P. \ref{fur}>>=
   void intvArrAdd(IntvArr *ia, Intv *i) {
     ia->arr = (Intv **)
       erealloc(ia->arr, (ia->n + 1) * sizeof(Intv *));
@@ -170,12 +173,12 @@
   templates. At the end of the program any memory still allocated is
   freed.
 #+end_src
-#+begin_src C <<Main function>>=
+#+begin_src C <<Main function, P. \ref{fur}>>=
   int main(int argc, char **argv) {
-    // <<Interact with user>>
-    // <<Analyze sequences>>
-    // <<Print templates>>
-    // <<Free memory>>
+    // <<Interact with user, P. \ref{fur}>>
+    // <<Analyze sequences, P. \ref{fur}>>
+    // <<Print templates, P. \ref{fur}>>
+    // <<Free memory, P. \ref{fur}>>
   }
 #+end_src
 #+begin_src latex
@@ -183,34 +186,34 @@
   Whenever the program interacts with the user, it identifies itself, so
   its name is set.
 #+end_src
-#+begin_src C <<Interact with user>>=
+#+begin_src C <<Interact with user, P. \ref{fur}>>=
   setprogname(argv[0]);
 #+end_src
 #+begin_src latex
   The function \texttt{setprogname} is declared in the standard part of
   the BSD library.
 #+end_src
-#+begin_src C <<Include headers>>=
+#+begin_src C <<Include headers, P. \ref{fur}>>=
   #include <bsd/stdlib.h>
 #+end_src
 #+begin_src latex
   The user interaction is mediated via a container holding the options
   and their arguments.
 #+end_src
-#+begin_src C <<Interact with user>>=
+#+begin_src C <<Interact with user, P. \ref{fur}>>=
   Args *args = getArgs(argc, argv);
 #+end_src
 #+begin_src latex
   The \texttt{Args} data structure and the \texttt{getArgs} function are
   declared in \texttt{interface.h}.
 #+end_src
-#+begin_src C <<Include headers>>=
+#+begin_src C <<Include headers, P. \ref{fur}>>=
   #include "interface.h"
 #+end_src
 #+begin_src latex
   The argument container is freed at the end.
 #+end_src
-#+begin_src C <<Free memory>>=
+#+begin_src C <<Free memory, P. \ref{fur}>>=
   freeArgs(args);
 #+end_src
 #+begin_src latex
@@ -219,7 +222,7 @@
   declared in \texttt{interface.h}, emits a usage message before
   exiting.
 #+end_src
-#+begin_src C <<Interact with user>>=
+#+begin_src C <<Interact with user, P. \ref{fur}>>=
   if (args->h || args->err)
     printUsage();
 #+end_src
@@ -227,7 +230,7 @@
   Alternatively, the user might request information about the program,
   whereupon it makes a modest splash and exits.
 #+end_src
-#+begin_src C <<Interact with user>>=
+#+begin_src C <<Interact with user, P. \ref{fur}>>=
   if (args->v)
     printSplash(args);
 #+end_src
@@ -238,10 +241,10 @@
   all neighbors. Then the unique regions are checked for presence in all
   targets and absence from all neighbors.
 #+end_src
-#+begin_src C <<Analyze sequences>>=
-  //<<Identify unique regions>>
-  //<<Check presence in all targets>>
-  //<<Check absence from all neighbors>>
+#+begin_src C <<Analyze sequences, P. \ref{fur}>>=
+  //<<Identify unique regions, P. \ref{fur}>>
+  //<<Check presence in all targets, P. \ref{fur}>>
+  //<<Check absence from all neighbors, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   Unique regions are identified using the external program
@@ -251,26 +254,26 @@
   representative target. This index is used to compute local complexity
   values for identifying unique intervals.
 #+end_src
-#+begin_src C <<Identify unique regions>>=
-  //<<Get representative target>>
-  //<<Construct unique intervals>>
+#+begin_src C <<Identify unique regions, P. \ref{fur}>>=
+  //<<Get representative target, P. \ref{fur}>>
+  //<<Construct unique intervals, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   To obtain the representative target, its name is needed, which allows
   retrieval of its sequence.
 #+end_src
-#+begin_src C <<Get representative target>>=
+#+begin_src C <<Get representative target, P. \ref{fur}>>=
   char rn[256];
   Seq *rs = NULL;
-  //<<Get representative name>>
-  //<<Get representative sequence>>
+  //<<Get representative name, P. \ref{fur}>>
+  //<<Get representative sequence, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The representative name is obtained from the \texttt{macle} index,
   where it is first in the name list. This ordering is ensured by the
   program \texttt{makeFurDb}.
 #+end_src
-#+begin_src C <<Get representative name>>=
+#+begin_src C <<Get representative name, P. \ref{fur}>>=
   char *tmpl = "macle -l %s/macle.idx | "
     "head -n 6 | tail -n 1 | "
     "awk '{print $6 }'";
@@ -285,7 +288,7 @@
   With the sequence name as handle, the corresponding sequence is
   extracted from the BLAST database.
 #+end_src
-#+begin_src C <<Get representative sequence>>=
+#+begin_src C <<Get representative sequence, P. \ref{fur}>>=
   tmpl = "blastdbcmd -entry %s -db %s/blastdb";
   sprintf(cmd, tmpl, rn, args->d);
   pp = epopen(cmd, "r");
@@ -297,7 +300,7 @@
 #+begin_src latex
   The representative target is freed at the end of the program.
 #+end_src
-#+begin_src C <<Free memory>>=
+#+begin_src C <<Free memory, P. \ref{fur}>>=
   freeSeq(rs);
 #+end_src
 #+begin_src latex
@@ -323,14 +326,14 @@
   \end{figure}
 
 #+end_src
-#+begin_src C <<Construct unique intervals>>=
+#+begin_src C <<Construct unique intervals, P. \ref{fur}>>=
   double mc, gc = 0.;
   long len = 0;
   IntvArr *ia;
-  //<<Compute complexity threshold>>
-  //<<Sliding window analysis>>
-  //<<Report result of sliding window analysis>>
-  //<<Prepare array of unique sequences>>
+  //<<Compute complexity threshold, P. \ref{fur}>>
+  //<<Sliding window analysis, P. \ref{fur}>>
+  //<<Report result of sliding window analysis, P. \ref{fur}>>
+  //<<Prepare array of unique sequences, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The complexity threshold is a function of aggregate sequence length,
@@ -354,7 +357,7 @@
       value of 0.95.}\label{fig:cdf}
   \end{figure}
 #+end_src
-#+begin_src C <<Compute complexity threshold>>=
+#+begin_src C <<Compute complexity threshold, P. \ref{fur}>>=
   tmpl = "macle -l %s/macle.idx | "
     "tail -n +2 | "
     "awk '{print $2}'";
@@ -372,7 +375,7 @@
   \texttt{matchLen}\footnote{\texttt{https://github.com/evolbioinf/matchLen}}
   library.
 #+end_src
-#+begin_src C <<Include headers>>=
+#+begin_src C <<Include headers, P. \ref{fur}>>=
   #include "matchLen.h"
 #+end_src
 #+begin_src latex
@@ -384,14 +387,14 @@
   parses the windows from left to right, it toggles between being inside
   or outside a unique interval.
 #+end_src
-#+begin_src C <<Sliding window analysis>>=
-  //<<Prepare sliding window analysis>>
+#+begin_src C <<Sliding window analysis, P. \ref{fur}>>=
+  //<<Prepare sliding window analysis, P. \ref{fur}>>
   while (fscanf(pp, "%f %f", &m, &c) != EOF) {
-    //<<Determine window start and end>>
+    //<<Determine window start and end, P. \ref{fur}>>
     if (in) {
-      //<<Inside unique interval>>
+      //<<Inside unique interval, P. \ref{fur}>>
     } else {
-      //<<Outside unique interval>>
+      //<<Outside unique interval, P. \ref{fur}>>
     }
   }
   pclose(pp);
@@ -406,7 +409,7 @@
   complexity values, the interval array, and a variable to indicate
   whether the program is inside a unique interval or not.
 #+end_src
-#+begin_src C <<Prepare sliding window analysis>>=
+#+begin_src C <<Prepare sliding window analysis, P. \ref{fur}>>=
   tmpl =
     "macle -i %s/macle.idx -n %s -w %d -k %d | "
     "cut -f 2,3 | "
@@ -431,7 +434,7 @@
   is one-based, the final start and end values are shifted by one
   position to the left.
 #+end_src
-#+begin_src C <<Determine window start and end>>=
+#+begin_src C <<Determine window start and end, P. \ref{fur}>>=
   int ws = m - args->w / 2;
   int we = m + args->w / 2 - 1;
 #+end_src
@@ -445,7 +448,7 @@
   Figure~\ref{fig:sw} into two overlapping and hence redundant
   intervals.
 #+end_src
-#+begin_src C <<Inside unique interval>>=
+#+begin_src C <<Inside unique interval, P. \ref{fur}>>=
   if (ws <= ie && c >= mc)
     ie = we;
   else if (ws > ie) {
@@ -457,7 +460,7 @@
   If a unique window is found outside a unique
   interval, a new unique interval is created.
 #+end_src
-#+begin_src C <<Outside unique interval>>=
+#+begin_src C <<Outside unique interval, P. \ref{fur}>>=
   if (c >= mc) {
     in = 1;
     is = m - args->w / 2;
@@ -467,7 +470,7 @@
 #+begin_src latex
   The result of the sliding window analysis is reported.
 #+end_src
-#+begin_src C <<Report result of sliding window analysis>>=
+#+begin_src C <<Report result of sliding window analysis, P. \ref{fur}>>=
   long nn = 0;
   for (int i = 0; i < ia->n; i++)
     nn += ia->arr[i]->e - ia->arr[i]->s + 1;
@@ -484,23 +487,23 @@
   written, the interval array is freed. For debugging purposes, the
   program can also print the unique sequences.
 #+end_src
-#+begin_src C <<Prepare array of unique sequences>>=
+#+begin_src C <<Prepare array of unique sequences, P. \ref{fur}>>=
   SeqArr *sa = newSeqArr();
   char name[1024];
   for (int i = 0; i < ia->n; i++) {
     Intv *iv = ia->arr[i];
     sprintf(name, "template_%d %d-%d\n", i + 1, iv->s + 1, iv->e + 1);
     Seq *s = newSeq(name);
-    //<<Copy sequence data>>
+    //<<Copy sequence data, P. \ref{fur}>>
     seqArrAdd(sa, s);
   }
   freeIntvArr(ia);
-  //<<Print unique sequences?>>
+  //<<Print unique sequences? P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   After printing the unique sequences, the program exits.
 #+end_src
-#+begin_src C <<Print unique sequences?>>=
+#+begin_src C <<Print unique sequences? P. \ref{fur}>>=
   if (args->u) {
     for (int i = 0; i < sa->n; i++)
       printSeq(stdout, sa->arr[i], -1);
@@ -511,7 +514,7 @@
   To copy the sequence data, memory is allocated, each nucleotide
   copied, and the sequence string terminated by the null character.
 #+end_src
-#+begin_src C <<Copy sequence data>>=
+#+begin_src C <<Copy sequence data, P. \ref{fur}>>=
   s->data = emalloc(iv->e - iv->s + 2);
   for (int j = iv->s; j <= iv->e; j++)
     s->data[s->l++] = rs->data[j];
@@ -526,27 +529,27 @@
   current size of the result set is reported and the user can choose to
   inspect the result so far.
 #+end_src
-#+begin_src C <<Check presence in all targets>>=
-  //<<Search targets>>
-  //<<Delete non-ubiquitous templates>>
-  //<<Report result of presence test>>
-  //<<Print ubiquitous templates and exit?>>
+#+begin_src C <<Check presence in all targets, P. \ref{fur}>>=
+  //<<Search targets, P. \ref{fur}>>
+  //<<Delete non-ubiquitous templates, P. \ref{fur}>>
+  //<<Report result of presence test, P. \ref{fur}>>
+  //<<Print ubiquitous templates and exit? P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   Before searching among the targets, they are counted. The search pipe
   is constructed using this count, and the templates are written to it.
 #+end_src
-#+begin_src C <<Search targets>>=
+#+begin_src C <<Search targets, P. \ref{fur}>>=
   int nt = 0;
-  //<<Count target sequences>>
-  //<<Construct target pipe>>
-  //<<Write templates to target pipe>>
+  //<<Count target sequences, P. \ref{fur}>>
+  //<<Construct target pipe, P. \ref{fur}>>
+  //<<Write templates to target pipe, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The targets are counted by parsing the sequences in the BLAST
   database.
 #+end_src
-#+begin_src C <<Count target sequences>>=
+#+begin_src C <<Count target sequences, P. \ref{fur}>>=
   tmpl = "blastdbcmd -entry all -db %s/blastdb | "
     "grep -c '^>t'";
   sprintf(cmd, tmpl, args->d);
@@ -571,7 +574,7 @@
   indexes are sorted and written to a file located in the directory that
   also houses the \texttt{fur} database.
 #+end_src
-#+begin_src C <<Construct target pipe>>=
+#+begin_src C <<Construct target pipe, P. \ref{fur}>>=
   tmpl = "blastn -db %s/blastdb -num_threads %d "
     "-outfmt \"6 sacc qacc qlen length pident\" | "
     "grep '^t' | "
@@ -589,14 +592,14 @@
   The functions \texttt{strlen} and \texttt{strcat} are declared in
   \texttt{string.h}.
 #+end_src
-#+begin_src C <<Include headers>>=
+#+begin_src C <<Include headers, P. \ref{fur}>>=
   #include <string.h>
 #+end_src
 #+begin_src latex
   At the end of the program, the output file is removed and its name
   freed.
 #+end_src
-#+begin_src C <<Free memory>>=
+#+begin_src C <<Free memory, P. \ref{fur}>>=
   sprintf(cmd, "rm %s", of);
   if (system(cmd) < 0)
     error("couldn't run system call %s\n", cmd);
@@ -605,7 +608,7 @@
 #+begin_src latex
   The templates are written to the target pipe.
 #+end_src
-#+begin_src C <<Write templates to target pipe>>=
+#+begin_src C <<Write templates to target pipe, P. \ref{fur}>>=
   pp = epopen(cmd, "w");
   for (int i = 0; i < sa->n; i++)
     printSeq(pp, sa->arr[i], -1);
@@ -618,11 +621,11 @@
   file and delete everything but the sequences listed there, then delete
   the remaining sequences.
 #+end_src
-#+begin_src C <<Delete non-ubiquitous templates>>=
+#+begin_src C <<Delete non-ubiquitous templates, P. \ref{fur}>>=
   FILE *fp = efopen(of, "r");
   int index, ii = 0;
-  //<<Scan output file>>
-  //<<Remove remaining sequences>>
+  //<<Scan output file, P. \ref{fur}>>
+  //<<Remove remaining sequences, P. \ref{fur}>>
   fclose(fp);
 #+end_src
 #+begin_src latex
@@ -632,7 +635,7 @@
   setting the variable to NULL. The names of the remaining templates are
   printed to standard error.
 #+end_src
-#+begin_src C <<Scan output file>>=
+#+begin_src C <<Scan output file, P. \ref{fur}>>=
   while (fscanf(fp, "%d", &index) != EOF) {
     for ( ; ii < index; ii++) {
       freeSeq(sa->arr[ii]);
@@ -645,7 +648,7 @@
   Recall that our example file has entries 5 and 7. After it has been
   scanned, templates 8--10 still need to be removed.
 #+end_src
-#+begin_src C <<Remove remaining sequences>>=
+#+begin_src C <<Remove remaining sequences, P. \ref{fur}>>=
   for ( ; ii < sa->n; ii++) {
     freeSeq(sa->arr[ii]);
     sa->arr[ii] = NULL;
@@ -654,7 +657,7 @@
 #+begin_src latex
   The user is told about the result of the presence test.
 #+end_src
-#+begin_src C <<Report result of presence test>>=
+#+begin_src C <<Report result of presence test, P. \ref{fur}>>=
   nn = 0;
   int ns = 0;
   for (int i = 0; i < sa->n; i++)
@@ -668,7 +671,7 @@
 #+begin_src latex
   The ubiquitous templates can be inspected.
 #+end_src
-#+begin_src C <<Print ubiquitous templates and exit?>>=
+#+begin_src C <<Print ubiquitous templates and exit? P. \ref{fur}>>=
   if (args->U) {
     for (int i = 0; i < sa->n; i++)
       if (sa->arr[i])
@@ -684,25 +687,25 @@
   deleted rather than the ones to be kept. At the end, the result of
   this absence test is reported.
 #+end_src
-#+begin_src C <<Check absence from all neighbors>>=
-  //<<Search neighbors>>
-  //<<Delete templates found among neighbors>>
-  //<<Report result of absence test>>
+#+begin_src C <<Check absence from all neighbors, P. \ref{fur}>>=
+  //<<Search neighbors, P. \ref{fur}>>
+  //<<Delete templates found among neighbors, P. \ref{fur}>>
+  //<<Report result of absence test, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The neighborhood database is searched by constructing the
   \texttt{blastn} pipe and then sending the neighbors down that pipe.
 #+end_src
-#+begin_src C <<Search neighbors>>=
-  //<<Construct neighbor pipe>>
-  //<<Write templates to neighbor pipe>>
+#+begin_src C <<Search neighbors, P. \ref{fur}>>=
+  //<<Construct neighbor pipe, P. \ref{fur}>>
+  //<<Write templates to neighbor pipe, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The command of the neighbor pipe has three parts: Run BLAST, count the
   number of hits among the neighbors, and write the indexes of the
   templates with at least one hit to file.
 #+end_src
-#+begin_src C <<Construct neighbor pipe>>=
+#+begin_src C <<Construct neighbor pipe, P. \ref{fur}>>=
   tmpl = "blastn -task blastn -db %s/blastdb -num_threads %d "
     "-evalue %e -outfmt \"6 sacc qacc\" | "
     "grep '^n' | "
@@ -715,7 +718,7 @@
   Now the template candidates previously found in all targets are
   written to pipe with their index numbers as FASTA identifiers.
 #+end_src
-#+begin_src C <<Write templates to neighbor pipe>>=
+#+begin_src C <<Write templates to neighbor pipe, P. \ref{fur}>>=
   for (int i = 0; i < sa->n; i++)
     if (sa->arr[i])
       fprintf(pp, ">%d\n%s\n", i, sa->arr[i]->data);
@@ -725,7 +728,7 @@
   The BLAST result is read and the template candidates found among the
   neighbors are deleted.
 #+end_src
-#+begin_src C <<Delete templates found among neighbors>>=
+#+begin_src C <<Delete templates found among neighbors, P. \ref{fur}>>=
   fp = efopen(of, "r");
   while (fscanf(fp, "%d", &ii) != EOF) {
     freeSeq(sa->arr[ii]);
@@ -737,7 +740,7 @@
   The result of the absence test is also the final result of the
   analysis.
 #+end_src
-#+begin_src C  <<Report result of absence test>>=
+#+begin_src C  <<Report result of absence test, P. \ref{fur}>>=
   nn = 0;
   ns = 0;
   for (int i = 0; i < sa->n; i++)
@@ -752,7 +755,7 @@
   The last step in \texttt{fur} is to print the template sequences that
   passed both the presence and the absence test.
 #+end_src
-#+begin_src C <<Print templates>>=
+#+begin_src C <<Print templates, P. \ref{fur}>>=
   for (int i = 0; i < sa->n; i++)
     if (sa->arr[i])
       printSeq(stdout, sa->arr[i], -1);
@@ -760,222 +763,4 @@
 #+end_src
 #+begin_src latex
   The program is now ready to be used.
-  \section{Tutorial}\label{sec:tut}
-  To demonstrate \texttt{fur}, it is used to find regions specific to
-  the pathogenic \emph{E. coli} strain ST131 in the example data shown
-  in Figure~\ref{fig:eco}.  The first step is to get the data. This is
-  converted into a \texttt{fur} database and analyzed in an initial pass
-  before the investigation is refined by varying the parameters of
-  \texttt{fur}.
-#+end_src
-#+begin_src sh <<tutorial.sh>>=
-  <<Get tutorial data>>
-  <<Make fur database>>
-  <<Analyze tutorial data>>
-  <<Refine tutorial analysis>>
-#+end_src
-#+begin_src latex
-  The example data is copied from a networked computer and unpacked.
-#+end_src
-#+begin_src sh <<Get tutorial data>>=
-  wget guanine.evolbio.mpg.de/fur/eco105.tar.gz
-  tar -xvzf eco105.tar.gz
-#+end_src
-#+begin_src latex
-  This generates two directories of genomes in FASTA format,
-  \texttt{targets} with 98 genomes, and \texttt{neighbors} with
-  seven. These are converted to a \texttt{fur} database using
-  \texttt{makeFurDb}\footnote{\texttt{https://github.com/haubold/makeFurDb}},
-  which takes approximately half a minute.
-#+end_src
-#+begin_src sh <<Make fur database>>=
-  makeFurDb -t targets -n neighbors -d furDb
-#+end_src
-#+begin_src latex
-  Unique templates are found by applying \texttt{fur} to this database,
-  which takes roughly ten seconds. The template sequences are stored in
-  \texttt{tmpl.fasta}.
-#+end_src
-#+begin_src sh <<Analyze tutorial data>>=
-  fur -d furDb > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets           137        25528
-  # Absence from neighbors         29         8848
-#+end_src
-#+begin_src latex
-  The hash-tagged progress information lists the three steps of the
-  algorithm and the number of sequences and nucleotides contained in the
-  template set after each one. So the initial sliding window analysis
-  uncovers 1005 sequences totaling 681.3 kb. After checking for presence
-  in all target sequences, 137 sequences with 25.5 kb remain. The final
-  step of checking for absence from the neighborhood leaves 29 sequences
-  with 8.8 kb as the template set.
-
-  The file \texttt{tmpl.fasta} consists of headers followed by sequence
-  data. Each header in turn consists of a name and the start and end
-  positions on the target representative.
-#+end_src
-#+begin_src sh <<Analyze tutorial data>>=
-  head tmpl.fasta
-  >template_21 240105-240248
-  CGCTGCCGGTAAAACCAAGCCATTGCGTGCCGTGTGAGGCGAGAGTGAATGTTGCCGACACGGGTGCCAG
-  TTCCGTCAATACCATCACATTTGCTGCCGTGTTTACAATGGTTCCTGAGCGGCTCATCGCATTATCACGC
-  CTGA
-  >template_25 280537-280616
-  TCTTTTTGCCTGGTGAATCACAAAAATCCCCCTACCCCGTCACGCTCGCCCCAGGGTAACCCTGACCATT
-  ATTTGCTATA
-  >template_26 306185-306608
-  GACAAGATAGCACTTTCCCGCAAAAGATGGGGACGAGCGATTCATTTTACGAGTCGCGTTCCGAAAAAAG
-  ACTGTTGCGGCCAGTCGGTAGAGAAAAAGCGCTACCATGCCGCGTTCACATTGATATGTATTCACAGGGA
-#+end_src
-#+begin_src latex
-  The file \texttt{tmpl.fasta} is supposed to contain 29 sequences with
-  a total of 8,848 bp. To check this, we write the AWK script
-  \texttt{count.awk}. It counts the headers and sums the sequence
-  lengths before reporting the number of templates and nucleotides.
-#+end_src
-#+begin_src awk <<count.awk>>=
-  /^>/ {
-    c++
-    s += $2
-  }
-  END {
-    printf "# %s tmpl, %d bp\n", c, s
-  }
-#+end_src
-#+begin_src latex
-  Run the script to find the expected 29 templates with 8.8 kb.
-#+end_src
-#+begin_src sh <<Analyze tutorial data>>=
-  awk -f count.awk tmpl.fasta 
-  # 29 tmpl, 8848 bp
-#+end_src
-#+begin_src latex
-  To make the process of template selection more transparent, the
-  \texttt{-u} option allows printing of the unique regions found in the
-  sliding window analysis before exiting.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -u > unique1.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-#+end_src
-#+begin_src latex
-  The file \texttt{unique1.fasta} now contains 1005 sequences with
-  681,264, which is checked again.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  awk -f count.awk unique1.fasta
-  # 1005 tmpl, 681264 bp
-#+end_src
-#+begin_src latex
-  Similarly, the 137 regions present in all targets can be inspected
-  using the \texttt{-U} option.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -U > unique2.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets           137        25528
-#+end_src
-#+begin_src latex
-  Check that \texttt{unique2.fasta} contains 137 sequences with 25,528
-  bp.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  awk -f count.awk unique2.fasta
-  # 137 tmpl, 25528 bp
-#+end_src
-#+begin_src latex
-  The first parameter of \texttt{fur} to explore is window length,
-  \texttt{-w}, which by default is 80 bp. Much longer windows result in
-  sequences that are more difficult to find as exact matches among all
-  targets. For example, with 1 kb windows, there are 111 candidate
-  regions, of which only one is present in all targets. However, it is
-  also found among the neighbor sequences, leaving no templates. This is
-  in spite of the fact that the amount of nucleotides returned from the
-  sliding window analysis, 635 kb, is similar to the 681 kb found with
-  80 bp windows.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -w 1000
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window                111       634900
-  # Presence in targets             1         1400
-  # Absence from neighbors          0            0
-#+end_src
-#+begin_src latex
-  On the other hand, a small increase in window length to 90 bp happens
-  to yield 85 templates with 18.9 kb. Clearly, \texttt{fur} is highly
-  sensitive to the window length and this should be borne in mind when
-  investigating other pathogens.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -w 90 > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1610       609930
-  # Presence in targets           163        31869
-  # Absence from neighbors         85        18936
-#+end_src
-#+begin_src latex
-  The second parameter of interest is the minimum percent identity of
-  BLAST hits to the target sequences. By default this is 100, but if
-  lowered to 99, the default 80 bp windows analysis yields 36 template
-  candidates with 11.9 kb instead of the previous 29 templates with 8.8
-  kb.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-  fur -d furDb -i 99 > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets           164        36248
-  # Absence from neighbors         36        11904
-#+end_src
-#+begin_src latex
-  The third parameter that can be tuned to optimize searches is the
-  minimum length of the alignment between a target and a candidate. By
-  default this is the candidate length. If reduced to 500 bp, one
-  template candidate fewer is retained. However, the total number of
-  nucleotides grows over fourfold to 40.8 kb. These would still have to
-  be inspected in a multiple sequence alignment to find their
-  intersection before primer design can begin.
-#+end_src
-#+begin_src sh <<Refine tutorial aslysis>>=
-  fur -d furDb -i 99 -l 500 > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets            52        72496
-  # Absence from neighbors         28        40776
-#+end_src
-#+begin_src latex
-  The fourth and last parameter we explore in this tutorial is the
-  $E$-value for the BLAST-search among the neighborhood sequences, which
-  is $10^{-5}$ by default. When decreased to, say, $10^{-20}$, the yield
-  increases from the original 29 fragments with 8.8 kb to 52 fragments
-  with 12.4 kb. However, the candidates might now be less specific.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis>>=
-fur -d furDb -e 1e-20 > tmpl.fasta
-# Step                    Sequences  Nucleotides
-# ----------------------------------------------
-# Sliding window               1005       681264
-# Presence in targets           137        25528
-# Absence from neighbors         52        12392
-#+end_src
-#+begin_src latex
-  So it might well be worth varying the window length (\texttt{-w}),
-  percent identity (\texttt{-i}), alignment length (\texttt{-l}), and
-  the $E$-value (\texttt{-e}), in your own analyses. This can be done
-  conveniently, as each run of \texttt{fur} is reasonably fast once the
-  underlying database has been computed.
-  \section{List of code chunks}
-  \nowebchunks
 #+end_src
