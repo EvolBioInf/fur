@@ -1,8 +1,8 @@
 all:
+	mkdir -p build
 	make -C common
 	make -C src
 	make -C src tutorial
-	mkdir -p build
 	cp src/fur build
 	cp src/checkTut.sh src/furTut.sh scripts
 test:
