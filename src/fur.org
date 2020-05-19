@@ -472,13 +472,18 @@
 #+end_src
 #+begin_src C <<Report result of sliding window analysis, P. \ref{fur}>>=
   long nn = 0;
+  int nm = 0;
   for (int i = 0; i < ia->n; i++)
-    nn += ia->arr[i]->e - ia->arr[i]->s + 1;
-  char *h1 = "# Step                    Sequences  Nucleotides";
-  char *h2 = "# ----------------------------------------------";
+    for (int j = ia->arr[i]->s; j <= ia->arr[i]->e; j++)
+      if (rs->data[j] == 'N')
+	nm++;
+      else
+	nn++;
+  char *h1 = "# Step                    Sequences  Nucleotides  Mutations (N)";
+  char *h2 = "# -------------------------------------------------------------";
   fprintf(stderr, "%s\n%s\n", h1, h2);
-  tmpl = "# Sliding window             %6d     %8ld\n";
-  fprintf(stderr, tmpl, ia->n, nn);
+  tmpl = "# Sliding window             %6d     %8ld         %6d\n";
+  fprintf(stderr, tmpl, ia->n, nn, nm);
 #+end_src
 #+begin_src latex
   The array of unique intervals is now converted to the corresponding
@@ -521,141 +526,191 @@
   s->data[s->l] = '\0';
 #+end_src
 #+begin_src latex
-  \subsection{Check Unique Templates}
   The intervals in hand are candidates for template sequences. But
   before they are printed, they are checked for presence in all targets
-  and absence from all neighbors using BLAST. Presence in all targets is
-  done first and templates not found in every target are deleted. The
-  current size of the result set is reported and the user can choose to
-  inspect the result so far.
+  and absence from all neighbors.
+
+  \section{Check Presence in All Targets}
+  At this point the template candidates come from a single target
+  sequence, the representative. To ensure they also occur in all other
+  targets, the templates are intersected with the remaining
+  targets. This is done using an external program,
+  \texttt{phylonium}~\cite{klo20:phy}. \texttt{Phylonium} takes as input
+  a set of sequences, one of which is designated the reference. In this
+  case the reference is made up of the template candidates just
+  identified. All contigs of the reference are concatenated. For
+  example, in Figure~\ref{fig:int} the reference, $R$, consists of three
+  unique candidate regions, $u_1$, $u_2$, and $u_3$. The remaining
+  targets---$T_1$, $T_2$, and $T_3$ in the example---get aligned to
+  $R$. Now region $u_1$ has overlapping matches from all three targets,
+  region $u_2$ has matches from the three targets, but only those from
+  $T_2$ and $T_3$ overlap, and region $u_3$ has no match from $T_3$. The
+  intersection between $R$ and $T_1$--$T_3$ is formed by removing all
+  positions with gaps, resulting in one template candidate, $c_1$.
+
+  \begin{figure}
+    \begin{center}
+      \input{intersect}
+    \end{center}
+    \caption{Intersect unique regions and targets. The three unique
+      regions, $\{u_1,u_2,u_3\}$ are concatenated to form the
+      reference sequence, $R$. The target sequences, $\{T_1,T_2,T_3\}$
+      are aligned to $R$ and the gapped positions removed to leave the
+      candidate templates. In this cartoon there is only one such
+      candidate, $c_1$.}\label{fig:int}
+  \end{figure}
 #+end_src
 #+begin_src C <<Check presence in all targets, P. \ref{fur}>>=
-  //<<Search targets, P. \ref{fur}>>
-  //<<Delete non-ubiquitous templates, P. \ref{fur}>>
+  //<<Write templates to file, P. \ref{fur}>>
+  //<<Write targets to files, P. \ref{fur}>>
+  //<<Run \texttt{phylonium}, P. \ref{fur}>>
+  //<<Delete template and target files, P. \ref{fur}>>
   //<<Report result of presence test, P. \ref{fur}>>
   //<<Print ubiquitous templates and exit? P. \ref{fur}>>
 #+end_src
 #+begin_src latex
-  Before searching among the targets, they are counted. The search pipe
-  is constructed using this count, and the templates are written to it.
+  The templates are written to the file \texttt{r.fasta} by iterating
+  across the template array and printing headers and sequences.
 #+end_src
-#+begin_src C <<Search targets, P. \ref{fur}>>=
-  int nt = 0;
-  //<<Count target sequences, P. \ref{fur}>>
-  //<<Construct target pipe, P. \ref{fur}>>
-  //<<Write templates to target pipe, P. \ref{fur}>>
+#+begin_src C <<Write templates to file, P. \ref{fur}>>=
+  tmpl = "%s/r.fasta";
+  sprintf(name, tmpl, args->d);
+  FILE *fp = efopen(name, "w");
+  for (int i = 0; i < sa->n; i++)
+    printSeq(fp, sa->arr[i], -1);
+  fclose(fp);
 #+end_src
 #+begin_src latex
-  The targets are counted by parsing the sequences in the BLAST
-  database.
+  The remaining targets are read from the BLAST database and written to
+  individual files. The program \texttt{blastdbcmd}, which is part of
+  the BLAST package, allows access to BLAST databases. This adds a blank
+  to the end of headers, which we remove again to ensure accurate
+  identification later.
 #+end_src
-#+begin_src C <<Count target sequences, P. \ref{fur}>>=
-  tmpl = "blastdbcmd -entry all -db %s/blastdb | "
-    "grep -c '^>t'";
+#+begin_src C  <<Write targets to files, P. \ref{fur}>>=
+  in = 1;
+  tmpl = "blastdbcmd -entry all -db %s/blastdb | sed 's/ $//'";
   sprintf(cmd, tmpl, args->d);
   pp = epopen(cmd, "r");
-  if (fscanf(pp, "%d", &nt) == EOF)
-    error("couldn't run %s\n", cmd);
+  //<<Iterate across BLAST database, P. \ref{fur}>>
   pclose(pp);
 #+end_src
 #+begin_src latex
-  The command of the target pipe begins with a BLAST search among the
-  targets. This is filtered by an AWK script to count the number of
-  matches per template. The names of templates that match every target
-  are written to file. Since \emph{exact} matches are required by
-  default, the BLAST search is customized, such that it contains the
-  query length in its output. Only hits where the query length is equal
-  to the alignment length without mismatches are counted. However, the
-  user can change this default behavior by setting a minimum length of
-  the alignment and/or a minimum percent identity. In addition, multiple
-  hits to the same subject are counted only once. To facilitate the
-  identification of templates, their names are reduced to their indexes
-  in the template array. So \texttt{template\_x} becomes \texttt{x}. The
-  indexes are sorted and written to a file located in the directory that
-  also houses the \texttt{fur} database.
+  When iterating across the BLAST database, neighbors and the
+  target representative are avoided.
 #+end_src
-#+begin_src C <<Construct target pipe, P. \ref{fur}>>=
-  tmpl = "blastn -db %s/blastdb -num_threads %d "
-    "-outfmt \"6 sacc qacc qlen length pident\" | "
-    "grep '^t' | "
-    "awk -v n=%d -v l=%d '((!l && $3==$4) || (l && $4>=l)) && $5>=%.3f "
-    "{i = $1 $2; if (!u[i]) {u[i]++; c[$2]++}} "
-    "END {for (a in c) if (c[a] == n) print a}' | "
-    "sed 's/template_//' | awk '{print --$1}' | "
-    "sort -n > %s";
-  char *of = estrdup(args->d);
-  of = erealloc(of, strlen(of) + 5);
-  strcat(of, "/out");
-  sprintf(cmd, tmpl, args->d, args->t, nt, args->l, args->i, of);
+#+begin_src C <<Iterate across BLAST database, P. \ref{fur}>>=
+  while ((sp = getSeq(pp)) != NULL) {
+    if (sp->name[0] == 't' && strcmp(sp->name, rn) != 0)  {
+      sprintf(name, "%s/t%d.fasta", args->d, in++);
+      fp = efopen(name, "w");
+      printSeq(fp , sp, -1);
+      fclose(fp);
+    }
+    freeSeq(sp);
+  }    
 #+end_src
 #+begin_src latex
-  The functions \texttt{strlen} and \texttt{strcat} are declared in
-  \texttt{string.h}.
+  To run \texttt{phylonium}, we construct and execute the appropriate
+  command, and save the results. These consist of a set of FASTA entries
+  whose headers contain information about mutations in the fragment. The
+  mutations are marked in the sequence to inform subsequent primer
+  construction.
+#+end_src
+#+begin_src C <<Run \texttt{phylonium}, P. \ref{fur}>>=
+  //<<Construct and execute \texttt{phylonium} command, P. \ref{fur}>>
+  //<<Save \texttt{phylonium} results, P. \ref{fur}>>
+  //<<Mark mutations, P. \ref{fur}>>
+#+end_src
+#+begin_src latex
+  \texttt{Phylonium} is applied to the target files just constructed. It
+  writes the intersection to the file \texttt{p.fasta}. All to
+  \texttt{stdout} or \texttt{stderr} is discarded.
+#+end_src
+#+begin_src C <<Construct and execute \texttt{phylonium} command, P. \ref{fur}>>=
+  tmpl = "phylonium -p %s/p.fasta -r %s/r.fasta %s/*.fasta "
+    "> /dev/null 2> /dev/null";
+  sprintf(cmd, tmpl, args->d, args->d, args->d);
+  if (system(cmd) < 0)
+    error("couldn't run system call %s\n", cmd);
+#+end_src
+#+begin_src latex
+  The intersecting sequence fragments in \texttt{p.fasta} are saved if
+  long enough.
+#+end_src
+#+begin_src C <<Save \texttt{phylonium} results, P. \ref{fur}>>=
+  sprintf(name, "%s/p.fasta", args->d);
+  fp = efopen(name, "r");
+  freeSeqArr(sa);
+  sa = newSeqArr();
+  while ((sp = getSeq(fp)) != NULL)
+    if (sp->l >= args->l)
+      seqArrAdd(sa, sp);
+    else
+      freeSeq(sp);
+  fclose(fp);
+#+end_src
+#+begin_src latex
+  \texttt{Phylonium} returns entries of the form
+  \[
+  \texttt{>part}_i\ (s..e)\ n\ p_1\ p_2\ ...\ p_n
+  \]
+  where $n$ is the number of mutations found at positions $p_1,
+  p_2,...,p_n$. These positions are set to the unknown nucleotide,
+  \texttt{N}, so they can later be avoided when designing primers. We
+  also count the number of mutations to report them later.
+#+end_src
+#+begin_src C <<Mark mutations, P. \ref{fur}>>=
+  nm = 0;
+  for (int i = 0; i < sa->n; i++) {
+    //<<Determine the number of mutations, P. \ref{fur}>>
+    //<<Iterate across mutations, P. \ref{fur}>>
+  }
+#+end_src
+#+begin_src latex
+  The number of mutations is found by looking for the closing bracket of
+  the fragment's interval.
+#+end_src
+#+begin_src C <<Determine the number of mutations, P. \ref{fur}>>=
+  char *h = strstr(sa->arr[i]->name, ")");
+  h += 2;
+  int j = atoi(strtok(h, " "));
+  if (j == 0)
+    continue;
+  nm += j;
+#+end_src
+#+begin_src latex
+  The functions \texttt{strstr} for looking up the first occurrence of a
+  character and \texttt{strtok} to iterate across string tokens are both
+  declared in \texttt{string.h}.
 #+end_src
 #+begin_src C <<Include headers, P. \ref{fur}>>=
   #include <string.h>
 #+end_src
 #+begin_src latex
-  At the end of the program, the output file is removed and its name
-  freed.
+  All integers following the number of mutations are one-based
+  positions.
 #+end_src
-#+begin_src C <<Free memory, P. \ref{fur}>>=
-  sprintf(cmd, "rm %s", of);
+#+begin_src C <<Iterate across mutations, P. \ref{fur}>>=
+  char *t = strtok(NULL, " ");
+  while (t != NULL) {
+    int p = atoi(t) - 1;
+    sa->arr[i]->data[p] = 'N';
+    t = strtok(NULL, " ");
+  }
+#+end_src
+#+begin_src latex
+  The files used by \texttt{phylonium} are deleted.
+#+end_src
+#+begin_src C <<Delete template and target files, P. \ref{fur}>>=
+  tmpl = "rm %s/*.fasta";
+  sprintf(cmd, tmpl, args->d);
   if (system(cmd) < 0)
     error("couldn't run system call %s\n", cmd);
-  free(of);
 #+end_src
 #+begin_src latex
-  The templates are written to the target pipe.
-#+end_src
-#+begin_src C <<Write templates to target pipe, P. \ref{fur}>>=
-  pp = epopen(cmd, "w");
-  for (int i = 0; i < sa->n; i++)
-    printSeq(pp, sa->arr[i], -1);
-  pclose(pp);
-#+end_src
-#+begin_src latex
-  The output of the search consists of the templates \emph{not} to be
-  deleted. Since they are in numerical order, deleting all other
-  templates is achieved in two succinct steps. First, parse the output
-  file and delete everything but the sequences listed there, then delete
-  the remaining sequences.
-#+end_src
-#+begin_src C <<Delete non-ubiquitous templates, P. \ref{fur}>>=
-  FILE *fp = efopen(of, "r");
-  int index, ii = 0;
-  //<<Scan output file, P. \ref{fur}>>
-  //<<Remove remaining sequences, P. \ref{fur}>>
-  fclose(fp);
-#+end_src
-#+begin_src latex
-  Say, there are 10 template candidates, $\{1,2,...,10\}$, and the
-  output file has entries 5 and 7. Scanning it leads to the removal of
-  templates 1--4 and 6. Removal consists of freeing the memory and
-  setting the variable to NULL. The names of the remaining templates are
-  printed to standard error.
-#+end_src
-#+begin_src C <<Scan output file, P. \ref{fur}>>=
-  while (fscanf(fp, "%d", &index) != EOF) {
-    for ( ; ii < index; ii++) {
-      freeSeq(sa->arr[ii]);
-      sa->arr[ii] = NULL;
-    }
-    ii++;
-  }
-#+end_src
-#+begin_src latex
-  Recall that our example file has entries 5 and 7. After it has been
-  scanned, templates 8--10 still need to be removed.
-#+end_src
-#+begin_src C <<Remove remaining sequences, P. \ref{fur}>>=
-  for ( ; ii < sa->n; ii++) {
-    freeSeq(sa->arr[ii]);
-    sa->arr[ii] = NULL;
-  }
-#+end_src
-#+begin_src latex
-  The user is told about the result of the presence test.
+  The user is told about the number of sequences, nucleotides, and
+  mutations in the targets.
 #+end_src
 #+begin_src C <<Report result of presence test, P. \ref{fur}>>=
   nn = 0;
@@ -665,8 +720,8 @@
       nn += sa->arr[i]->l;
       ns++;
     }
-  tmpl = "# Presence in targets        %6d     %8ld\n";
-  fprintf(stderr, tmpl, ns, nn);
+  tmpl = "# Presence in targets        %6d     %8ld         %6d\n";
+  fprintf(stderr, tmpl, ns, nn, nm);
 #+end_src
 #+begin_src latex
   The ubiquitous templates can be inspected.
@@ -680,43 +735,41 @@
   }
 #+end_src
 #+begin_src latex
+  \section{Check Absence from All Neighbors}
   The absence of the remaining templates among the neighbors is
-  established in a similar way. The candidate templates are searched in
-  the BLAST database and the hits written to file. This file is read
-  back into the program, only this time it contains the templates to be
-  deleted rather than the ones to be kept. At the end, the result of
-  this absence test is reported.
+  established using BLAST. The candidate templates are searched in the
+  BLAST database and the hits written to file. This file is read back
+  into the program, and the regions with homologs among the neighbors
+  are again set to \texttt{N}.
 #+end_src
 #+begin_src C <<Check absence from all neighbors, P. \ref{fur}>>=
   //<<Search neighbors, P. \ref{fur}>>
-  //<<Delete templates found among neighbors, P. \ref{fur}>>
+  //<<Mark regions found among neighbors, P. \ref{fur}>>
   //<<Report result of absence test, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
-  The neighborhood database is searched by constructing the
-  \texttt{blastn} pipe and then sending the neighbors down that pipe.
+  The neighbors are searched by constructing the \texttt{blastn} pipe
+  and then running the neighbor sequences through it.
 #+end_src
 #+begin_src C <<Search neighbors, P. \ref{fur}>>=
   //<<Construct neighbor pipe, P. \ref{fur}>>
   //<<Write templates to neighbor pipe, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
-  The command of the neighbor pipe has three parts: Run BLAST, count the
-  number of hits among the neighbors, and write the indexes of the
-  templates with at least one hit to file.
+  In the neighbor pipe we write the subject accession and query
+  coordinates to the output file, \texttt{o.txt}.
 #+end_src
 #+begin_src C <<Construct neighbor pipe, P. \ref{fur}>>=
   tmpl = "blastn -task blastn -db %s/blastdb -num_threads %d "
-    "-evalue %e -outfmt \"6 sacc qacc\" | "
-    "grep '^n' | "
-    "awk '{n[$2]++} "
-    "END {for (a in n) if (n[a]) print a}' > %s";
-  sprintf(cmd, tmpl, args->d, args->t, args->e, of);
+    "-evalue %e -outfmt \"6 sacc qacc qstart qend\" "
+    "| grep '^n' > "
+    "%s/o.txt";
+  sprintf(cmd, tmpl, args->d, args->t, args->e, args->d);
   pp = epopen(cmd, "w");
 #+end_src
 #+begin_src latex
-  Now the template candidates previously found in all targets are
-  written to pipe with their index numbers as FASTA identifiers.
+  The template candidates are written to this pipe with their index
+  numbers as identifiers.
 #+end_src
 #+begin_src C <<Write templates to neighbor pipe, P. \ref{fur}>>=
   for (int i = 0; i < sa->n; i++)
@@ -725,35 +778,118 @@
   pclose(pp);
 #+end_src
 #+begin_src latex
-  The BLAST result is read and the template candidates found among the
-  neighbors are deleted.
+  BLAST may return overlapping regions. These are summarized before
+  marking them.
 #+end_src
-#+begin_src C <<Delete templates found among neighbors, P. \ref{fur}>>=
-  fp = efopen(of, "r");
-  while (fscanf(fp, "%d", &ii) != EOF) {
-    freeSeq(sa->arr[ii]);
-    sa->arr[ii] = NULL;
-  }
+#+begin_src C <<Mark regions found among neighbors, P. \ref{fur}>>=
+  tmpl = "%s/o.txt";
+  sprintf(name, tmpl, args->d);
+  fp = efopen(name, "r");
+  //<<Summarize neighbor BLAST output, P. \ref{fur}>>
   fclose(fp);
+  //<<Set homologous neighbor regions to N, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
-  The result of the absence test is also the final result of the
-  analysis.
+  To summarize the output of the BLAST search among neighbors, space for
+  the results is created before the results themselves are scanned.
+#+end_src
+#+begin_src C <<Summarize neighbor BLAST output, P. \ref{fur}>>=
+  //<<Allocate space for output of neighbor BLAST, P. \ref{fur}>>
+  //<<Scan output of neighbor BLAST, P. \ref{fur}>>
+#+end_src
+#+begin_src latex
+  We allocate space for the start and end positions of each homologous
+  regions and initialize these to values that allow us to later
+  summarize overlapping intervals.
+#+end_src
+#+begin_src C <<Allocate space for output of neighbor BLAST, P. \ref{fur}>>=
+  int *start = emalloc(sa->n * sizeof(int));
+  int *end   = emalloc(sa->n * sizeof(int));
+  for (int i = 0; i < sa->n; i++) {
+    start[i] = INT_MAX;
+    end[i]   = -1;
+  }
+#+end_src
+#+begin_src latex
+  The maximum value an integer may take, \texttt{INT\_MAX}, is defined
+  in \texttt{limits.h}.
+#+end_src
+#+begin_src C <<Include headers, P. \ref{fur}>>=
+  #include <limits.h>
+#+end_src
+#+begin_src latex
+  During the scan of the BLAST output, intervals are extended to the
+  left and the right.
+#+end_src
+#+begin_src  C <<Scan output of neighbor BLAST, P. \ref{fur}>>=
+  int ii, qs, qe;
+  char s[32];
+  while (fscanf(fp, "%s %d %d %d", s, &ii, &qs, &qe) != EOF) {
+    if (qs < start[ii])
+      start[ii] = qs ;
+    if (qe > end[ii])
+      end[ii] = qe;
+  }
+#+end_src
+#+begin_src latex
+  Finally, the regions with homology among the neighbors are set to
+  \texttt{N}, bearing in mind that BLAST-coordinates are 1-based,
+  character arrays 0-based. As the arrays with the start and end
+  coordinates are not needed any more afterwards, they are freed.
+#+end_src
+#+begin_src C <<Set homologous neighbor regions to N, P. \ref{fur}>>=
+  for (int i = 0; i < sa->n; i++)
+    for (int j = start[i] - 1; j < end[i]; j++)
+      sa->arr[i]->data[j] = 'N';
+  free(start);
+  free(end);
+#+end_src
+#+begin_src latex
+  In order to report the results of the absence test, we iterate over
+  all residues in all sequences and count the number of mutations. At
+  this point we can also classify the sequences into those fit for
+  subsequent analysis and those that aren't.
 #+end_src
 #+begin_src C  <<Report result of absence test, P. \ref{fur}>>=
-  nn = 0;
-  ns = 0;
-  for (int i = 0; i < sa->n; i++)
-    if (sa->arr[i]) {
-      nn += sa->arr[i]->l;
-      ns++;
-    }
-  tmpl = "# Absence from neighbors     %6d     %8ld\n";
-  fprintf(stderr, tmpl, ns, nn);
+  nn = ns = nm = 0;
+  for (int i = 0; i < sa->n; i++) {
+    //<<Count mutations, P. \ref{fur}>>
+    //<<Classify sequences, P. \ref{fur}>>
+  }
+  tmpl = "# Absence from neighbors     %6d     %8ld         %6d\n";
+  fprintf(stderr, tmpl, ns, nn, nm);
 #+end_src
 #+begin_src latex
-  The last step in \texttt{fur} is to print the template sequences that
-  passed both the presence and the absence test.
+  The mutations are counted by looking at every residue in the current
+  result set. An \texttt{N} is counted as a mutation, everything else
+  as a nucleotide.
+#+end_src
+#+begin_src C <<Count mutations, P. \ref{fur}>>=
+  int cn = 0, cm = 0;
+  for (int j = 0; j < sa->arr[i]->l; j++)
+    if (sa->arr[i]->data[j] == 'N')
+      cm++;
+    else
+      cn++;
+#+end_src
+#+begin_src latex
+  Sequences are classified as fit for printing if they contain at least
+  as many nucleotides as the minimum length of a \texttt{phylonium}
+  fragment.
+#+end_src
+#+begin_src C <<Classify sequences, P. \ref{fur}>>=
+  if (cn >= args->l) {
+    ns++;
+    nm += cm;
+    nn += cn;
+  } else {
+    freeSeq(sa->arr[i]);
+    sa->arr[i] = NULL;
+  }
+#+end_src
+#+begin_src latex
+  The last step in \texttt{fur} is to print the template sequences just
+  identified.
 #+end_src
 #+begin_src C <<Print templates, P. \ref{fur}>>=
   for (int i = 0; i < sa->n; i++)

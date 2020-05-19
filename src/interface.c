@@ -24,7 +24,6 @@ Args *newArgs() {
   args->w   = DEFAULT_W;
   args->p   = DEFAULT_P;
   args->t   = DEFAULT_T;
-  args->i   = DEFAULT_I;
   args->l   = DEFAULT_L;
   args->e   = DEFAULT_E;
   args->u   = 0;
@@ -40,7 +39,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvuUd:w:p:t:i:l:k:e:";
+  char *optString = "hvuUd:w:p:t:l:k:e:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -57,8 +56,6 @@ Args *getArgs(int argc, char *argv[]) {
     case 't': /* number of threads */
       args->t = atoi(optarg);
       break;
-    case 'i': /* minimum percent identity */
-      args->i = atof(optarg);
       break;
     case 'e': /* E-value in neighborhood search */
       args->e = atof(optarg);
@@ -113,8 +110,7 @@ void printUsage() {
   printf("\t-d <STR> database\n");
   printf("\t[-w <NUM> window length; default: %d]\n", DEFAULT_W);
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
-  printf("\t[-i <NUM> minimum percent identity in target; default: %.3f]\n", DEFAULT_I);
-  printf("\t[-l <NUM> minimum alignment length in target; default: query lengt]\n");
+  printf("\t[-l <NUM> minimum length of ubiquitous target fragment; default: query lengt]\n");
   printf("\t[-e <NUM> e-value for neighborhood search; default: %g]\n", DEFAULT_E);
   printf("\t[-t <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-k <NUM> step length of sliding window analysis; default: w/10]\n");
