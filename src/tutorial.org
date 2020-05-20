@@ -40,20 +40,27 @@
 #+end_src
 #+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
   fur -d furDb > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets           137        25528
-  # Absence from neighbors         29         8848
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           170        69407            151
+  # Absence from neighbors         91        46844           4309
 #+end_src
 #+begin_src latex
   The hash-tagged progress information lists the three steps of the
   algorithm and the number of sequences and nucleotides contained in the
   template set after each one. So the initial sliding window analysis
-  uncovers 1005 sequences totaling 681.3 kb. After checking for presence
-  in all target sequences, 137 sequences with 25.5 kb remain. The final
-  step of checking for absence from the neighborhood leaves 29 sequences
-  with 8.8 kb as the template set.
+  uncovers 1005 sequences totaling 681.3 kb and containing no unknown
+  nucleotide, \texttt{N}. After checking for presence in the targets,
+  170 sequences with 69.4 kb remain. This step is carried out by
+  intersecting the result of the previous step with the targets using
+  \texttt{phylonium} (Figure~\ref{fig:int}). Here the matches between
+  the reference sequence and the targets may contain mutations. Hence
+  our result set is now sprinkled with 151 mutations (\texttt{N}s). The
+  final step of subtracting the neighbors leaves 91 sequences with 46.8
+  kb as the template set. In this step BLAST hits are set to \texttt{N},
+  hence the number of ``mutations'' has now grown to 4309. That is, 4.3
+  kb of \texttt{N} in addition to 46.8 kb of non-\texttt{N}.
 
   The file \texttt{tmpl.fasta} consists of headers followed by sequence
   data. Each header in turn consists of a name and the start and end
@@ -66,41 +73,49 @@
 #+begin_src latex
   They happen to be:
   \begin{verbatim}
-  >template_21 240105-240248
-  CGCTGCCGGTAAAACCAAGCCATTGCGTGCCGTGTGAGGCGAGAGTGAATGTTGCCGACACGGGTGCCAG
-  TTCCGTCAATACCATCACATTTGCTGCCGTGTTTACAATGGTTCCTGAGCGGCTCATCGCATTATCACGC
-  CTGA
-  >template_25 280537-280616
-  TCTTTTTGCCTGGTGAATCACAAAAATCCCCCTACCCCGTCACGCTCGCCCCAGGGTAACCCTGACCATT
-  ATTTGCTATA
-  >template_26 306185-306608
-  GACAAGATAGCACTTTCCCGCAAAAGATGGGGACGAGCGATTCATTTTACGAGTCGCGTTCCGAAAAAAG
-  ACTGTTGCGGCCAGTCGGTAGAGAAAAAGCGCTACCATGCCGCGTTCACATTGATATGTATTCACAGGGA
+  >part9	(1436..1926)  2
+  CCCGGATTACAGTTCATAGGGTGTGACGACACTATCTCTCGTATTCCGCGTTACCTCCTCAAGCTATGCC
+  GCCAGTGCCTGTTTGGCCTCAATTTTCACGCTGAGAAAATCGATAAGGATATCGATATCAAATAGCCAAA
+  TCTTTTTGCCATTACCATTTCTCGCGCAGCTTACGCNGGTATTCGACACCATCTTCCTCACACCCTTGCC
+  AGATGCCAGGAACACTGGTTCTTGCTGTTTGCGATTGATTTACCAGGTATTGATCTACCGCTTCCCGTAA
+  TAGGTCTGCACGCGGAAGATTACGCTGCACCTCAANATCATCAAGTTGCTTAATCACCTCATTCGATAAA
+  TCGAGTAAAATTCTGCTCATATCCATACCTGCCAGAGGGTTCATAAATATCTCGCCAATATCATTTTGAA
+  TCTATGGAGAGAAAAGTACCCTTGTCGAATCTTTAAAGAAAGCGCATTTACGCATCACTTTTTATTTTTG
+  >part10	(3700..3958)  0
+  GTCCAGATACAGCTTTTGATAGTTTATTATCCTGGATGATATCAGGAGCGATATCTATAAAGTTTATGCA
   \end{verbatim}
-  The file \texttt{tmpl.fasta} is supposed to contain 29 sequences with
-  a total of 8,848 bp. To check this is actually the case, we write the
-  AWK script \texttt{count.awk}. It counts the headers and sums the
-  sequence lengths before reporting the number of templates and
-  nucleotides.
+
+  The consists of a name, coordinates within the concatenated reference
+  sequence, and the number of mutations.
+
+  The file \texttt{tmpl.fasta} is supposed to contain 91 sequences with
+  46844 nucleotides, 4309 \texttt{N}, totaling $46844 + 4309 = 51153$
+  residues. To check this is actually the case, we write the AWK script
+  \texttt{count.awk}. It counts the headers and sums the sequence
+  lengths before reporting the number of templates and nucleotides.
   \begin{prog}[\texttt{count.awk}]\label{count}
     \textcolor{white}{}
 #+end_src
 #+begin_src awk <<count.awk>>=
-  /^>/ {
-    c++
-    s += $2
+  {
+    if (/^>/)
+      c++
+    else {
+      t += length($1)
+      n += gsub("N", "")
+    }
   }
   END {
-    printf "# %s tmpl, %d bp\n", c, s
+    printf "# %s tmpl, %d nuc, %d N, %d total\n", c, t - n, n, t
   }
 #+end_src
 #+begin_src latex
   \end{prog}
-  Run the script to find the expected 29 templates with 8.8 kb.
+  Run the script to find the expected 91 templates with 51.1 kb.
 #+end_src
 #+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
   awk -f count.awk tmpl.fasta 
-  # 29 tmpl, 8848 bp
+  # 91 tmpl, 46844 nuc, 4309 N, 51153 total
 #+end_src
 #+begin_src latex
   To make the process of template selection more transparent, the
@@ -109,9 +124,9 @@
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   fur -d furDb -u > unique1.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
 #+end_src
 #+begin_src latex
   The file \texttt{unique1.fasta} now contains 1005 sequences with
@@ -119,117 +134,85 @@
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   awk -f count.awk unique1.fasta
-  # 1005 tmpl, 681264 bp
+  # 1005 tmpl, 681264 nuc, 0 N, 681264 total
 #+end_src
 #+begin_src latex
-  Similarly, the 137 regions present in all targets can be inspected
+  Similarly, the 170 regions present in all targets can be inspected
   using the \texttt{-U} option.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   fur -d furDb -U > unique2.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets           137        25528
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           170        69407            151
 #+end_src
 #+begin_src latex
-  Check that \texttt{unique2.fasta} contains 137 sequences with 25,528
-  bp.
+  Check that \texttt{unique2.fasta} contains 170 sequences with $69407 +
+  151 = 69558$ bp.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   awk -f count.awk unique2.fasta
-  # 137 tmpl, 25528 bp
+  # 170 tmpl, 69407 nuc, 151 N, 69558 total
 #+end_src
 #+begin_src latex
-  The first parameter of \texttt{fur} to explore is window length,
-  \texttt{-w}, which by default is 80 bp. Much longer windows result in
-  sequences that are more difficult to find as exact matches among all
-  targets. For example, with 1 kb windows, there are 111 candidate
-  regions, of which only one is present in all targets. However, it is
-  also found among the neighbor sequences, leaving no templates. This is
-  in spite of the fact that the amount of nucleotides returned from the
-  sliding window analysis, 635 kb, is similar to the 681 kb found with
-  80 bp windows.
+  Two \texttt{fur} parameters are of interest, the window length and the
+  $E$-value of the BLAST search during the subtraction step. Let's begin
+  with the window length, which by default is 80 bp. Much longer windows
+  result in sequences that are more difficult to find as exact matches
+  among all targets. For example, with 1 kb windows, there are 111
+  candidate regions, of which 26 are present in all targets. The final
+  tally is 18 regions with 18027 nucleotides and 2990 \ty{N}. So the
+  final yield is quite different in spite of the fact that the amount of
+  nucleotides returned from the sliding window analysis, 635 kb, is
+  similar to the 681 kb found with 80 bp windows.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  fur -d furDb -w 1000
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window                111       634900
-  # Presence in targets             1         1400
-  # Absence from neighbors          0            0
+  fur -d furDb -w 1000 > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window                111       634900              0
+  # Presence in targets            26        28730            108
+  # Absence from neighbors         18        18027           2990
 #+end_src
 #+begin_src latex
   On the other hand, a small increase in window length to 90 bp happens
-  to yield 85 templates with 18.9 kb. Clearly, \texttt{fur} is highly
-  sensitive to the window length and this should be borne in mind when
-  investigating other pathogens.
+  to yield 174 templates with 53.6 kb template material. Clearly,
+  \texttt{fur} is highly sensitive to the window length and this should
+  be borne in mind when investigating other pathogens.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   fur -d furDb -w 90 > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1610       609930
-  # Presence in targets           163        31869
-  # Absence from neighbors         85        18936
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1610       609930              0
+  # Presence in targets           246        72184            167
+  # Absence from neighbors        174        53570           2922
 #+end_src
 #+begin_src latex
-  The second parameter of interest is the minimum percent identity of
-  BLAST hits to the target sequences. By default this is 100, but if
-  lowered to 99, the default 80 bp windows analysis yields 36 template
-  candidates with 11.9 kb instead of the previous 29 templates with 8.8
-  kb.
+  The second parameter we explore is the $E$-value for the BLAST-search
+  among the neighborhood sequences, which is $10^{-5}$ by default. When
+  decreased to, say, $10^{-20}$, the yield increases from the original
+  91 fragments with 46.8 kb to 102 fragments with 50.5 kb. However, the
+  candidates might now be less specific.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  fur -d furDb -i 99 > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets           164        36248
-  # Absence from neighbors         36        11904
+  fur -d furDb -e 1e-20 > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           170        69407            151
+  # Absence from neighbors        102        50516           2573
 #+end_src
 #+begin_src latex
-  The third parameter that can be tuned to optimize searches is the
-  minimum length of the alignment between a target and a candidate. By
-  default this is the candidate length. If reduced to 500 bp, one
-  template candidate fewer is retained. However, the total number of
-  nucleotides grows over fourfold to 40.8 kb. These would still have to
-  be inspected in a multiple sequence alignment to find their
-  intersection before primer design can begin.
-#+end_src
-#+begin_src sh <<Refine tutorial aslysis, P. \ref{furTut}>>=
-  fur -d furDb -i 99 -l 500 > tmpl.fasta
-  # Step                    Sequences  Nucleotides
-  # ----------------------------------------------
-  # Sliding window               1005       681264
-  # Presence in targets            52        72496
-  # Absence from neighbors         28        40776
-#+end_src
-#+begin_src latex
-  The fourth and last parameter we explore in this tutorial is the
-  $E$-value for the BLAST-search among the neighborhood sequences, which
-  is $10^{-5}$ by default. When decreased to, say, $10^{-20}$, the yield
-  increases from the original 29 fragments with 8.8 kb to 52 fragments
-  with 12.4 kb. However, the candidates might now be less specific.
-#+end_src
-#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-fur -d furDb -e 1e-20 > tmpl.fasta
-# Step                    Sequences  Nucleotides
-# ----------------------------------------------
-# Sliding window               1005       681264
-# Presence in targets           137        25528
-# Absence from neighbors         52        12392
-#+end_src
-#+begin_src latex
-  So it might well be worth varying the window length (\texttt{-w}),
-  percent identity (\texttt{-i}), alignment length (\texttt{-l}), and
+  So it might well be worth varying the window length (\texttt{-w}), and
   the $E$-value (\texttt{-e}), in your own analyses. This can be done
   conveniently, as each run of \texttt{fur} is reasonably fast once the
   underlying database has been computed.
 
   \section{Making Primers, \texttt{fur2prim} \& \texttt{prim2fasta.awk}}
   Each template is now converted to an entry in the input to
-  \texttt{primer3}.'
+  \texttt{primer3}.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   ./build/fur2prim.awk tmpl.fasta > prim.txt
@@ -298,7 +281,7 @@ fur -d furDb -e 1e-20 > tmpl.fasta
 #+end_src
 #+begin_src sh <<Get BLAST taxonomy database, P. \ref{checkTut}>>=
   update_blastdb.pl --decompress taxdb
-  export ((BLASTDB=$(pwd)))
+  export BLASTDB=$(pwd)
   cd ..
 #+end_src
 #+begin_src latex

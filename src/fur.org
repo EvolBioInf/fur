@@ -45,10 +45,10 @@
   uses \texttt{macle}~\cite{pir18:hig} to identify candidate regions
   that are unique to a representative target when compared to all
   neighbors. These candidate regions are then checked for presence in
-  all targets and absence from all neighbors using BLAST. The resulting
-  templates are finally printed to screen. They are now ready for
-  submission to a primer design program like
-  Primer-BLAST~\cite{ye12:pri}.
+  all targets using \texttt{phylonium}~\cite{klo20:phy} and absence from
+  all neighbors using BLAST \cite{alt97:gap}. The resulting templates are finally printed
+  to screen. They are now ready for submission to a primer design
+  program like \texttt{primer3}~\cite{unt12:pri}.
 
   \section{Implementation}
   The program is based on arrays of sequences and arrays of intervals on
@@ -71,9 +71,9 @@
 #+begin_src latex
   \end{prog}
   \subsection{Arrays of Intervals}
-  Intervals and their arrays are the basic hitherto undefined building
-  blocks of \texttt{fur}, so they are defined first. Intervals have a
-  start and an end.
+  Intervals and their arrays are the basic building blocks of
+  \texttt{fur} still undefined, so they are defined first. Intervals
+  have a start and an end.
 #+end_src
 #+begin_src C <<Data structures, P. \ref{fur}>>=
   typedef struct intv {
@@ -98,7 +98,7 @@
   Intv *newIntv(int s, int e);
 #+end_src
 #+begin_src latex
-  These positions are saved once space has been made for them.
+  These positions are saved once space has been allocated for them.
 #+end_src
 #+begin_src C <<Function definitions, P. \ref{fur}>>=
   Intv *newIntv(int s, int e) {
@@ -132,14 +132,14 @@
   }
 #+end_src
 #+begin_src latex
-  And to deconstruct, the freeing of an interval array is declared.
+  Freeing of an interval array is declared.
 #+end_src
 #+begin_src C <<Function declarations, P. \ref{fur}>>=
   void freeIntvArr(IntvArr *ia);
 #+end_src
 #+begin_src latex
-  Its definition frees each interval in turn before freeing the interval
-  array itself.
+  In its definition each interval is freed in turn before the interval
+  array itself is freed.
 #+end_src
 #+begin_src C <<Function definitions, P. \ref{fur}>>=
   void freeIntvArr(IntvArr *ia) {
@@ -170,7 +170,7 @@
   Interval arrays are now ready to be used. This is done in the
   \texttt{main} function, which first interacts with the user, then
   analyzes the targets and neighbors, and finally prints the desired
-  templates. At the end of the program any memory still allocated is
+  templates. At the end of the program, any memory still allocated is
   freed.
 #+end_src
 #+begin_src C <<Main function, P. \ref{fur}>>=
@@ -236,15 +236,27 @@
 #+end_src
 #+begin_src latex
   \subsection{Find Unique Templates}
-  Analysis of the targets and neighbors proceeds in two steps. Unique
-  regions are first identified by comparing one representative target to
-  all neighbors. Then the unique regions are checked for presence in all
-  targets and absence from all neighbors.
+  Analysis of the targets and neighbors proceeds in three steps:
+  \begin{enumerate}
+    \item Identify unique regions, $\mathcal{U}_1$, by comparing one
+      representative target to all neighbors.
+    \item Intersect $\mathcal{U}_1$ with the targets to get unique
+      regions present in all targets, $\mathcal{U}_2$.
+    \item Subtract the neighbors from $\mathcal{U}_2$ to get regions
+      truly unique to the targets, $\mathcal{U}_3$. In theory, all
+      regions in $\mathcal{U}_2$ should be unique with respect to the
+      neighbors, so $\mathcal{U}_2=\mathcal{U}_3$. However, the
+      construction of $\mathcal{U}_1$ is less sensitive than the
+      subtraction step. So in practice we have $\mathcal{U}_2\supset\mathcal{U}_3$.
+  \end{enumerate}
+  To summarize, a set of unique regions is created (step 1) and then
+  reduced to ensure its sensitivity (step 2) and specificity (step 3) as
+  markers of the targets.
 #+end_src
 #+begin_src C <<Analyze sequences, P. \ref{fur}>>=
   //<<Identify unique regions, P. \ref{fur}>>
-  //<<Check presence in all targets, P. \ref{fur}>>
-  //<<Check absence from all neighbors, P. \ref{fur}>>
+  //<<Intersect with targets, P. \ref{fur}>>
+  //<<Subtract neighbors, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   Unique regions are identified using the external program
@@ -270,8 +282,8 @@
 #+end_src
 #+begin_src latex
   The representative name is obtained from the \texttt{macle} index,
-  where it is first in the name list. This ordering is ensured by the
-  program \texttt{makeFurDb}.
+  where it tops the name list, an ordering is ensured by
+  \texttt{makeFurDb}.
 #+end_src
 #+begin_src C <<Get representative name, P. \ref{fur}>>=
   char *tmpl = "macle -l %s/macle.idx | "
@@ -285,8 +297,8 @@
   pclose(pp);
 #+end_src
 #+begin_src latex
-  With the sequence name as handle, the corresponding sequence is
-  extracted from the BLAST database.
+  With the name as handle, the corresponding sequence is extracted from
+  the BLAST database.
 #+end_src
 #+begin_src C <<Get representative sequence, P. \ref{fur}>>=
   tmpl = "blastdbcmd -entry %s -db %s/blastdb";
@@ -312,7 +324,7 @@
   (lightgray) or not (black). Unique windows are summarized into unique
   intervals (dashed). The user is told about the size of the preliminary
   template set, and the array of unique intervals is eventually
-  converted into an array of unique sequences, the template candidates.
+  converted to an array of unique sequences, the template candidates.
 
   \begin{figure}
     \begin{center}
@@ -340,7 +352,7 @@
   GC-content, window length, and the inverse of the cumulative
   distribution function (CDF) of the match length null
   distribution. Figure~\ref{fig:cdf} shows this function and how
-  choosing a particular CDF-value, on the $y$-axis, 0.95 in the example,
+  choosing a particular CDF-value on the $y$-axis, 0.95 in the example,
   corresponds to a complexity-threshold on the $x$-axis, 0.019. Sequence
   length and GC content are looked up in the \texttt{macle} index,
   window length and probability supplied by the user.
@@ -381,11 +393,11 @@
 #+begin_src latex
   A sliding window analysis by \texttt{macle} returns pairs of values,
   $(m, C_{\rm m})$, where $m$ is the window midpoint and $C_{\rm m}$ its
-  complexity. Let $t$ be the uniqueness threshold. If $C_{\rm m}\ge t$,
-  the corresponding window is deemed unique. It also belongs to a unique
-  interval of one or more overlapping unique windows. As the algorithm
-  parses the windows from left to right, it toggles between being inside
-  or outside a unique interval.
+  complexity. Let $t$ be the uniqueness threshold; if $C_{\rm m}\ge t$,
+  the corresponding window is deemed unique. Such a window also belongs
+  to a unique interval of one or more overlapping unique windows. As the
+  algorithm parses the windows from left to right, it toggles between
+  being inside or outside a unique interval.
 #+end_src
 #+begin_src C <<Sliding window analysis, P. \ref{fur}>>=
   //<<Prepare sliding window analysis, P. \ref{fur}>>
@@ -471,19 +483,27 @@
   The result of the sliding window analysis is reported.
 #+end_src
 #+begin_src C <<Report result of sliding window analysis, P. \ref{fur}>>=
-  long nn = 0;
-  int nm = 0;
+  int nn = 0, nm = 0;
+  //<<Parse result of sliding window analysis, P. \ref{fur}>>
+  char *h1 = "# Step                    Sequences  Nucleotides  "
+    "Mutations (N)";
+  char *h2 = "# ------------------------------------------------"
+    "-------------";
+  fprintf(stderr, "%s\n%s\n", h1, h2);
+  tmpl = "# Sliding window             %6d     %8d         %6d\n";
+  fprintf(stderr, tmpl, ia->n, nn, nm);
+#+end_src
+#+begin_src latex
+  The result of the sliding window analysis is parsed by looking at
+  residue to count \texttt{N}s and everything else.
+#+end_src
+#+begin_src C <<Parse result of sliding window analysis, P. \ref{fur}>>=
   for (int i = 0; i < ia->n; i++)
     for (int j = ia->arr[i]->s; j <= ia->arr[i]->e; j++)
       if (rs->data[j] == 'N')
 	nm++;
       else
 	nn++;
-  char *h1 = "# Step                    Sequences  Nucleotides  Mutations (N)";
-  char *h2 = "# -------------------------------------------------------------";
-  fprintf(stderr, "%s\n%s\n", h1, h2);
-  tmpl = "# Sliding window             %6d     %8ld         %6d\n";
-  fprintf(stderr, tmpl, ia->n, nn, nm);
 #+end_src
 #+begin_src latex
   The array of unique intervals is now converted to the corresponding
@@ -497,7 +517,8 @@
   char name[1024];
   for (int i = 0; i < ia->n; i++) {
     Intv *iv = ia->arr[i];
-    sprintf(name, "template_%d %d-%d\n", i + 1, iv->s + 1, iv->e + 1);
+    sprintf(name, "template_%d %d-%d\n", i + 1, iv->s + 1,
+	    iv->e + 1);
     Seq *s = newSeq(name);
     //<<Copy sequence data, P. \ref{fur}>>
     seqArrAdd(sa, s);
@@ -527,14 +548,14 @@
 #+end_src
 #+begin_src latex
   The intervals in hand are candidates for template sequences. But
-  before they are printed, they are checked for presence in all targets
-  and absence from all neighbors.
+  before they are printed, they are reduced to those regions present in
+  all targets and absent from all neighbors.
 
-  \section{Check Presence in All Targets}
+  \section{Intersect with Targets}
   At this point the template candidates come from a single target
   sequence, the representative. To ensure they also occur in all other
   targets, the templates are intersected with the remaining
-  targets. This is done using an external program,
+  targets. This is done using a second external program,
   \texttt{phylonium}~\cite{klo20:phy}. \texttt{Phylonium} takes as input
   a set of sequences, one of which is designated the reference. In this
   case the reference is made up of the template candidates just
@@ -542,7 +563,7 @@
   example, in Figure~\ref{fig:int} the reference, $R$, consists of three
   unique candidate regions, $u_1$, $u_2$, and $u_3$. The remaining
   targets---$T_1$, $T_2$, and $T_3$ in the example---get aligned to
-  $R$. Now region $u_1$ has overlapping matches from all three targets,
+  $R$. Region $u_1$ now has overlapping matches from all three targets,
   region $u_2$ has matches from the three targets, but only those from
   $T_2$ and $T_3$ overlap, and region $u_3$ has no match from $T_3$. The
   intersection between $R$ and $T_1$--$T_3$ is formed by removing all
@@ -560,17 +581,18 @@
       candidate, $c_1$.}\label{fig:int}
   \end{figure}
 #+end_src
-#+begin_src C <<Check presence in all targets, P. \ref{fur}>>=
+#+begin_src C <<Intersect with targets, P. \ref{fur}>>=
   //<<Write templates to file, P. \ref{fur}>>
   //<<Write targets to files, P. \ref{fur}>>
   //<<Run \texttt{phylonium}, P. \ref{fur}>>
   //<<Delete template and target files, P. \ref{fur}>>
-  //<<Report result of presence test, P. \ref{fur}>>
+  //<<Report result of intersection, P. \ref{fur}>>
   //<<Print ubiquitous templates and exit? P. \ref{fur}>>
 #+end_src
 #+begin_src latex
-  The templates are written to the file \texttt{r.fasta} by iterating
-  across the template array and printing headers and sequences.
+  The templates are written to the file \texttt{r.fasta} inside the
+  database directory by iterating across the template array and printing
+  headers and sequences.
 #+end_src
 #+begin_src C <<Write templates to file, P. \ref{fur}>>=
   tmpl = "%s/r.fasta";
@@ -582,10 +604,10 @@
 #+end_src
 #+begin_src latex
   The remaining targets are read from the BLAST database and written to
-  individual files. The program \texttt{blastdbcmd}, which is part of
-  the BLAST package, allows access to BLAST databases. This adds a blank
-  to the end of headers, which we remove again to ensure accurate
-  identification later.
+  individual files inside the database array. The program
+  \texttt{blastdbcmd}, which is part of the BLAST package, allows access
+  to BLAST databases. This adds a blank to the end of each header, which
+  we remove again to ensure accurate identification later.
 #+end_src
 #+begin_src C  <<Write targets to files, P. \ref{fur}>>=
   in = 1;
@@ -596,8 +618,8 @@
   pclose(pp);
 #+end_src
 #+begin_src latex
-  When iterating across the BLAST database, neighbors and the
-  target representative are avoided.
+  When iterating across the BLAST database, we avoid neighbors and the
+  target representative.
 #+end_src
 #+begin_src C <<Iterate across BLAST database, P. \ref{fur}>>=
   while ((sp = getSeq(pp)) != NULL) {
@@ -612,10 +634,10 @@
 #+end_src
 #+begin_src latex
   To run \texttt{phylonium}, we construct and execute the appropriate
-  command, and save the results. These consist of a set of FASTA entries
-  whose headers contain information about mutations in the fragment. The
-  mutations are marked in the sequence to inform subsequent primer
-  construction.
+  command, then save the results. These consist of a set of FASTA
+  entries with headers containing information about mutations in the
+  fragments. The mutations are marked in the sequences to inform primer
+  construction later.
 #+end_src
 #+begin_src C <<Run \texttt{phylonium}, P. \ref{fur}>>=
   //<<Construct and execute \texttt{phylonium} command, P. \ref{fur}>>
@@ -624,7 +646,7 @@
 #+end_src
 #+begin_src latex
   \texttt{Phylonium} is applied to the target files just constructed. It
-  writes the intersection to the file \texttt{p.fasta}. All to
+  writes the intersection to the file \texttt{p.fasta}. All output to
   \texttt{stdout} or \texttt{stderr} is discarded.
 #+end_src
 #+begin_src C <<Construct and execute \texttt{phylonium} command, P. \ref{fur}>>=
@@ -657,11 +679,9 @@
   \]
   where $n$ is the number of mutations found at positions $p_1,
   p_2,...,p_n$. These positions are set to the unknown nucleotide,
-  \texttt{N}, so they can later be avoided when designing primers. We
-  also count the number of mutations to report them later.
+  \texttt{N}, so they can later be avoided when designing primers.
 #+end_src
 #+begin_src C <<Mark mutations, P. \ref{fur}>>=
-  nm = 0;
   for (int i = 0; i < sa->n; i++) {
     //<<Determine the number of mutations, P. \ref{fur}>>
     //<<Iterate across mutations, P. \ref{fur}>>
@@ -677,7 +697,6 @@
   int j = atoi(strtok(h, " "));
   if (j == 0)
     continue;
-  nm += j;
 #+end_src
 #+begin_src latex
   The functions \texttt{strstr} for looking up the first occurrence of a
@@ -710,18 +729,18 @@
 #+end_src
 #+begin_src latex
   The user is told about the number of sequences, nucleotides, and
-  mutations in the targets.
+  \texttt{N}s in the targets.
 #+end_src
-#+begin_src C <<Report result of presence test, P. \ref{fur}>>=
-  nn = 0;
-  int ns = 0;
+#+begin_src C <<Report result of intersection, P. \ref{fur}>>=
+  nn = nm = 0;
   for (int i = 0; i < sa->n; i++)
-    if (sa->arr[i]) {
-      nn += sa->arr[i]->l;
-      ns++;
-    }
+    for (int j = 0; j < sa->arr[i]->l; j++)
+      if (sa->arr[i]->data[j] == 'N')
+	nm++;
+      else
+	nn++;
   tmpl = "# Presence in targets        %6d     %8ld         %6d\n";
-  fprintf(stderr, tmpl, ns, nn, nm);
+  fprintf(stderr, tmpl, sa->n, nn, nm);
 #+end_src
 #+begin_src latex
   The ubiquitous templates can be inspected.
@@ -735,17 +754,18 @@
   }
 #+end_src
 #+begin_src latex
-  \section{Check Absence from All Neighbors}
-  The absence of the remaining templates among the neighbors is
-  established using BLAST. The candidate templates are searched in the
-  BLAST database and the hits written to file. This file is read back
-  into the program, and the regions with homologs among the neighbors
-  are again set to \texttt{N}.
+  \section{Subtract Neighbors}
+  Any neighbor sequences still present among the remaining templates are
+  removed (subtracted) using a third external program,
+  \texttt{blastn}~\cite{alt97:gap}. The candidate templates are searched
+  in the BLAST database and the hits written to file. This file is read
+  back into \texttt{fur}, and the regions with homologs among the
+  neighbors are again set to \texttt{N}.
 #+end_src
-#+begin_src C <<Check absence from all neighbors, P. \ref{fur}>>=
+#+begin_src C <<Subtract neighbors, P. \ref{fur}>>=
   //<<Search neighbors, P. \ref{fur}>>
   //<<Mark regions found among neighbors, P. \ref{fur}>>
-  //<<Report result of absence test, P. \ref{fur}>>
+  //<<Report result of subtraction, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The neighbors are searched by constructing the \texttt{blastn} pipe
@@ -757,7 +777,8 @@
 #+end_src
 #+begin_src latex
   In the neighbor pipe we write the subject accession and query
-  coordinates to the output file, \texttt{o.txt}.
+  coordinates to the output file, \texttt{o.txt}, inside the database
+  directory.
 #+end_src
 #+begin_src C <<Construct neighbor pipe, P. \ref{fur}>>=
   tmpl = "blastn -task blastn -db %s/blastdb -num_threads %d "
@@ -788,6 +809,7 @@
   //<<Summarize neighbor BLAST output, P. \ref{fur}>>
   fclose(fp);
   //<<Set homologous neighbor regions to N, P. \ref{fur}>>
+  //<<Free BLAST resources, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   To summarize the output of the BLAST search among neighbors, space for
@@ -811,8 +833,8 @@
   }
 #+end_src
 #+begin_src latex
-  The maximum value an integer may take, \texttt{INT\_MAX}, is defined
-  in \texttt{limits.h}.
+  \texttt{INT\_MAX} is the maximum value an integer may take and is
+  defined in \texttt{limits.h}.
 #+end_src
 #+begin_src C <<Include headers, P. \ref{fur}>>=
   #include <limits.h>
@@ -832,26 +854,39 @@
   }
 #+end_src
 #+begin_src latex
-  Finally, the regions with homology among the neighbors are set to
-  \texttt{N}, bearing in mind that BLAST-coordinates are 1-based,
-  character arrays 0-based. As the arrays with the start and end
-  coordinates are not needed any more afterwards, they are freed.
+  The regions with homology among the neighbors are set to \texttt{N},
+  bearing in mind that BLAST-coordinates are 1-based, character arrays
+  0-based. As the arrays with the start and end coordinates are not
+  needed any more afterwards, they are freed.
 #+end_src
 #+begin_src C <<Set homologous neighbor regions to N, P. \ref{fur}>>=
   for (int i = 0; i < sa->n; i++)
     for (int j = start[i] - 1; j < end[i]; j++)
       sa->arr[i]->data[j] = 'N';
+#+end_src
+#+begin_src latex
+  The resources used up by the BLAST run, the output file and the arrays
+  of start and end positions, are freed again.
+#+end_src
+#+begin_src C <<Free BLAST resources, P. \ref{fur}>>=
+  tmpl = "rm %s/o.txt";
+  sprintf(cmd, tmpl, args->d);
+  if (system(cmd) < 0) {
+    fprintf(stderr, "couldn't run system call %s\n", cmd);
+    exit(0);
+  }
   free(start);
   free(end);
 #+end_src
 #+begin_src latex
-  In order to report the results of the absence test, we iterate over
-  all residues in all sequences and count the number of mutations. At
-  this point we can also classify the sequences into those fit for
-  subsequent analysis and those that aren't.
+  In order to report the results of the subtraction step, we iterate
+  over all residues in all sequences and count the number of
+  mutations. At this point we can also classify the sequences into those
+  fit for subsequent analysis and those that aren't.
 #+end_src
-#+begin_src C  <<Report result of absence test, P. \ref{fur}>>=
-  nn = ns = nm = 0;
+#+begin_src C  <<Report result of subtraction, P. \ref{fur}>>=
+  int ns = 0;
+  nn = nm = 0;
   for (int i = 0; i < sa->n; i++) {
     //<<Count mutations, P. \ref{fur}>>
     //<<Classify sequences, P. \ref{fur}>>
@@ -860,9 +895,9 @@
   fprintf(stderr, tmpl, ns, nn, nm);
 #+end_src
 #+begin_src latex
-  The mutations are counted by looking at every residue in the current
-  result set. An \texttt{N} is counted as a mutation, everything else
-  as a nucleotide.
+  The mutations are counted by again looking at every residue in the
+  current result set. An \texttt{N} is counted as a mutation, everything
+  else as a nucleotide.
 #+end_src
 #+begin_src C <<Count mutations, P. \ref{fur}>>=
   int cn = 0, cm = 0;
@@ -898,5 +933,5 @@
   freeSeqArr(sa);
 #+end_src
 #+begin_src latex
-  The program is now ready to be used.
+  \texttt{Fur} is now ready to be used.
 #+end_src
