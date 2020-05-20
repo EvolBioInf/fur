@@ -50,6 +50,6 @@ checkPrim.awk: checkPrim.org
 	chmod +x ../build/checkPrim.awk
 
 clean:
-	rm -f *.o *~ count.awk checkPrim.awk tutorial.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
+	rm -f *.o *~ count.awk checkPrim.awk furTur.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
 test:
 	bash ../scripts/fur.sh 
