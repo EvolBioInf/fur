@@ -143,7 +143,9 @@
   BLAST encodes the strand in the start and end positions. If the start
   is less than the end, the match is on the forward strand; otherwise,
   the match is on the reverse strand. I found it more convenient to
-  think of all matches in the customary 5' to 3' direction.
+  think of all matches in the customary 5' to 3' direction, which means
+  I invert the coordinates of matches on the reverse strand and
+  explicitly store the strand, 0 for forward, 1 for reverse.
 #+end_src
 #+begin_src awk <<Decide strand, P. \ref{checkPrim}>>=
   if ($4 < $5) {
@@ -157,11 +159,12 @@
   }
 #+end_src
 #+begin_src latex
-  When iterating over the results, every 5' match is compared to all 3'
-  matches that could form an amplicion. Whenever an amplicon is found,
-  the two primer accessions are printed together with the subject
-  accession, the start and end positions of the amplicon on that
-  subject, and the subject taxonomy.
+  When iterating over the results, every 5' match on the forward strand
+  is compared to all 3' matches on the reverse strand that are close
+  enough to form an amplicion. Whenever an amplicon is found, the two
+  primer accessions are printed together with the subject accession, the
+  start and end positions of the amplicon on that subject, and the
+  subject taxonomy.
 #+end_src
 #+begin_src awk <<Analyze BLAST results, P. \ref{checkPrim}>>=
   <<Print header, P. \ref{checkPrim}>>
@@ -169,7 +172,7 @@
     j = i + 1
     l = send[j] - sstart[i] - 1
     while (sacc[i] == sacc[j] && j < n && l <= maxLen) {
-      if (strand[i] != strand[j])
+      if (strand[i] == 0 && strand[j] == 1)
 	<<Print result, P. \ref{checkPrim}>>
       j++
     }
