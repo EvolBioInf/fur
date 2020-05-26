@@ -60,16 +60,19 @@ Seq *getJoinedSeq(char *fileName) {
   }
   fclose(fp);
   free(line);
-  seq->data = erealloc(seq->data, seq->l + 1);
-  seq->data[seq->l] = '\0';
+  if (seq) {
+    seq->data = erealloc(seq->data, seq->l + 1);
+    seq->data[seq->l] = '\0';
+  }
   return seq;
 }
 Seq *getSeq(FILE *fp) {
-  Seq *seq = NULL;
+  Seq *seq;
   static char *line = NULL;
   ssize_t nread;
   static size_t len = 0;
   size_t maxLen = 0;
+  seq = NULL;
   if (line) {
     if (line[0] == '>') {
       seq = newSeq(line);
@@ -83,8 +86,10 @@ Seq *getSeq(FILE *fp) {
   while ((nread = getline(&line, &len, fp)) != -1) {
     if (line[0] == '>') {
         if (seq) {
-          seq->data = erealloc(seq->data, seq->l + 1);
-          seq->data[seq->l] = '\0';
+          if (seq) {
+            seq->data = erealloc(seq->data, seq->l + 1);
+            seq->data[seq->l] = '\0';
+          }
           return seq;
         } else
           seq = newSeq(line);
@@ -99,8 +104,10 @@ Seq *getSeq(FILE *fp) {
           seq->data[seq->l++] = line[i];
     }
   }
-  seq->data = erealloc(seq->data, seq->l + 1);
-  seq->data[seq->l] = '\0';
+  if (seq) {
+    seq->data = erealloc(seq->data, seq->l + 1);
+    seq->data[seq->l] = '\0';
+  }
   return seq;
 }
 void printSeq(FILE *fp, Seq *s, int l) {
