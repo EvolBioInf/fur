@@ -4,6 +4,7 @@ all:
 	make -C src
 	make -C src tutorial
 	cp src/fur build
+	cp src/makeFurDb build
 	cp src/checkTut.sh src/furTut.sh scripts
 test:
 	@make -s -C src test
