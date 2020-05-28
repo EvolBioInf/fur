@@ -1,23 +1,24 @@
 #+begin_src latex
   \section{Introduction}
-  Primers designed to amplify a specific region may also unintentionally
-  amplify other regions in the same genome or even in other
-  organisms. To guard against such off-target amplification, primers are
-  compared to a suitable sequence database and all potential
-  amplification products in a particular set of organisms
-  reported. There already exists a great web-based program to do this,
-  Primer-BLAST. Intended foremost as a tool for designing primers from
-  scratch, it also contains a module for checking primer
-  specificity. However, running programs over the internet is usually
-  less convenient than running them locally. Our aim is therefore to
-  write a stand-alone version of this module, \texttt{checkPrim.awk}.
+  PCR primers designed to amplify a specific region may also
+  unintentionally amplify other regions in the same genome or in the
+  genomes of other organisms. To guard against such off-target
+  amplification, primers are compared to a suitable sequence database
+  and all potential amplification products in a particular set of
+  organisms reported. There already exists an excellent web-based
+  program to do this, Primer-BLAST. Intended foremost as a tool for
+  designing primers from scratch, it also contains a module for checking
+  primer specificity. However, running programs over the internet is
+  usually less convenient than running them locally. Our aim is
+  therefore to write a stand-alone version of this module,
+  \texttt{checkPrim.awk}.
 
   \section{Implementation}
   \texttt{checkPrim.awk} takes as input a set of primers, a BLAST
-  database, and an organism identified by a NCBI taxon-id. It returns
+  database, and an organism identified by an NCBI taxon-id. It returns
   the virtual PCR products, or amplicons, found in members of that
-  taxon. It can also do the opposite, that is, return the amplicons
-  found outside the members of the focal taxon.
+  taxon. It can also do the opposite, return the amplicons found outside
+  the members of the focal taxon.
 
   The program first switches the field separator from default white
   space to tab. It then interacts with the user, sets optional
@@ -60,8 +61,8 @@
   }
 #+end_src
 #+begin_src latex
-  There are also four optional parameters: The maximum number of
-  mismatches (\texttt{maxMism}), the maximum length of an amplicon
+  There are also optional parameters: The maximum number of mismatches
+  (\texttt{maxMism}), the maximum length of an amplicon
   (\texttt{maxLen}), the number of threads used by BLAST
   (\texttt{numThreads}), and the $E$-value (\texttt{evalue}). I took the
   default maximum number of mismatches and the maximum amplicon size
@@ -99,28 +100,30 @@
 #+end_src
 #+begin_src latex
   The BLAST search is based on the \texttt{blastn-short} mode of the
-  \texttt{blastn} program. Five aspects of each BLAST hit are saved: The
+  \texttt{blastn} program. This mode is optimized for sequences shorter
+  than 50 nucleotides. Five aspects of each BLAST hit are saved: The
   query and subject accessions, the number of mismatches, the start and
   end positions on the subject, and two items of taxonomic information
-  on the subject: the taxon id and its scientific name. By default,
-  BLAST results are sorted first by the input order of the query---all
-  matches of the first query followed by all matches to the second, and
-  so on---and then by their subject position. For our purposes it is
-  more convenient to group the results by subject and then sort by
-  position within each subject.
+  on the subject: the taxon id and its scientific name. In addition, we
+  set the \texttt{outfmt} option such that the lengths of the query and
+  the alignment are printed. This allows us filter for full-length
+  matches. By default, BLAST results are sorted first by the input order
+  of the query---all matches of the first query followed by all matches
+  to the second, and so on---and then by their subject position. For
+  identifying spurious amplicons, it is more convenient to group the
+  results by subject and then sort by position within each subject.
 #+end_src
 #+begin_src awk <<Construct BLAST command, P. \ref{checkPrim}>>=
   tmpl = "blastn -task blastn-short -query %s -db %s -outfmt "
-  tmpl = tmpl "\"6 qacc sacc mismatch sstart send staxid ssciname\" "
-  tmpl = tmpl "-num_threads %d "
-  tmpl = tmpl "-evalue %d "
+  tmpl = tmpl "\"6 qacc sacc mismatch sstart send staxid ssciname "
+  tmpl = tmpl "qlen length\" -num_threads %d -evalue %d "
   if (taxid)
     tmpl = tmpl "| awk '$6 == \"%s\"' "
   else {
     taxid = negativeTaxid
     tmpl = tmpl "| awk '$6 != \"%s\"' "
   }
-  tmpl = tmpl "| awk '$3 <= %d'"
+  tmpl = tmpl "| awk '$3 <= %d && $8 == $9'"
   tmpl = tmpl "| sort -k 2,2 -k 4,4n"
   cmd = sprintf(tmpl, query, db, numThreads, evalue, taxid, maxMism)
 #+end_src
@@ -140,12 +143,31 @@
   close(cmd)
 #+end_src
 #+begin_src latex
-  BLAST encodes the strand in the start and end positions. If the start
-  is less than the end, the match is on the forward strand; otherwise,
-  the match is on the reverse strand. I found it more convenient to
-  think of all matches in the customary 5' to 3' direction, which means
-  I invert the coordinates of matches on the reverse strand and
-  explicitly store the strand, 0 for forward, 1 for reverse.
+  DNA is double-stranded and all PRC reactions take double-stranded DNA
+  as template, regardless of the actual nucleotide molecule
+  investigated. To visualize the primer configuration we are looking for
+  in our BLAST search, consider the forward and reverse primers $p_{\rm
+    f}$ and $p_{\rm r}$ depicted in Figure~\ref{fig:pri}. They bind the
+  forward and reverse strands of a template, $t_{\rm f}$ and $t_{\rm
+    r}$. So regardless of which template strand has been sequenced, the
+  5'-primer of a potential amplicon is on the forward, the 3'-primer on
+  the reverse strand.
+
+  \begin{figure}
+    \input{primConfig}
+    \caption{Forward and reverse PCR primers, $p_{\rm f}$ and $p_{\rm
+	r}$, along the forward or reverse strands of a template,
+      $t_{\rm f}$ and $t_{\rm r}$.}\label{fig:pri}
+  \end{figure}
+
+
+  BLAST encodes strand in the start and end positions of a match. If the
+  start is less than the end, the match is on the forward strand;
+  otherwise, the match is on the reverse strand. I found it more
+  convenient to think of all matches in the customary 5' to 3'
+  direction, which means I invert the coordinates of matches on the
+  reverse strand and explicitly store the strand, 0 for forward, 1 for
+  reverse.
 #+end_src
 #+begin_src awk <<Decide strand, P. \ref{checkPrim}>>=
   if ($4 < $5) {
@@ -160,11 +182,10 @@
 #+end_src
 #+begin_src latex
   When iterating over the results, every 5' match on the forward strand
-  is compared to all 3' matches on the reverse strand that are close
-  enough to form an amplicion. Whenever an amplicon is found, the two
-  primer accessions are printed together with the subject accession, the
-  start and end positions of the amplicon on that subject, and the
-  subject taxonomy.
+  is paired with all 3' matches on the reverse strand closer than the
+  maximum amplicon length. Any such pair of primers is a potential
+  amplicon and is reported with the subject accession, the start and end
+  positions of the amplicon on that subject, and the subject taxonomy.
 #+end_src
 #+begin_src awk <<Analyze BLAST results, P. \ref{checkPrim}>>=
   <<Print header, P. \ref{checkPrim}>>
