@@ -35,15 +35,15 @@
 #+end_src
 #+begin_src latex
   Unique templates are found by applying \texttt{fur} to this database,
-  which takes roughly ten seconds. The template sequences are stored in
-  \texttt{tmpl.fasta}.
+  which takes roughly fifteen seconds. The template sequences are stored
+  in \texttt{tmpl.fasta}.
 #+end_src
 #+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
   fur -d furDb > tmpl.fasta
   # Step                    Sequences  Nucleotides  Mutations (N)
   # -------------------------------------------------------------
   # Sliding window               1005       681264              0
-  # Presence in targets           170        69407            151
+  # Presence in targets           267        76006            224
   # Absence from neighbors         91        46844           4309
 #+end_src
 #+begin_src latex
