@@ -11,8 +11,8 @@
 #define DEFAULT_W 80
 #define DEFAULT_P 0.95
 #define DEFAULT_T 8
-#define DEFAULT_L 100
 #define DEFAULT_E 1e-5
+#define DEFAULT_N 100
 
 /* define argument container */
 typedef struct args{
@@ -28,9 +28,10 @@ typedef struct args{
   int     w; /* window length */
   float   p; /* p-value */
   double  e; /* E-value for neighborhood search */
-  int     l; /* minimum length of ubiquitous fragment */
+  int     n; /* minimum number of nucleotides in final fragment */
   int     t; /* number of threads */
   int     k; /* step length */
+  char    x; /* exact matches only */
 } Args;
 
 Args *getArgs(int argc, char *argv[]);

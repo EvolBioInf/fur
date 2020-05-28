@@ -554,20 +554,21 @@
   \section{Intersect with Targets}
   At this point the template candidates come from a single target
   sequence, the representative. To ensure they also occur in all other
-  targets, the templates are intersected with the remaining
-  targets. This is done using a second external program,
+  targets, the templates are intersected with the remaining targets
+  using a second external program,
   \texttt{phylonium}~\cite{klo20:phy}. \texttt{Phylonium} takes as input
-  a set of sequences, one of which is designated the reference. In this
-  case the reference is made up of the template candidates just
-  identified. All contigs of the reference are concatenated. For
-  example, in Figure~\ref{fig:int} the reference, $R$, consists of three
-  unique candidate regions, $u_1$, $u_2$, and $u_3$. The remaining
-  targets---$T_1$, $T_2$, and $T_3$ in the example---get aligned to
-  $R$. Region $u_1$ now has overlapping matches from all three targets,
-  region $u_2$ has matches from the three targets, but only those from
-  $T_2$ and $T_3$ overlap, and region $u_3$ has no match from $T_3$. The
-  intersection between $R$ and $T_1$--$T_3$ is formed by removing all
-  positions with gaps, resulting in one template candidate, $c_1$.
+  a set of sequences, one of which is designated the reference. In the
+  context of \texttt{fur}, the reference is made up of the template
+  candidates just identified. All contigs of the reference are
+  concatenated. For example, in Figure~\ref{fig:int} the reference, $R$,
+  consists of three unique candidate regions, $u_1$, $u_2$, and
+  $u_3$. The remaining targets---$T_1$, $T_2$, and $T_3$ in the
+  example---get aligned to $R$. Region $u_1$ now has overlapping matches
+  from all three targets, region $u_2$ has matches from the three
+  targets, but only those from $T_2$ and $T_3$ overlap, and region $u_3$
+  has no match from $T_3$. The intersection between $R$ and $T_1$--$T_3$
+  is formed by removing all positions with gaps, resulting in one
+  template candidate, $c_1$.
 
   \begin{figure}
     \begin{center}
@@ -666,7 +667,7 @@
   freeSeqArr(sa);
   sa = newSeqArr();
   while ((sp = getSeq(fp)) != NULL)
-    if (sp->l >= args->l)
+    if (sp->l >= args->n)
       seqArrAdd(sa, sp);
     else
       freeSeq(sp);
@@ -689,14 +690,20 @@
 #+end_src
 #+begin_src latex
   The number of mutations is found by looking for the closing bracket of
-  the fragment's interval.
+  the fragment's interval. Using the \texttt{-x} option, the user can
+  request only exact matches.
 #+end_src
 #+begin_src C <<Determine the number of mutations, P. \ref{fur}>>=
   char *h = strstr(sa->arr[i]->name, ")");
   h += 2;
   int j = atoi(strtok(h, " "));
-  if (j == 0)
+  if (j == 0) {
     continue;
+  } else if (args->x) {
+    freeSeq(sa->arr[i]);
+    sa->arr[i] = NULL;
+    continue;
+  }
 #+end_src
 #+begin_src latex
   The functions \texttt{strstr} for looking up the first occurrence of a
@@ -732,15 +739,17 @@
   \texttt{N}s in the targets.
 #+end_src
 #+begin_src C <<Report result of intersection, P. \ref{fur}>>=
+  int ns = 0;
   nn = nm = 0;
-  for (int i = 0; i < sa->n; i++)
+  for (int i = 0; i < sa->n; i++) {
+    if (!sa->arr[i]) continue;
+    ns++;
     for (int j = 0; j < sa->arr[i]->l; j++)
-      if (sa->arr[i]->data[j] == 'N')
-	nm++;
-      else
-	nn++;
+      if (sa->arr[i]->data[j] == 'N') nm++;
+      else nn++;
+  }
   tmpl = "# Presence in targets        %6d     %8ld         %6d\n";
-  fprintf(stderr, tmpl, sa->n, nn, nm);
+  fprintf(stderr, tmpl, ns, nn, nm);
 #+end_src
 #+begin_src latex
   The ubiquitous templates can be inspected.
@@ -760,7 +769,8 @@
   \texttt{blastn}~\cite{alt97:gap}. The candidate templates are searched
   in the BLAST database and the hits written to file. This file is read
   back into \texttt{fur}, and the regions with homologs among the
-  neighbors are again set to \texttt{N}.
+  neighbors are again set to \texttt{N}, unless the ``exact'' option,
+  \texttt{-x}, is set.
 #+end_src
 #+begin_src C <<Subtract neighbors, P. \ref{fur}>>=
   //<<Search neighbors, P. \ref{fur}>>
@@ -860,9 +870,16 @@
   needed any more afterwards, they are freed.
 #+end_src
 #+begin_src C <<Set homologous neighbor regions to N, P. \ref{fur}>>=
-  for (int i = 0; i < sa->n; i++)
+  for (int i = 0; i < sa->n; i++) {
+    int l = end[i] - start[i] + 1;
+    if (l > 0 && args->x) {
+      freeSeq(sa->arr[i]);
+      sa->arr[i] = NULL;
+      continue;
+    }
     for (int j = start[i] - 1; j < end[i]; j++)
       sa->arr[i]->data[j] = 'N';
+  }
 #+end_src
 #+begin_src latex
   The resources used up by the BLAST run, the output file and the arrays
@@ -885,9 +902,9 @@
   fit for subsequent analysis and those that aren't.
 #+end_src
 #+begin_src C  <<Report result of subtraction, P. \ref{fur}>>=
-  int ns = 0;
-  nn = nm = 0;
+  nn = nm = ns = 0;
   for (int i = 0; i < sa->n; i++) {
+    if (!sa->arr[i]) continue;
     //<<Count mutations, P. \ref{fur}>>
     //<<Classify sequences, P. \ref{fur}>>
   }
@@ -908,12 +925,11 @@
       cn++;
 #+end_src
 #+begin_src latex
-  Sequences are classified as fit for printing if they contain at least
-  as many nucleotides as the minimum length of a \texttt{phylonium}
-  fragment.
+  Sequences are classified as fit for printing if they contain enough
+  nucleotides.
 #+end_src
 #+begin_src C <<Classify sequences, P. \ref{fur}>>=
-  if (cn >= args->l) {
+  if (cn >= args->n) {
     ns++;
     nm += cm;
     nn += cn;

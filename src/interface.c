@@ -24,11 +24,12 @@ Args *newArgs() {
   args->w   = DEFAULT_W;
   args->p   = DEFAULT_P;
   args->t   = DEFAULT_T;
-  args->l   = DEFAULT_L;
   args->e   = DEFAULT_E;
+  args->n   = DEFAULT_N;
   args->u   = 0;
   args->U   = 0;
   args->k   = 0;
+  args->x   = 0; 
   return args;
 }
 
@@ -39,7 +40,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvuUd:w:p:t:l:k:e:";
+  char *optString = "hvuUxd:w:p:t:n:k:e:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -60,8 +61,8 @@ Args *getArgs(int argc, char *argv[]) {
     case 'e': /* E-value in neighborhood search */
       args->e = atof(optarg);
       break;
-    case 'l': /* minimum length of alignment */
-      args->l = atoi(optarg);
+    case 'n': /* number of nucleotides */
+      args->n = atoi(optarg);
       break;
     case 'k': /* step length of sliding window analysis */
       args->k = atoi(optarg);
@@ -74,6 +75,9 @@ Args *getArgs(int argc, char *argv[]) {
       break;
     case 'h': /* help       */
       args->h = 1;
+      break;
+    case 'x': /* exact */
+      args->x = 1;
       break;
     case 'v': /* version    */
       args->v = 1;
@@ -110,12 +114,13 @@ void printUsage() {
   printf("\t-d <STR> database\n");
   printf("\t[-w <NUM> window length; default: %d]\n", DEFAULT_W);
   printf("\t[-p <NUM> p-value for uniqueness; default: %g]\n", DEFAULT_P);
-  printf("\t[-l <NUM> minimum length of ubiquitous target fragment; default: query lengt]\n");
+  printf("\t[-n <NUM> minimum number of nucleotides in final fragment; default: %d]\n", DEFAULT_N);
   printf("\t[-e <NUM> e-value for neighborhood search; default: %g]\n", DEFAULT_E);
   printf("\t[-t <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-k <NUM> step length of sliding window analysis; default: w/10]\n");
   printf("\t[-u print unique regions after sliding window analysis and exit]\n");
   printf("\t[-U print unique regions after checking for presence in templates and exit]\n");
+  printf("\t[-x exact matches only; default: mutations and homologies marked by 'N']\n");
   printf("\t[-h print this help message and exit]\n");
   printf("\t[-v print version & program information and exit]\n");
   exit(0);
