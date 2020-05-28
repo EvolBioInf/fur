@@ -162,7 +162,7 @@
   result in sequences that are more difficult to find as exact matches
   among all targets. For example, with 1 kb windows, there are 111
   candidate regions, of which 26 are present in all targets. The final
-  tally is 18 regions with 18027 nucleotides and 2990 \ty{N}. So the
+  tally is 18 regions with 18027 nucleotides and 2990 \texttt{N}. So the
   final yield is quite different in spite of the fact that the amount of
   nucleotides returned from the sliding window analysis, 635 kb, is
   similar to the 681 kb found with 80 bp windows.
