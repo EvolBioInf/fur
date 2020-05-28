@@ -22,6 +22,9 @@
   {
     <<Parse template sequence, P.~\ref{fur2prim}>>
   }
+  END {
+    <<END action, P.~\ref{fur2prim}>>
+  }
 #+end_src
 #+begin_src latex
   \end{prog}
@@ -36,6 +39,7 @@
     print "fur2prim.awk: Convert fur output to primer3 input"
     print "Usage: fur2prim.awk furOutput.fasta"
     <<Query parameter values, P.~\ref{fur2prim}>>
+    ex = 1
     exit
   }
   <<Assign parameter values, P.~\ref{fur2prim}>>
@@ -113,7 +117,7 @@
   printf "\t[-v inMaxTm=<T>; default: %.1f]\n", defInMaxTm
 #+end_src
 #+begin_src latex
-  Finally, any undefined parameter is assigned its default value.
+  Any as yet undefined parameter is assigned its default value.
 #+end_src
 #+begin_src awk <<Assign parameter values, P.~\ref{fur2prim}>>=
   if (!primMinSize) primMinSize = defPrimMinSize
@@ -126,9 +130,23 @@
   if (!inMaxTm) inMaxTm = defInMaxTm
 #+end_src
 #+begin_src latex
-  Finally, the template sequence is appended to the \texttt{primer3}
-  input.
+  As the last step in the construction of the input for
+  \texttt{primer3}, the template sequence is appended.
 #+end_src
 #+begin_src awk <<Print variable \texttt{primer3} input, P.~\ref{fur2prim}>>=
   printf "SEQUENCE_TEMPLATE=%s\n", seq
+#+end_src
+#+begin_src latex
+  When the program enters the END block, it might do so after an
+  \texttt{exit} in the BEGIN block. In that case it exits
+  again. Otherwise, the last entry is printed, unless there was no
+  input.
+#+end_src
+#+begin_src awk <<END action, P.~\ref{fur2prim}>>=
+  if (ex)
+    exit
+  if (n) {
+    <<Print \texttt{primer3} input, P.~\ref{fur2prim}>>
+    print "="
+  }
 #+end_src
