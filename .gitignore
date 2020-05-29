@@ -36,3 +36,4 @@ src/makeFurDb
 src/makeFurDb.c
 scripts/checkTut.sh
 scripts/furTut.sh
+scripts/*.awk
