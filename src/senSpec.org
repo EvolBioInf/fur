@@ -151,7 +151,6 @@
   s = 0
   qstart = 0
   qend = -1
-  print cmd
   while (cmd | getline) {
     //<<Analyze BLAST hit, P. \ref{senSpec}>>
   }
