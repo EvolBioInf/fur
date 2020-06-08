@@ -38,7 +38,7 @@ count.awk: tutorial.org
 checkTut.sh: tutorial.org
 	bash ../scripts/org2nw tutorial.org | notangle -RcheckTut.sh > checkTut.sh
 
-aux: fur2prim.awk prim2fasta.awk checkPrim.awk
+aux: fur2prim.awk prim2fasta.awk checkPrim.awk senSpec.awk
 fur2prim.awk: fur2prim.org
 	bash ../scripts/org2nw fur2prim.org | notangle -Rfur2prim.awk > fur2prim.awk
 	chmod +x fur2prim.awk
@@ -48,8 +48,11 @@ prim2fasta.awk: prim2fasta.org
 checkPrim.awk: checkPrim.org
 	bash ../scripts/org2nw checkPrim.org | notangle -RcheckPrim.awk > checkPrim.awk
 	chmod +x checkPrim.awk
+senSpec.awk: senSpec.org
+	bash ../scripts/org2nw senSpec.org | notangle -RsenSpec.awk > senSpec.awk
+	chmod +x senSpec.awk
 
 clean:
-	rm -f *.o *~ count.awk fur2prim.awk prim2fasta.awk checkPrim.awk furTur.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
+	rm -f *.o *~ count.awk senSpec.awk fur2prim.awk prim2fasta.awk checkPrim.awk furTur.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
 test:
 	bash ../scripts/fur.sh 

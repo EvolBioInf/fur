@@ -26,6 +26,7 @@ doc/furIn.tex
 doc/makeFurDb.tex
 doc/prim2fasta.tex
 doc/tutorial.tex
+doc/senSpec.tex
 src/fur
 src/fur.c
 src/*.idx

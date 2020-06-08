@@ -3,7 +3,7 @@ DATE    := $(shell git log -1 --format=%ai $(TAG) | sed 's/-/ /g' | awk '{printf
 VERSION := $(shell git describe | sed 's/^[vV]//; s/-.*//')
 NAME   = fur
 
-all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex fur2prim.tex checkPrim.tex prim2fasta.tex tutorial.tex
+all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex senSpec.tex fur2prim.tex checkPrim.tex prim2fasta.tex tutorial.tex
 	printf "%s\n" $(VERSION) > version.tex
 	printf "%s\n" $(DATE)    > date.tex
 	latex $(NAME)
@@ -13,6 +13,8 @@ all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex fur2prim.tex
 	dvipdf $(NAME)
 makeFurDb.tex: ../src/makeFurDb.org
 	bash ../scripts/org2nw ../src/makeFurDb.org | noweave -n -x > makeFurDb.tex
+senSpec.tex: ../src/senSpec.org
+	bash ../scripts/org2nw ../src/senSpec.org | noweave -n -x > senSpec.tex
 furIn.tex: ../src/$(NAME).org 
 	bash ../scripts/org2nw ../src/$(NAME).org | noweave -n -x > furIn.tex
 cdf.tex: fig.gp cdf.dat
@@ -26,4 +28,4 @@ prim2fasta.tex: ../src/prim2fasta.org
 tutorial.tex: ../src/tutorial.org
 	bash ../scripts/org2nw ../src/tutorial.org | noweave -n -x > tutorial.tex
 clean:
-	rm -f text.tex $(NAME).pdf makeFurDb.tex furIn.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex
+	rm -f text.tex $(NAME).pdf makeFurDb.tex furIn.tex senSpec.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex
