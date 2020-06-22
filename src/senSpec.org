@@ -138,7 +138,7 @@
 #+end_src
 #+begin_src awk <<Construct BLAST command, P. \ref{senSpec}>>=
   tmpl = "blastn -outfmt \"6 sacc qacc qstart qend\" "
-  tmpl = tmpl "-task blastn -query %s -db %s/blastdb -evalue %f "
+  tmpl = tmpl "-task blastn -query %s -db %s/blastdb -evalue %s "
   tmpl = tmpl "| awk '$1 ~ /^%s/' "
   tmpl = tmpl "| sort -k 1,1 -k 2,2 -k 3,3n"
   cmd = sprintf(tmpl, query, db, evalue, "t")
