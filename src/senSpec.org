@@ -36,7 +36,7 @@
   specificity, and their correlation should be 1.
 
   \section{Implementation}
-  The program \texttt{senSpec.awk} takes as input a query consisting of
+  The program \texttt{senSpec} takes as input a query consisting of
   the set of template sequences computed by \texttt{fur} and a
   \texttt{fur} database. It returns the specificity, sensitivity, and
   correlation of that \texttt{fur} run.
@@ -50,10 +50,10 @@
   the sensitivity, $S_{\rm n}$, the specificity, $S_{\rm p}$, and their
   correlation, $C$, are printed.
 
-  \begin{prog}[\texttt{senSpec.awk}]\label{senSpec}
+  \begin{prog}[\texttt{senSpec}]\label{senSpec}
     \textcolor{white}{}
 #+end_src
-#+begin_src awk <<senSpec.awk>>=
+#+begin_src awk <<senSpec>>=
   #!/usr/bin/awk -f
   BEGIN {
     <<Interact with user, P. \ref{senSpec}>>
@@ -73,7 +73,7 @@
 #+begin_src awk <<Interact with user, P. \ref{senSpec}>>=
   defEvalue = 1e-5
   if (!query || !db) {
-    print  "Usage: senSpec.awk -v query=<query.fasta> -v db=<furDb>"
+    print  "Usage: senSpec -v query=<query.fasta> -v db=<furDb>"
     printf "\t[-v evalue=<evalue>; default: %.1e]\n", defEvalue
     exit
   }

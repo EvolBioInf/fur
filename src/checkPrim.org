@@ -11,10 +11,10 @@
   primer specificity. However, running programs over the internet is
   usually less convenient than running them locally. Our aim is
   therefore to write a stand-alone version of this module,
-  \texttt{checkPrim.awk}.
+  \texttt{checkPrim}.
 
   \section{Implementation}
-  \texttt{checkPrim.awk} takes as input a set of primers, a BLAST
+  \texttt{checkPrim} takes as input a set of primers, a BLAST
   database, and an organism identified by an NCBI taxon-id. It returns
   the virtual PCR products, or amplicons, found in members of that
   taxon. It can also do the opposite, return the amplicons found outside
@@ -25,10 +25,10 @@
   parameters to their default values, and constructs the BLAST command
   for looking up the primer matches. It then searches these matches for
   potential amplicons.
-  \begin{prog}[\texttt{checkPrim.awk}]\label{checkPrim}
+  \begin{prog}[\texttt{checkPrim}]\label{checkPrim}
     \textcolor{white}{}
 #+end_src
-#+begin_src awk <<checkPrim.awk>>=
+#+begin_src awk <<checkPrim>>=
   #!/usr/bin/awk -f
   BEGIN {
     FS = "\t"
@@ -51,8 +51,8 @@
 #+begin_src awk <<Interact with user, P. \ref{checkPrim}>>=
   //<<Initialize default values of optional parameters, P. \ref{checkPrim}>>
   if (!query || !db || !(taxid || negativeTaxid)) {
-    print  "checkPrim.awk: Check the specificity of PCR primers using BLAST"
-    print  "Usage: awk -f checkPrim.awk "
+    print  "checkPrim: Check the specificity of PCR primers using BLAST"
+    print  "Usage: awk -f checkPrim "
     print  "-v query=<query>"
     print  "-v db=<db>"
     print  "-v taxid=<taxid> || -v negativeTaxid=<negativeTaxid>"
@@ -215,6 +215,6 @@
 	 ssciname[i])
 #+end_src
 #+begin_src latex
-  We can now use \texttt{checkPrim.awk} to check pairs of primers. An
+  We can now use \texttt{checkPrim} to check pairs of primers. An
   example application is shown in Section~\ref{sec:checkTut}.
 #+end_src

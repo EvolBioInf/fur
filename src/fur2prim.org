@@ -5,16 +5,16 @@
   designing primers, for example \texttt{primer3} is used to find primer
   pairs in the diagnostic regions. However, converting the output of
   \texttt{fur} to \texttt{primer3} input can be tricky and
-  \texttt{fur2prim.awk} is designed to automate this.
+  \texttt{fur2prim} is designed to automate this.
 
   \section{Implementation}
-  \texttt{fur2prim.awk} reads \texttt{fur} output and prints a text file
+  \texttt{fur2prim} reads \texttt{fur} output and prints a text file
   for driving a \texttt{primer3} run. The program first prints a usage
   message, if so desired, and then the \texttt{primer3} input.
-  \begin{prog}[\texttt{fur2prim.awk}]\label{fur2prim}
+  \begin{prog}[\texttt{fur2prim}]\label{fur2prim}
     \textcolor{white}{}
 #+end_src
-#+begin_src awk <<fur2prim.awk>>=
+#+begin_src awk <<fur2prim>>=
   #!/usr/bin/awk -f
   BEGIN {
     <<Print usage, P.~\ref{fur2prim}>>
@@ -36,8 +36,8 @@
 #+begin_src awk <<Print usage, P.~\ref{fur2prim}>>=
   <<Define default parameter values, P.~\ref{fur2prim}>>
   if (h || help) {
-    print "fur2prim.awk: Convert fur output to primer3 input"
-    print "Usage: fur2prim.awk furOutput.fasta"
+    print "fur2prim: Convert fur output to primer3 input"
+    print "Usage: fur2prim furOutput.fasta"
     <<Query parameter values, P.~\ref{fur2prim}>>
     ex = 1
     exit

@@ -5,7 +5,7 @@ all:
 	make -C src tutorial
 	cp src/fur build
 	cp src/makeFurDb build
-	cp src/fur2prim.awk src/prim2fasta.awk src/checkPrim.awk src/senSpec.awk build
+	cp src/fur2prim src/prim2fasta src/checkPrim src/senSpec build
 	cp src/checkTut.sh src/furTut.sh scripts
 test:
 	@make -s -C src test

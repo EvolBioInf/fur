@@ -3,7 +3,7 @@
   The program \texttt{primer3} generates output in its own
   format. However, primer sequences are subsequently often checked using
   BLAST, which requires input in FASTA format. The program
-  \texttt{prim2fasta.awk} extracts primer pairs from \texttt{primer3}
+  \texttt{prim2fasta} extracts primer pairs from \texttt{primer3}
   output and writes each pair in a separate file for subsequent
   checking.
 
@@ -11,10 +11,10 @@
   The program requests the base name of the output files, \texttt{b},
   and then prints each primer-pair in a file called \texttt{b1.fasta},
   \texttt{b2.fasta}, and so on.
-  \begin{prog}[\texttt{prim2fasta.awk}]\label{prim2fasta}
+  \begin{prog}[\texttt{prim2fasta}]\label{prim2fasta}
     \textcolor{white}{}
 #+end_src
-#+begin_src awk <<prim2fasta.awk>>=
+#+begin_src awk <<prim2fasta>>=
   #!/usr/bin/awk -f
   BEGIN {
     <<Request base name, P. \ref{prim2fasta}>>
@@ -28,8 +28,8 @@
 #+end_src
 #+begin_src awk <<Request base name, P. \ref{prim2fasta}>>=
   if (!file) {
-    print "prim2fasta.awk: Extract primer sequences from primer3 output"
-    print "Usage: prim2fasta.awk -v file=<fileBaseName> primer3.out"
+    print "prim2fasta: Extract primer sequences from primer3 output"
+    print "Usage: prim2fasta -v file=<fileBaseName> primer3.out"
     exit
   }
 #+end_src

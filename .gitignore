@@ -31,6 +31,10 @@ src/fur
 src/fur.c
 src/*.idx
 src/*.awk
+src/checkPrim
+src/fur2prim
+src/prim2fasta
+src/senSpec
 src/checkTut.sh
 src/furTut.sh
 src/makeFurDb
