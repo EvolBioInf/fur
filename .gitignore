@@ -35,6 +35,7 @@ src/checkPrim
 src/fur2prim
 src/prim2fasta
 src/senSpec
+src/cleanSeq
 src/checkTut.sh
 src/furTut.sh
 src/makeFurDb

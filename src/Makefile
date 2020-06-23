@@ -38,7 +38,7 @@ count.awk: tutorial.org
 checkTut.sh: tutorial.org
 	bash ../scripts/org2nw tutorial.org | notangle -RcheckTut.sh > checkTut.sh
 
-aux: fur2prim prim2fasta checkPrim senSpec
+aux: fur2prim prim2fasta checkPrim senSpec cleanSeq
 fur2prim: fur2prim.org
 	bash ../scripts/org2nw fur2prim.org | notangle -Rfur2prim > fur2prim
 	chmod +x fur2prim
@@ -51,7 +51,9 @@ checkPrim: checkPrim.org
 senSpec: senSpec.org
 	bash ../scripts/org2nw senSpec.org | notangle -RsenSpec > senSpec
 	chmod +x senSpec
-
+cleanSeq: tutorial.org
+	bash ../scripts/org2nw tutorial.org | notangle -RcleanSeq > cleanSeq
+	chmod + cleanSeq
 clean:
 	rm -f *.o *~ count.awk senSpec fur2prim prim2fasta checkPrim furTur.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
 test:

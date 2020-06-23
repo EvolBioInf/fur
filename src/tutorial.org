@@ -210,12 +210,89 @@
   conveniently, as each run of \texttt{fur} is reasonably fast once the
   underlying database has been computed.
 
-  \section{Making Primers, \texttt{fur2prim} \& \texttt{prim2fasta.awk}}
+  \section{Test Sensitivity and Specificity, \texttt{senSpec}}
+  The sensitivity and specificity of the markers proposed by
+  \texttt{fur} can be calculated by \texttt{senSpec}
+  (Section~\ref{sec:senSpec}). This works best if we clean the sequences
+  first by removing runs of \ty{N}s. To do this, the sequences are
+  collected into an array of strings before they are cleaned and finally
+  printed.
+  \begin{prog}[\texttt{senSpec}]\label{cleanSeq}
+    \textcolor{white}{}
+#+end_src
+#+begin_src awk <<cleanSeq>>=
+  #!/usr/bin/awk -f
+  #<<Count sequences, P. \ref{cleanSeq}>>
+  #<<Collect sequences, P. \ref{cleanSeq}>>
+  END {
+    #<<Clean sequences, P. \ref{cleanSeq}>>
+    #<<Print sequences, P. \ref{cleanSeq}>>
+  }
+#+end_src
+#+begin_src latex
+  For each header, the sequence counter is incremented.
+#+end_src
+#+begin_src awk <<Count sequences, P. \ref{cleanSeq}>>=
+  /^>/ {
+    n++
+  }
+#+end_src
+#+begin_src latex
+  Sequence data is concatenated.
+#+end_src
+#+begin_src awk <<Collect sequences, P. \ref{cleanSeq}>>=
+  !/^>/ {
+    seq[n - 1] = seq[n - 1] $0
+  }
+#+end_src
+#+begin_src latex
+  The sequences are cleaned in three steps. First, remove prefixes
+  consisting of \texttt{N}s. Then, remove suffixes of
+  \texttt{N}s, and finally, convert any remaining run of \ty{N}s into a
+  sentinel character, ``!''.
+#+end_src
+#+begin_src awk <<Clean sequences, P. \ref{cleanSeq}>>=
+  for (i = 0; i < n; i++) {
+    sub(/^NN+/, "", seq[i])
+    sub(/NN+$/, "", seq[i])
+    gsub(/NN+/, "!", seq[i])
+  }
+#+end_src
+#+begin_src latex
+  Before printing the sequences, they are split at the sentinels. The
+  resulting fragments get printed as sequences if they are at least 50
+  nucleotides long. Each sequence gets a unique name.
+#+end_src
+#+begin_src awk <<Print sequences, P. \ref{cleanSeq}>>=
+  for (i = 0; i < n; i++) {
+    c = split(seq[i], arr, "\n")
+    for (j = 1; i <= c; j++)
+      if (length(arr[j]) >= 50)
+	  printf ">S%d\n%s\n", ++n, arr[j]
+  }
+#+end_src
+#+begin_src latex
+  Now we can compute the sensitivity, specificity, and combined score of
+  the templates identified by \texttt{fur}.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+./build/cleanSeq tmpl.fasta > tmpl2.fasta
+./build/senSpec -v query=tmpl2.fasta -v db=furDb
+#S_n	S_p	C
+1.000	0.998	0.982
+#+end_src
+#+begin_src latex
+  Given that we are testing on the same data from which the templates
+  were extracted, it is not surprising that all three quality scores are
+  very high. Think of this as a positive control. A more interesting test
+  would be on a database of sequences not used in template discovery.
+
+  \section{Making Primers, \texttt{fur2prim} \& \texttt{prim2fasta}}
   Each template is now converted to an entry in the input to
   \texttt{primer3}.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  ./build/fur2prim.awk tmpl.fasta > prim.txt
+  ./build/fur2prim tmpl.fasta > prim.txt
 #+end_src
 #+begin_src latex
   The command-line version of \texttt{primer3} is run on the input file
@@ -225,7 +302,7 @@
   primer3_core prim.txt > prim.out
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  ./build/prim2fasta.awk -v file=primer prim.out 
+  ./build/prim2fasta -v file=primer prim.out 
 #+end_src
 #+begin_src latex
   This generates the primer files
@@ -236,7 +313,7 @@
   \end{verbatim}
 #+end_src
 #+begin_src latex
-  \section{Checking Primers, \texttt{checkPrim.awk}}\label{sec:checkTut}
+  \section{Checking Primers, \texttt{checkPrim}}\label{sec:checkTut}
   Primers are often checked by comparing them to the complete NCBI
   nucleotide database, \texttt{nt}. To avoid the overhead associated
   with handling this huge database, I constructed a smaller example for
@@ -293,18 +370,18 @@
   contained in the database.
 #+end_src
 #+begin_src sh <<Carry out positive control, P. \ref{checkTut}>>=
-  ./build/checkPrim.awk -v query=data/p1.fa \
-			-v db=data/Betacoronavirus \
-			-v taxid=2697049
+  ./build/checkPrim -v query=data/p1.fa \
+		    -v db=data/Betacoronavirus \
+		    -v taxid=2697049
 #+end_src
 #+begin_src latex
   For the negative control, all hits to sequences not classified as
   SARS-CoV-2 are printed.
 #+end_src
 #+begin_src sh <<Carry out negative control, P. \ref{checkTut}>>=
-  ./build/checkPrim.awk -v query=data/p1.fa \
-			-v db=data/Betacoronavirus \
-			-v negativeTaxid=2697049
+  ./build/checkPrim -v query=data/p1.fa \
+		    -v db=data/Betacoronavirus \
+		    -v negativeTaxid=2697049
 #+end_src
 #+begin_src latex
   If there is no cross-amplification, or the spurious amplicons are
