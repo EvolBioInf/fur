@@ -11,6 +11,7 @@ Find unique genomic regions.
 * [`macle`] (https://github.com/evolbioinf/macle)
 * ncbi-blast+
 * `noweb`
+* [`phylonium`] (https://github.com/evolbioinf/phylonium)
 * pst-tools
 * `wget`
 ## Compile
