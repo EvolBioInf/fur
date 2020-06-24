@@ -8,10 +8,10 @@ Find unique genomic regions.
 * gsl (Gnu Scientific Library)
 * `latex`
 * libbsd
-* [`macle`] (https://github.com/evolbioinf/macle)
+* [`macle`](https://github.com/evolbioinf/macle)
 * ncbi-blast+
 * `noweb`
-* [`phylonium`] (https://github.com/evolbioinf/phylonium)
+* [`phylonium`](https://github.com/evolbioinf/phylonium)
 * pst-tools
 * `wget`
 ## Compile
