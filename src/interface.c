@@ -2,7 +2,7 @@
  * Description: Find unique genomic regions
  * Author: Bernhard Haubold
  * Email: haubold@evolbio.mpg.de
- * License: Pending
+ * License: GNU General Public License, https://www.gnu.org/licenses/gpl.html
  * Date: Mon Jun 24 10:50:06 2019
  ****************************************************************************/
 #include <stdio.h>
@@ -133,7 +133,7 @@ void printSplash(Args *args) {
     printf("%c", VERSION[i]);
   printf(", %s\n", DATE);
   printf("Author: Bernhard Haubold\n");
-  printf("License: Pending\n");
+  printf("License: GNU General Public License, https://www.gnu.org/licenses/gpl.html\n");
   printf("Bugs: haubold@evolbio.mpg.de\n");
   exit(0);
 }
