@@ -28,7 +28,9 @@ doc/tutorial.tex
 doc/senSpec.tex
 src/fur
 src/*.idx
-src/tar2pri.awk
+src/*.awk
+src/checkTut.sh
+src/furTut.sh
 src/makeFurDb
 scripts/checkTut.sh
 scripts/furTut.sh
