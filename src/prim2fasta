@@ -1,0 +1,22 @@
+#!/usr/bin/awk -f
+BEGIN {
+  if (!file) {
+    print "prim2fasta: Extract primer sequences from primer3 output"
+    print "Usage: prim2fasta -v file=<fileBaseName> primer3.out"
+    exit
+  }
+}
+/PRIMER_LEFT_.*_SEQUENCE/ {
+  n++
+  f = file n ".fasta"
+  print "Writing", f
+  printf ">f%d\n", n > f
+  split($1, a, "=")
+  printf "%s\n", a[2] >> f
+}
+/PRIMER_RIGHT_.*_SEQUENCE/ {
+  printf ">r%d\n", n >> f
+  split($1, a, "=")
+  printf "%s\n", a[2] >> f
+  close(f)
+}

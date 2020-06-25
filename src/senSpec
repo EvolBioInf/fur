@@ -1,0 +1,84 @@
+#!/usr/bin/awk -f
+BEGIN {
+  defEvalue = 1e-5
+  if (!query || !db) {
+    print  "Usage: senSpec -v query=<query.fasta> -v db=<furDb>"
+    printf "\t[-v evalue=<evalue>; default: %.1e]\n", defEvalue
+    exit
+  }
+  if (!evalue)
+    evalue = defEvalue
+  cmd = "cat " query
+  while (cmd | getline) {
+    if (/^>/) {
+      h = $1;
+      sub(">", "", h)
+      ql[h] = 0
+    } else
+      ql[h] += length($0)
+  }
+  tmpl = "blastdbcmd -entry all -db %s/blastdb | grep -c '^>%s'"
+  cmd = sprintf(tmpl, db, "t")
+  cmd | getline
+  nt = $1
+  close(cmd)
+  cmd = sprintf(tmpl, db, "n")
+  cmd | getline
+  nn = $1
+  close(cmd)
+  tmpl = "blastn -outfmt \"6 sacc qacc qstart qend\" "
+  tmpl = tmpl "-task blastn -query %s -db %s/blastdb -evalue %s "
+  tmpl = tmpl "| awk '$1 ~ /^%s/' "
+  tmpl = tmpl "| sort -k 1,1 -k 2,2 -k 3,3n"
+  cmd = sprintf(tmpl, query, db, evalue, "t")
+  s = 0
+  qstart = 0
+  qend = -1
+  while (cmd | getline) {
+    if (sacc == $1 && qacc == $2) {
+      if ($3 <= qend && $4 > qend)
+        qend = $4
+    } else {
+      s += qend - qstart + 1
+      sacc = $1
+      qacc = $2
+      qstart = $3
+      qend = $4
+    }
+  }
+  close(cmd)
+  tp = s + qend - qstart + 1
+  for (a in ql)
+    m += ql[a] * nt
+  fn = m - tp                     
+  cmd = sprintf(tmpl, query, db, evalue, "n")
+  s = 0
+  qstart = 0
+  qend = -1
+  while (cmd | getline) {
+    if (sacc == $1 && qacc == $2) {
+      if ($3 <= qend && $4 > qend)
+        qend = $4
+    } else {
+      s += qend - qstart + 1
+      sacc = $1
+      qacc = $2
+      qstart = $3
+      qend = $4
+    }
+  }
+  close(cmd)
+  fp = s + qend - qstart + 1
+  m = 0
+  for (a in ql)
+    m += ql[a] * nn
+  tn = m - fp
+  sn = tp / (tp + fn)
+  sp = tp / (tp + fp)
+  d = tp * tn - fp * fn
+  n = (tp + fp) * (tn + fn) * (tn + fp) * (tp + fn)
+  n = sqrt(n)
+  c  = d / n
+  print "#S_n\tS_p\tC"
+  printf "%.3f\t%.3f\t%.3f\n", sn, sp, c
+}

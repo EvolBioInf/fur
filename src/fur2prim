@@ -1,0 +1,74 @@
+#!/usr/bin/awk -f
+BEGIN {
+  defPrimMinSize = 15
+  defPrimMaxSize = 25
+  defProdMinSize = 70
+  defProdMaxSize = 150
+  defPrimMinTm = 54
+  defPrimMaxTm = 58
+  defInMinTm = 43
+  defInMaxTm = 47
+  if (h || help) {
+    print "fur2prim: Convert fur output to primer3 input"
+    print "Usage: fur2prim furOutput.fasta"
+    printf "\t[-v primMinSize=<S>; default: %d]\n",  defPrimMinSize
+    printf "\t[-v primMaxSize=<S>; default: %d]\n",  defPrimMaxSize
+    printf "\t[-v prodMinSize=<S>; default: %d]\n",  defProdMinSize
+    printf "\t[-v prodMaxSize=<S>; default: %d]\n",  defProdMaxSize
+    printf "\t[-v primMinTm=<T>; default: %.1f]\n", defPrimMinTm
+    printf "\t[-v primMaxTm=<T>; default: %.1f]]\n", defPrimMaxTm
+    printf "\t[-v inMinTm=<T>; default: %.1f]\n", defInMinTm
+    printf "\t[-v inMaxTm=<T>; default: %.1f]\n", defInMaxTm
+    ex = 1
+    exit
+  }
+  if (!primMinSize) primMinSize = defPrimMinSize
+  if (!primMaxSize) primMaxSize = defPrimMaxSize
+  if (!prodMinSize) prodMinSize = defProdMinSize
+  if (!prodMaxSize) prodMaxSize = defProdMaxSize
+  if (!primMinTm) primMinTm = defPrimMinTm
+  if (!primMaxTm) primMaxTm = defPrimMaxTm
+  if (!inMinTm) inMinTm = defInMinTm
+  if (!inMaxTm) inMaxTm = defInMaxTm
+}
+{
+  if (/^>/) {
+    if (n) {
+      print "PRIMER_TASK=generic"
+      print "PRIMER_PICK_LEFT_PRIMER=1"
+      print "PRIMER_PICK_RIGHT_PRIMER=1"
+      print "PRIMER_PICK_INTERNAL_OLIGO=1"
+      printf "PRIMER_MIN_SIZE=%d\n", primMinSize
+      printf "PRIMER_MAX_SIZE=%d\n", primMaxSize
+      printf "PRIMER_PRODUCT_SIZE_RANGE=%d-%d\n", prodMinSize, prodMaxSize
+      printf "PRIMER_MIN_TM=%.1f\nf", primMinTm
+      printf "PRIMER_MAX_TM=%.1f\n", primMaxTm
+      printf "PRIMER_INTERNAL_MIN_TM=%.1f\n", inMinTm
+      printf "PRIMER INTERNAL_MAX_TM=%.1f\n", inMaxTm
+      printf "SEQUENCE_TEMPLATE=%s\n", seq
+      print "="
+    }
+    seq = ""
+    n++
+  } else
+    seq = seq $0
+}
+END {
+  if (ex)
+    exit
+  if (n) {
+    print "PRIMER_TASK=generic"
+    print "PRIMER_PICK_LEFT_PRIMER=1"
+    print "PRIMER_PICK_RIGHT_PRIMER=1"
+    print "PRIMER_PICK_INTERNAL_OLIGO=1"
+    printf "PRIMER_MIN_SIZE=%d\n", primMinSize
+    printf "PRIMER_MAX_SIZE=%d\n", primMaxSize
+    printf "PRIMER_PRODUCT_SIZE_RANGE=%d-%d\n", prodMinSize, prodMaxSize
+    printf "PRIMER_MIN_TM=%.1f\nf", primMinTm
+    printf "PRIMER_MAX_TM=%.1f\n", primMaxTm
+    printf "PRIMER_INTERNAL_MIN_TM=%.1f\n", inMinTm
+    printf "PRIMER INTERNAL_MAX_TM=%.1f\n", inMaxTm
+    printf "SEQUENCE_TEMPLATE=%s\n", seq
+    print "="
+  }
+}
