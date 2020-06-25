@@ -214,7 +214,7 @@
   The sensitivity and specificity of the markers proposed by
   \texttt{fur} can be calculated by \texttt{senSpec}
   (Section~\ref{sec:senSpec}). This works best if we clean the sequences
-  first by removing runs of \ty{N}s. To do this, the sequences are
+  first by removing runs of \texttt{N}s. To do this, the sequences are
   collected into an array of strings before they are cleaned and finally
   printed.
   \begin{prog}[\texttt{senSpec}]\label{cleanSeq}
@@ -230,6 +230,7 @@
   }
 #+end_src
 #+begin_src latex
+  \end{prog}
   For each header, the sequence counter is incremented.
 #+end_src
 #+begin_src awk <<Count sequences, P. \ref{cleanSeq}>>=
@@ -247,9 +248,9 @@
 #+end_src
 #+begin_src latex
   The sequences are cleaned in three steps. First, remove prefixes
-  consisting of \texttt{N}s. Then, remove suffixes of
-  \texttt{N}s, and finally, convert any remaining run of \ty{N}s into a
-  sentinel character, ``!''.
+  consisting of \texttt{N}s. Then, remove suffixes of \texttt{N}s, and
+  finally, convert any remaining run of \texttt{N}s into a sentinel
+  character, ``!''.
 #+end_src
 #+begin_src awk <<Clean sequences, P. \ref{cleanSeq}>>=
   for (i = 0; i < n; i++) {
