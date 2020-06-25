@@ -1,0 +1,220 @@
+#+begin_src latex
+  \section{Introduction}
+  PCR primers designed to amplify a specific region may also
+  unintentionally amplify other regions in the same genome or in the
+  genomes of other organisms. To guard against such off-target
+  amplification, primers are compared to a suitable sequence database
+  and all potential amplification products in a particular set of
+  organisms reported. There already exists an excellent web-based
+  program to do this, Primer-BLAST. Intended foremost as a tool for
+  designing primers from scratch, it also contains a module for checking
+  primer specificity. However, running programs over the internet is
+  usually less convenient than running them locally. Our aim is
+  therefore to write a stand-alone version of this module,
+  \texttt{checkPrim}.
+
+  \section{Implementation}
+  \texttt{checkPrim} takes as input a set of primers, a BLAST
+  database, and an organism identified by an NCBI taxon-id. It returns
+  the virtual PCR products, or amplicons, found in members of that
+  taxon. It can also do the opposite, return the amplicons found outside
+  the members of the focal taxon.
+
+  The program first switches the field separator from default white
+  space to tab. It then interacts with the user, sets optional
+  parameters to their default values, and constructs the BLAST command
+  for looking up the primer matches. It then searches these matches for
+  potential amplicons.
+  \begin{prog}[\texttt{checkPrim}]\label{checkPrim}
+    \textcolor{white}{}
+#+end_src
+#+begin_src awk <<checkPrim>>=
+  #!/usr/bin/awk -f
+  BEGIN {
+    FS = "\t"
+    <<Interact with user, P. \ref{checkPrim}>>
+    <<Set default values of optional parameters, P. \ref{checkPrim}>>
+    <<Construct BLAST command, P. \ref{checkPrim}>>
+    <<Save BLAST results, P. \ref{checkPrim}>>
+    <<Analyze BLAST results, P. \ref{checkPrim}>>
+  }
+#+end_src
+#+begin_src latex
+  \end{prog}
+  The user is asked to supply three parameters: A file containing one or
+  more primers (\texttt{query}), a BLAST database (\texttt{db}), and a
+  taxon-id that is interpreted either as the target (\texttt{taxid}) or
+  its complement (\texttt{negativeTaxid}). If one of them is not
+  supplied, a usage message is printed prompting for complete input. In
+  addition, optional parameters can be set.
+#+end_src
+#+begin_src awk <<Interact with user, P. \ref{checkPrim}>>=
+  //<<Initialize default values of optional parameters, P. \ref{checkPrim}>>
+  if (!query || !db || !(taxid || negativeTaxid)) {
+    print  "checkPrim: Check the specificity of PCR primers using BLAST"
+    print  "Usage: awk -f checkPrim "
+    print  "-v query=<query>"
+    print  "-v db=<db>"
+    print  "-v taxid=<taxid> || -v negativeTaxid=<negativeTaxid>"
+    //<<Query optional parameters, P. \ref{checkPrim}>>
+    exit 0
+  }
+#+end_src
+#+begin_src latex
+  There are also optional parameters: The maximum number of mismatches
+  (\texttt{maxMism}), the maximum length of an amplicon
+  (\texttt{maxLen}), the number of threads used by BLAST
+  (\texttt{numThreads}), and the $E$-value (\texttt{evalue}). I took the
+  default maximum number of mismatches and the maximum amplicon size
+  from the Primer-BLAST website, and the $E$-value from the
+  documentation of stand-alone \texttt{blastn}.
+#+end_src
+#+begin_src awk <<Initialize default values of optional parameters, P. \ref{checkPrim}>>=
+  defMaxMism = 5
+  defMaxLen = 4000
+  defNumThreads = 1
+  defEvalue = 10
+#+end_src
+#+begin_src latex
+  The optional parameters are queried using the standard \texttt{-v}
+  notation of AWK.
+#+end_src
+#+begin_src awk <<Query optional parameters, P. \ref{checkPrim}>>=
+  printf "[-v maxMism=<maxMism>; default: %d]\n", defMaxMism
+  printf "[-v maxLen=<maxLen>; default: %d]\n", defMaxLen
+  printf "[-v numThreads=<numThreads>; default: %d]\n", defNumThreads
+  printf "[-v evalue=<evalue>; default: %d]\n", defEvalue
+#+end_src
+#+begin_src latex
+  Any undefined optinal parameters are set to their default values.
+#+end_src
+#+begin_src awk <<Set default values of optional parameters, P. \ref{checkPrim}>>=
+  if (!maxMism)
+    maxMism = defMaxMism
+  if (!maxLen)
+    maxLen = defMaxLen
+  if (!numThreads)
+    numThreads = defNumThreads
+  if (!evalue)
+    evalue = defEvalue
+#+end_src
+#+begin_src latex
+  The BLAST search is based on the \texttt{blastn-short} mode of the
+  \texttt{blastn} program. This mode is optimized for sequences shorter
+  than 50 nucleotides. Five aspects of each BLAST hit are saved: The
+  query and subject accessions, the number of mismatches, the start and
+  end positions on the subject, and two items of taxonomic information
+  on the subject: the taxon id and its scientific name. In addition, we
+  set the \texttt{outfmt} option such that the lengths of the query and
+  the alignment are printed. This allows us filter for full-length
+  matches. By default, BLAST results are sorted first by the input order
+  of the query---all matches of the first query followed by all matches
+  to the second, and so on---and then by their subject position. For
+  identifying spurious amplicons, it is more convenient to group the
+  results by subject and then sort by position within each subject.
+#+end_src
+#+begin_src awk <<Construct BLAST command, P. \ref{checkPrim}>>=
+  tmpl = "blastn -task blastn-short -query %s -db %s -outfmt "
+  tmpl = tmpl "\"6 qacc sacc mismatch sstart send staxid ssciname "
+  tmpl = tmpl "qlen length\" -num_threads %d -evalue %d "
+  if (taxid)
+    tmpl = tmpl "| awk '$6 == \"%s\"' "
+  else {
+    taxid = negativeTaxid
+    tmpl = tmpl "| awk '$6 != \"%s\"' "
+  }
+  tmpl = tmpl "| awk '$3 <= %d && $8 == $9'"
+  tmpl = tmpl "| sort -k 2,2 -k 4,4n"
+  cmd = sprintf(tmpl, query, db, numThreads, evalue, taxid, maxMism)
+#+end_src
+#+begin_src latex
+  The BLAST command is run and the results are saved.
+#+end_src
+#+begin_src awk <<Save BLAST results, P. \ref{checkPrim}>>=
+  n = 1 - 1
+  while (cmd | getline) {
+    qacc[n] = $1
+    sacc[n] = $2
+    staxid[n] = $6
+    ssciname[n] = $7
+    <<Decide strand, P. \ref{checkPrim}>>
+    n++
+  }
+  close(cmd)
+#+end_src
+#+begin_src latex
+  DNA is double-stranded and all PRC reactions take double-stranded DNA
+  as template, regardless of the actual nucleotide molecule
+  investigated. To visualize the primer configuration we are looking for
+  in our BLAST search, consider the forward and reverse primers $p_{\rm
+    f}$ and $p_{\rm r}$ depicted in Figure~\ref{fig:pri}. They bind the
+  forward and reverse strands of a template, $t_{\rm f}$ and $t_{\rm
+    r}$. So regardless of which template strand has been sequenced, the
+  5'-primer of a potential amplicon is on the forward, the 3'-primer on
+  the reverse strand.
+
+  \begin{figure}
+    \input{primConfig}
+    \caption{Forward and reverse PCR primers, $p_{\rm f}$ and $p_{\rm
+	r}$, along the forward or reverse strands of a template,
+      $t_{\rm f}$ and $t_{\rm r}$.}\label{fig:pri}
+  \end{figure}
+
+
+  BLAST encodes strand in the start and end positions of a match. If the
+  start is less than the end, the match is on the forward strand;
+  otherwise, the match is on the reverse strand. I found it more
+  convenient to think of all matches in the customary 5' to 3'
+  direction, which means I invert the coordinates of matches on the
+  reverse strand and explicitly store the strand, 0 for forward, 1 for
+  reverse.
+#+end_src
+#+begin_src awk <<Decide strand, P. \ref{checkPrim}>>=
+  if ($4 < $5) {
+    sstart[n] = $4
+    send[n] = $5
+    strand[n] = 0
+  } else {
+    sstart[n] = $5
+    send[n] = $4
+    strand[n] = 1
+  }
+#+end_src
+#+begin_src latex
+  When iterating over the results, every 5' match on the forward strand
+  is paired with all 3' matches on the reverse strand closer than the
+  maximum amplicon length. Any such pair of primers is a potential
+  amplicon and is reported with the subject accession, the start and end
+  positions of the amplicon on that subject, and the subject taxonomy.
+#+end_src
+#+begin_src awk <<Analyze BLAST results, P. \ref{checkPrim}>>=
+  <<Print header, P. \ref{checkPrim}>>
+  for (i = 0; i < n - 1; i++) {
+    j = i + 1
+    l = send[j] - sstart[i] - 1
+    while (sacc[i] == sacc[j] && j < n && l <= maxLen) {
+      if (strand[i] == 0 && strand[j] == 1)
+	<<Print result, P. \ref{checkPrim}>>
+      j++
+    }
+  }
+#+end_src
+#+begin_src latex
+  The header is tab-delimited and marked by a hash in the first column.
+#+end_src
+#+begin_src awk <<Print header, P. \ref{checkPrim}>>=
+  printf "# qacc\tqacc\tsacc\tsstart\tsend\tstaxid\t"
+  print  "ssciname"
+#+end_src
+#+begin_src latex
+  Each row of results is also printed as a tab-delimited row.
+#+end_src
+#+begin_src awk <<Print result, P. \ref{checkPrim}>>=
+  printf("%s\t%s\t%s\t%d\t%d\t%d\t%s\n",
+	 qacc[i], qacc[j], sacc[i], sstart[i], send[j], staxid[i],
+	 ssciname[i])
+#+end_src
+#+begin_src latex
+  We can now use \texttt{checkPrim} to check pairs of primers. An
+  example application is shown in Section~\ref{sec:checkTut}.
+#+end_src
