@@ -1,0 +1,308 @@
+#+begin_src latex
+  \section{Introduction}
+  The program
+  \texttt{fur}\footnote{\texttt{https://github.com/haubold/fur}}
+  requires a database to run, which is computed with
+  \texttt{makeFurDb}. \texttt{MakeFurDb} takes as input a directory
+  containing the target genomes and a directory containing the neighbor
+  genomes. It generates a directory containing the \texttt{macle} index
+  and the BLAST database required by \texttt{fur}.
+
+  \section{Implementation}
+  The program consists of an include section, function declarations and
+  definitions, and the main function.
+  \begin{prog}\label{makeFurDb}
+    \textcolor{white}{}
+#+end_src
+#+begin_src C <<makeFurDb.c>>=
+  //<<Include headers, P. \ref{makeFurDb}>>
+  //<<Function declarations, P. \ref{makeFurDb}>>
+  //<<Function definitions, P. \ref{makeFurDb}>>
+  //<<Main function, P. \ref{makeFurDb}>>
+#+end_src
+#+begin_src latex
+  \end{prog}
+  The main function interacts with the user, reads the input data,
+  writes the database, and frees any memory still allocated.
+#+end_src
+#+begin_src C <<Main function, P. \ref{makeFurDb}>>=
+  int main(int argc, char **argv) {
+    //<<Interact with user, P. \ref{makeFurDb}>>
+    fprintf(stderr, "# Reading data...");
+    //<<Read data, P. \ref{makeFurDb}>>
+    fprintf(stderr, "done.\n");
+    //<<Write database, P. \ref{makeFurDb}>>
+    //<<Free memory, P. \ref{makeFurDb}>>
+  }
+#+end_src
+#+begin_src latex
+  \subsection{User Interaction}
+  The most fundamental user interactions are error messages, which
+  require the name of the program sending the message. This is set for
+  future reference.
+#+end_src
+#+begin_src C <<Interact with user, P. \ref{makeFurDb}>>=
+  setprogname(argv[0]);
+#+end_src
+#+begin_src latex
+  The function setprogname is defined in \texttt{bsd/stdlib.h}.
+#+end_src
+#+begin_src C <<Include headers, P. \ref{makeFurDb}>>=
+  #include <bsd/stdlib.h>
+#+end_src
+#+begin_src latex
+  The user interacts with the program via a set of options and their
+  arguments.
+#+end_src
+#+begin_src C <<Interact with user, P. \ref{makeFurDb}>>=
+  Args *args = getArgs(argc, argv);
+#+end_src
+#+begin_src latex
+  The \texttt{Args} data structure and the functions for handling it are
+  defined in \texttt{mfdbI.h}.
+#+end_src
+#+begin_src C <<Include headers, P. \ref{makeFurDb}>>=
+  #include "mfdbI.h"
+#+end_src 
+#+begin_src latex
+  The arguments container is freed at the end.
+#+end_src
+#+begin_src C <<Free memory, P. \ref{makeFurDb}>>=
+  freeArgs(args);
+#+end_src
+#+begin_src latex
+  If the user asks for help or an error has occurred, a usage
+  message---also defined in \texttt{mfdbI.h}---is printed and the
+  program exits.
+#+end_src
+#+begin_src C <<Interact with user, P. \ref{makeFurDb}>>=
+  if (args->h || args->err)
+    printUsage();
+#+end_src
+#+begin_src latex
+  Similarly, the user might like to know the program version, in
+  response to which a (small) splash is made before exiting.
+#+end_src
+#+begin_src C <<Interact with user, P. \ref{makeFurDb}>>=
+  if (args->v)
+    printSplash(args);
+#+end_src
+#+begin_src latex
+  The interaction with the user is now finished and the program on its
+  way. 
+  \subsection{Construct Database}
+  Database construction begins by reading the targets and the neighbors.
+#+end_src
+#+begin_src C <<Read data, P. \ref{makeFurDb}>>=
+  SeqArr *ta, *ne;
+  //<<Read targets, P. \ref{makeFurDb}>>
+  //<<Read neighbors, P. \ref{makeFurDb}>>
+#+end_src
+#+begin_src latex
+  Sequences and sequence arrays are defined in \texttt{seq.h}. This
+  header also defines the functions for manipulating these data
+  structures.
+#+end_src
+#+begin_src C <<Include headers, P. \ref{makeFurDb}>>=
+  #include "seq.h"
+#+end_src
+#+begin_src latex
+  The targets are read from a directory passed by the user. Every entry
+  in that directory except for ``.'' and ``..'' is assumed to be a
+  sequence file.
+#+end_src
+#+begin_src C <<Read targets, P. \ref{makeFurDb}>>=
+  DIR *d;
+  struct dirent *dir;
+  ta = newSeqArr();
+  d = eopendir(args->t);
+  while ((dir = readdir(d)) != NULL)
+    if (strcmp(dir->d_name, ".")  != 0 &&
+	strcmp(dir->d_name, "..") != 0)
+      readSeq(ta, args->t, dir->d_name);
+  closedir(d);
+#+end_src
+#+begin_src latex
+  The previous code chunk refers to a number of preexisting objects,
+  including the directory, \texttt{DIR}, and its entries,
+  \texttt{dirent}, both declared in \texttt{dirent.h}. The function
+  \texttt{eopendir} is an error-aware version of \texttt{opendir}
+  declared in \texttt{error.h}. The function \texttt{readdir} is again
+  declared in \texttt{dirent.h}, and \texttt{strcmp} in
+  \texttt{string.h}.
+#+end_src
+#+begin_src C <<Include headers, P. \ref{makeFurDb}>>=
+  #include <dirent.h>
+  #include <sys/types.h>
+  #include "error.h"
+  #include <string.h>
+#+end_src
+#+begin_src latex
+  Now \texttt{readSeq} still needs to be declared. It is a function of
+  the sequence array to be added to, the directory path, and the name of
+  the sequence file.
+#+end_src
+#+begin_src C <<Function declarations, P. \ref{makeFurDb}>>=
+  void readSeq(SeqArr *sa, char *dir, char *file);
+#+end_src 
+#+begin_src latex
+  Its main work is to concatenate the directory path and the file name
+  into the file path that serves as the argument to
+  \texttt{getJoinedSeq}.
+#+end_src 
+#+begin_src C <<Function definitions, P. \ref{makeFurDb}>>=
+  void readSeq(SeqArr *sa, char *dir, char *file) {
+    char *path = emalloc(strlen(dir) + strlen(file) + 2);
+    path[0] = '\0';
+    strcat(path, dir);
+    strcat(path, "/");
+    strcat(path, file);
+    seqArrAdd(sa, getJoinedSeq(path));
+    free(path);
+  }
+#+end_src
+#+begin_src latex
+  The only function called in \texttt{readSeq} not yet declared is
+  \texttt{free}, which is part of in \texttt{strlib.h}.
+#+end_src
+#+begin_src C <<Include headers, P. \ref{makeFurDb}>>=
+  #include <stdlib.h>
+#+end_src
+#+begin_src latex
+  Reading the neighbors is similar to reading the targets.
+#+end_src
+#+begin_src C <<Read neighbors, P. \ref{makeFurDb}>>=
+  ne = newSeqArr();
+  d = eopendir(args->n);
+  while ((dir = readdir(d)) != NULL)
+    if (strcmp(dir->d_name, ".")  != 0 &&
+	strcmp(dir->d_name, "..") != 0)
+      readSeq(ne, args->n, dir->d_name);
+  closedir(d);
+#+end_src
+#+begin_src latex
+  The targets and neighbors are freed at the end.
+#+end_src
+#+begin_src C <<Free memory, P. \ref{makeFurDb}>>=
+  freeSeqArr(ta);
+  freeSeqArr(ne);
+#+end_src
+#+begin_src latex
+  The data just read is now converted into the fur database. The
+  database is a directory, which is constructed first. It contains two
+  kinds of files, the \texttt{macle} index, and the BLAST database.
+#+end_src
+#+begin_src C <<Write database, P. \ref{makeFurDb}>>=
+  //<<Create database directory, P. \ref{makeFurDb}>>
+  //<<Write macle index, P. \ref{makeFurDb}>>
+  //<<Write BLAST database, P. \ref{makeFurDb}>>
+#+end_src
+#+begin_src latex
+  Creation of the database directory depends on whether the directory
+  already exists or not.
+#+end_src
+#+begin_src C <<Create database directory, P. \ref{makeFurDb}>>=
+  struct stat sb;
+  if (stat(args->d, &sb) != -1) {
+    //<<Directory exists, P. \ref{makeFurDb}>>
+  } else {
+    //<<Directory does not exist, P. \ref{makeFurDb}>>
+  }
+#+end_src
+#+begin_src latex
+  If the directory already exists and the user allows it to be
+  overwritten by using option \texttt{-o}, the directory is simply left
+  unchanged. Without overwriting, an error is thrown.
+#+end_src
+#+begin_src C <<Directory exists, P. \ref{makeFurDb}>>=
+  if (!args->o)
+    error("%s already exists.\n", args->d);
+#+end_src
+#+begin_src latex
+  If the directory doesn't exist, it is created.
+#+end_src
+#+begin_src C <<Directory does not exist, P. \ref{makeFurDb}>>=
+  char cmd[1024];
+  sprintf(cmd, "mkdir %s", args->d);
+  if (system(cmd) < 0)
+    error("couldn't run system command %s\n", cmd);
+#+end_src
+#+begin_src latex
+  The \texttt{macle} index consists of a representative target and the
+  neighbors. These are passed to
+  \texttt{macle}\footnote{\texttt{https://github.com/evolbioinf/macle}}
+  using the pipe mechanism. Since their names are mainly relevant for
+  internal usage, the representative is called $\mbox{t}i$, where $i$ is
+  its index in the target array, and the neighbors are called
+  $\mbox{n}i$.
+#+end_src
+#+begin_src C <<Write macle index, P. \ref{makeFurDb}>>=
+  int r = 0;
+  //<<Find representative target, P. \ref{makeFurDb}>>
+  char *tmpl = "macle -s > %s/macle.idx", cmd[1024];
+  sprintf(cmd, tmpl, args->d);
+  FILE *pp = epopen(cmd, "w");
+  fprintf(stderr, "# Making macle index with target representative \"%s\"...",
+	  ta->arr[r]->name);
+  fprintf(pp, ">t%d\n%s\n", r, ta->arr[r]->data);
+  for (int i = 0; i < ne->n; i++)
+    fprintf(pp, ">n%d\n%s\n", i, ne->arr[i]->data);
+  pclose(pp);
+  fprintf(stderr, "done.\n");
+#+end_src
+#+begin_src latex
+  If the name of the representative target is given by the user, this is
+  converted to the index in the target sequence array. Otherwise the
+  longest sequence is picked as the representative.
+#+end_src
+#+begin_src C <<Find representative target, P. \ref{makeFurDb}>>=
+  if (args->r) {
+    //<<Convert representative name to index, P. \ref{makeFurDb}>>
+  } else {
+    //<<Find longest target, P. \ref{makeFurDb}>>
+  }
+#+end_src
+#+begin_src latex
+  When searching the names of the targets for the representative, a
+  partial match suffices. Multiple or no matches are an error.
+#+end_src
+#+begin_src C <<Convert representative name to index, P. \ref{makeFurDb}>>=
+  r = -1;
+  for (int i = 0; i < ta->n; i++)
+    if (strstr(ta->arr[i]->name, args->r)) {
+      if (r == -1)
+	r = i;
+      else
+	error("%s is ambiguous.\n", args->r);
+    }
+  if (r == -1)
+    error("couldn't find %s.\n", args->r);
+#+end_src
+#+begin_src C <<Find longest target, P. \ref{makeFurDb}>>=
+  int max = -1;
+  for (int i = 0; i < ta->n; i++)
+    if (max < ta->arr[i]->l) {
+      max = ta->arr[i]->l;
+      r = i;
+    }
+#+end_src
+#+begin_src latex
+  The BLAST database consists of the targets and neighbors, named
+  $\mbox{t}i$ and $\mbox{n}i$, respectively. The program
+  \texttt{makeblastdb} computes the database, its option
+  \texttt{parse\_seqids} allows later retrieval of the representative
+  target by \texttt{fur}.
+#+end_src
+#+begin_src C <<Write BLAST database, P. \ref{makeFurDb}>>=
+  fprintf(stderr, "# Making BLAST database...");
+  tmpl = "makeblastdb -parse_seqids -out %s/blastdb "
+    "-dbtype nucl -title db > /dev/null";
+  sprintf(cmd, tmpl, args->d);
+  pp = epopen(cmd, "w");
+  for (int i = 0; i < ta->n; i++)
+    fprintf(pp, ">t%d\n%s\n", i, ta->arr[i]->data);
+  for (int i = 0; i < ne->n; i++)
+    fprintf(pp, ">n%d\n%s\n", i, ne->arr[i]->data);
+  pclose(pp);
+  fprintf(stderr, "done.\n");
+#+end_src

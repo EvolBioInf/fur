@@ -1,0 +1,400 @@
+#+begin_src latex  
+  \section{\texttt{fur}}\label{sec:furTut}
+    To demonstrate \texttt{fur}, it is used to find regions specific to
+    the pathogenic \emph{E. coli} strain ST131 in the example data shown
+    in Figure~\ref{fig:eco}.  The first step is to get the data. This is
+    converted into a \texttt{fur} database and analyzed in an initial pass
+    before the investigation is refined by varying the parameters of
+    \texttt{fur}.
+    \begin{prog}[\texttt{furTut.sh}]\label{furTut}
+      \textcolor{white}{}
+#+end_src
+#+begin_src sh <<furTut.sh>>=
+  <<Get tutorial data, P. \ref{furTut}>>
+  <<Make fur database, P. \ref{furTut}>>
+  <<Analyze tutorial data, P. \ref{furTut}>>
+  <<Refine tutorial analysis, P. \ref{furTut}>>
+#+end_src
+#+begin_src latex
+  \end{prog}
+  The example data is copied from a networked computer and unpacked.
+#+end_src
+#+begin_src sh <<Get tutorial data, P. \ref{furTut}>>=
+  wget guanine.evolbio.mpg.de/fur/eco105.tar.gz
+  tar -xvzf eco105.tar.gz
+#+end_src
+#+begin_src latex
+  This generates two directories of genomes in FASTA format,
+  \texttt{targets} with 98 genomes, and \texttt{neighbors} with
+  seven. These are converted to a \texttt{fur} database using
+  \texttt{makeFurDb}  (Chapter~\ref{ch:makeFurDb}),
+  which takes approximately half a minute.
+#+end_src
+#+begin_src sh <<Make fur database, P. \ref{furTut}>>=
+  makeFurDb -t targets -n neighbors -d furDb
+#+end_src
+#+begin_src latex
+  Unique templates are found by applying \texttt{fur} to this database,
+  which takes roughly fifteen seconds. The template sequences are stored
+  in \texttt{tmpl.fasta}.
+#+end_src
+#+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
+  fur -d furDb > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           267        76006            224
+  # Absence from neighbors         91        46844           4309
+#+end_src
+#+begin_src latex
+  The hash-tagged progress information lists the three steps of the
+  algorithm and the number of sequences and nucleotides contained in the
+  template set after each one. So the initial sliding window analysis
+  uncovers 1005 sequences totaling 681.3 kb and containing no unknown
+  nucleotide, \texttt{N}. After checking for presence in the targets,
+  170 sequences with 69.4 kb remain. This step is carried out by
+  intersecting the result of the previous step with the targets using
+  \texttt{phylonium} (Figure~\ref{fig:int}). Here the matches between
+  the reference sequence and the targets may contain mutations. Hence
+  our result set is now sprinkled with 151 mutations (\texttt{N}s). The
+  final step of subtracting the neighbors leaves 91 sequences with 46.8
+  kb as the template set. In this step BLAST hits are set to \texttt{N},
+  hence the number of ``mutations'' has now grown to 4309. That is, 4.3
+  kb of \texttt{N} in addition to 46.8 kb of non-\texttt{N}.
+
+  The file \texttt{tmpl.fasta} consists of headers followed by sequence
+  data. Each header in turn consists of a name and the start and end
+  positions on the target representative. Get the first ten lines of
+  \texttt{tmpl.fasta}. 
+#+end_src
+#+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
+  head tmpl.fasta
+#+end_src
+#+begin_src latex
+  They happen to be:
+  \begin{verbatim}
+  >part9	(1436..1926)  2
+  CCCGGATTACAGTTCATAGGGTGTGACGACACTATCTCTCGTATTCCGCGTTACCTCCTCAAGCTATGCC
+  GCCAGTGCCTGTTTGGCCTCAATTTTCACGCTGAGAAAATCGATAAGGATATCGATATCAAATAGCCAAA
+  TCTTTTTGCCATTACCATTTCTCGCGCAGCTTACGCNGGTATTCGACACCATCTTCCTCACACCCTTGCC
+  AGATGCCAGGAACACTGGTTCTTGCTGTTTGCGATTGATTTACCAGGTATTGATCTACCGCTTCCCGTAA
+  TAGGTCTGCACGCGGAAGATTACGCTGCACCTCAANATCATCAAGTTGCTTAATCACCTCATTCGATAAA
+  TCGAGTAAAATTCTGCTCATATCCATACCTGCCAGAGGGTTCATAAATATCTCGCCAATATCATTTTGAA
+  TCTATGGAGAGAAAAGTACCCTTGTCGAATCTTTAAAGAAAGCGCATTTACGCATCACTTTTTATTTTTG
+  >part10	(3700..3958)  0
+  GTCCAGATACAGCTTTTGATAGTTTATTATCCTGGATGATATCAGGAGCGATATCTATAAAGTTTATGCA
+  \end{verbatim}
+
+  The consists of a name, coordinates within the concatenated reference
+  sequence, and the number of mutations.
+
+  The file \texttt{tmpl.fasta} is supposed to contain 91 sequences with
+  46844 nucleotides, 4309 \texttt{N}, totaling $46844 + 4309 = 51153$
+  residues. To check this is actually the case, we write the AWK script
+  \texttt{count.awk}. It counts the headers and sums the sequence
+  lengths before reporting the number of templates and nucleotides.
+  \begin{prog}[\texttt{count.awk}]\label{count}
+    \textcolor{white}{}
+#+end_src
+#+begin_src awk <<count.awk>>=
+  {
+    if (/^>/)
+      c++
+    else {
+      t += length($1)
+      n += gsub("N", "")
+    }
+  }
+  END {
+    printf "# %s tmpl, %d nuc, %d N, %d total\n", c, t - n, n, t
+  }
+#+end_src
+#+begin_src latex
+  \end{prog}
+  Run the script to find the expected 91 templates with 51.1 kb.
+#+end_src
+#+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
+  awk -f count.awk tmpl.fasta 
+  # 91 tmpl, 46844 nuc, 4309 N, 51153 total
+#+end_src
+#+begin_src latex
+  To make the process of template selection more transparent, the
+  \texttt{-u} option allows printing of the unique regions found in the
+  sliding window analysis before exiting.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  fur -d furDb -u > unique1.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+#+end_src
+#+begin_src latex
+  The file \texttt{unique1.fasta} now contains 1005 sequences with
+  681,264, which is checked again.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  awk -f count.awk unique1.fasta
+  # 1005 tmpl, 681264 nuc, 0 N, 681264 total
+#+end_src
+#+begin_src latex
+  Similarly, the 170 regions present in all targets can be inspected
+  using the \texttt{-U} option.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  fur -d furDb -U > unique2.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           170        69407            151
+#+end_src
+#+begin_src latex
+  Check that \texttt{unique2.fasta} contains 170 sequences with $69407 +
+  151 = 69558$ bp.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  awk -f count.awk unique2.fasta
+  # 170 tmpl, 69407 nuc, 151 N, 69558 total
+#+end_src
+#+begin_src latex
+  Two \texttt{fur} parameters are of interest, the window length and the
+  $E$-value of the BLAST search during the subtraction step. Let's begin
+  with the window length, which by default is 80 bp. Much longer windows
+  result in sequences that are more difficult to find as exact matches
+  among all targets. For example, with 1 kb windows, there are 111
+  candidate regions, of which 26 are present in all targets. The final
+  tally is 18 regions with 18027 nucleotides and 2990 \texttt{N}. So the
+  final yield is quite different in spite of the fact that the amount of
+  nucleotides returned from the sliding window analysis, 635 kb, is
+  similar to the 681 kb found with 80 bp windows.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  fur -d furDb -w 1000 > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window                111       634900              0
+  # Presence in targets            26        28730            108
+  # Absence from neighbors         18        18027           2990
+#+end_src
+#+begin_src latex
+  On the other hand, a small increase in window length to 90 bp happens
+  to yield 174 templates with 53.6 kb template material. Clearly,
+  \texttt{fur} is highly sensitive to the window length and this should
+  be borne in mind when investigating other pathogens.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  fur -d furDb -w 90 > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1610       609930              0
+  # Presence in targets           246        72184            167
+  # Absence from neighbors        174        53570           2922
+#+end_src
+#+begin_src latex
+  The second parameter we explore is the $E$-value for the BLAST-search
+  among the neighborhood sequences, which is $10^{-5}$ by default. When
+  decreased to, say, $10^{-20}$, the yield increases from the original
+  91 fragments with 46.8 kb to 102 fragments with 50.5 kb. However, the
+  candidates might now be less specific.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  fur -d furDb -e 1e-20 > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           170        69407            151
+  # Absence from neighbors        102        50516           2573
+#+end_src
+#+begin_src latex
+  So it might well be worth varying the window length (\texttt{-w}), and
+  the $E$-value (\texttt{-e}), in your own analyses. This can be done
+  conveniently, as each run of \texttt{fur} is reasonably fast once the
+  underlying database has been computed.
+
+  \section{Test Sensitivity and Specificity, \texttt{senSpec}}
+  The sensitivity and specificity of the markers proposed by
+  \texttt{fur} can be calculated by \texttt{senSpec}
+  (Section~\ref{sec:senSpec}). This works best if we clean the sequences
+  first by removing runs of \ty{N}s. To do this, the sequences are
+  collected into an array of strings before they are cleaned and finally
+  printed.
+  \begin{prog}[\texttt{senSpec}]\label{cleanSeq}
+    \textcolor{white}{}
+#+end_src
+#+begin_src awk <<cleanSeq>>=
+  #!/usr/bin/awk -f
+  #<<Count sequences, P. \ref{cleanSeq}>>
+  #<<Collect sequences, P. \ref{cleanSeq}>>
+  END {
+    #<<Clean sequences, P. \ref{cleanSeq}>>
+    #<<Print sequences, P. \ref{cleanSeq}>>
+  }
+#+end_src
+#+begin_src latex
+  For each header, the sequence counter is incremented.
+#+end_src
+#+begin_src awk <<Count sequences, P. \ref{cleanSeq}>>=
+  /^>/ {
+    n++
+  }
+#+end_src
+#+begin_src latex
+  Sequence data is concatenated.
+#+end_src
+#+begin_src awk <<Collect sequences, P. \ref{cleanSeq}>>=
+  !/^>/ {
+    seq[n - 1] = seq[n - 1] $0
+  }
+#+end_src
+#+begin_src latex
+  The sequences are cleaned in three steps. First, remove prefixes
+  consisting of \texttt{N}s. Then, remove suffixes of
+  \texttt{N}s, and finally, convert any remaining run of \ty{N}s into a
+  sentinel character, ``!''.
+#+end_src
+#+begin_src awk <<Clean sequences, P. \ref{cleanSeq}>>=
+  for (i = 0; i < n; i++) {
+    sub(/^NN+/, "", seq[i])
+    sub(/NN+$/, "", seq[i])
+    gsub(/NN+/, "!", seq[i])
+  }
+#+end_src
+#+begin_src latex
+  Before printing the sequences, they are split at the sentinels. The
+  resulting fragments get printed as sequences if they are at least 50
+  nucleotides long. Each sequence gets a unique name.
+#+end_src
+#+begin_src awk <<Print sequences, P. \ref{cleanSeq}>>=
+  for (i = 0; i < n; i++) {
+    c = split(seq[i], arr, "\n")
+    for (j = 1; i <= c; j++)
+      if (length(arr[j]) >= 50)
+	  printf ">S%d\n%s\n", ++n, arr[j]
+  }
+#+end_src
+#+begin_src latex
+  Now we can compute the sensitivity, specificity, and combined score of
+  the templates identified by \texttt{fur}.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+./build/cleanSeq tmpl.fasta > tmpl2.fasta
+./build/senSpec -v query=tmpl2.fasta -v db=furDb
+#S_n	S_p	C
+1.000	0.998	0.982
+#+end_src
+#+begin_src latex
+  Given that we are testing on the same data from which the templates
+  were extracted, it is not surprising that all three quality scores are
+  very high. Think of this as a positive control. A more interesting test
+  would be on a database of sequences not used in template discovery.
+
+  \section{Making Primers, \texttt{fur2prim} \& \texttt{prim2fasta}}
+  Each template is now converted to an entry in the input to
+  \texttt{primer3}.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  ./build/fur2prim tmpl.fasta > prim.txt
+#+end_src
+#+begin_src latex
+  The command-line version of \texttt{primer3} is run on the input file
+  just created.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  primer3_core prim.txt > prim.out
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  ./build/prim2fasta -v file=primer prim.out 
+#+end_src
+#+begin_src latex
+  This generates the primer files
+  \begin{verbatim}
+  primer1.fasta
+  primer2.fasta
+  ...
+  \end{verbatim}
+#+end_src
+#+begin_src latex
+  \section{Checking Primers, \texttt{checkPrim}}\label{sec:checkTut}
+  Primers are often checked by comparing them to the complete NCBI
+  nucleotide database, \texttt{nt}. To avoid the overhead associated
+  with handling this huge database, I constructed a smaller example for
+  this Tutorial. 
+  The file \texttt{p.fa} contains a pair of candidate forward and
+  reverse primers that might be diagnostic for SARS-CoV-2. To check
+  their potential for spurious amplification, we need two BLAST
+  databases, a sequence database, and the BLAST taxonomy database to
+  classify any hits we might find in the sequence database. Then two
+  questions are asked. First, does the primer pair amplify SARS-CoV-2?
+  This is the positive control. And then, does it amplify anything else?
+  This is the negative control.
+  \begin{prog}[\texttt{checkTut.sh}]\label{checkTut}
+    \textcolor{white}{}
+#+end_src
+#+begin_src sh <<checkTut.sh>>=
+  <<Get BLAST sequence database, P. \ref{checkTut}>>
+  <<Get BLAST taxonomy database, P. \ref{checkTut}>>
+  <<Carry out positive control, P. \ref{checkTut}>>
+  <<Carry out negative control, P. \ref{checkTut}>>
+#+end_src
+#+begin_src latex
+  \end{prog}
+  The BLAST database needs to be housed in a suitable directory. In this
+  tutorial we use the \texttt{data} directory that is part of this
+  software package. Our data are Betacoronavirus sequences supplied by
+  the NCBI. This is downloaded using the program
+  \begin{verbatim}
+  update_blastdb.pl
+  \end{verbatim}
+  which is part of the BLAST package.
+#+end_src
+#+begin_src sh <<Get BLAST sequence database, P. \ref{checkTut}>>=
+  cd ../data
+  update_blastdb.pl --decompress Betacoronavirus
+#+end_src
+#+begin_src latex
+  The taxonomy database is downloaded in the same way. To make BLAST
+  aware of its location, the \texttt{BLASTDB} environment variable is
+  set. Once the BLAST database has been constructed, we return to the
+  base directory of the package.
+#+end_src
+#+begin_src sh <<Get BLAST taxonomy database, P. \ref{checkTut}>>=
+  update_blastdb.pl --decompress taxdb
+  export BLASTDB=$(pwd)
+  cd ..
+#+end_src
+#+begin_src latex
+  For the positive control, we check that the candidate primers amplify
+  a single region in SARS-CoV-2. The virus is identified by its
+  taxonomy-id, which can be looked up on the NCBI taxonomy web site and
+  happens to be 2697049.  If everything is working, a single interval is
+  returned for most if not all of the many SARS-CoV-2 sequences
+  contained in the database.
+#+end_src
+#+begin_src sh <<Carry out positive control, P. \ref{checkTut}>>=
+  ./build/checkPrim -v query=data/p1.fa \
+		    -v db=data/Betacoronavirus \
+		    -v taxid=2697049
+#+end_src
+#+begin_src latex
+  For the negative control, all hits to sequences not classified as
+  SARS-CoV-2 are printed.
+#+end_src
+#+begin_src sh <<Carry out negative control, P. \ref{checkTut}>>=
+  ./build/checkPrim -v query=data/p1.fa \
+		    -v db=data/Betacoronavirus \
+		    -v negativeTaxid=2697049
+#+end_src
+#+begin_src latex
+  If there is no cross-amplification, or the spurious amplicons are
+  found in acceptable taxa, the searches should be repeated in a larger
+  database, ideally the complete collection of known nucleotide
+  sequences, \texttt{nt}. The full list of available databases is show
+  by
+  \begin{verbatim}
+  update_blastdb.pl --showall
+  \end{verbatim}
+  While we are primarily interested in spotting ``wrong'' amplicons,
+  that is, in the results of the negative control, it is a good idea to
+  always also perform the positive control to make sure the primers can
+  actually be found in the test database.
+#+end_src
+
