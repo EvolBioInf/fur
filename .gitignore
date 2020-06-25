@@ -4,6 +4,7 @@ build/
 doc/*.aux
 doc/*.dvi
 doc/*.log
+doc/*.pdf
 doc/date.tex
 doc/version.tex
 doc/fur.bbl
@@ -27,11 +28,18 @@ doc/prim2fasta.tex
 doc/tutorial.tex
 doc/senSpec.tex
 src/fur
+src/fur.c
 src/*.idx
 src/*.awk
+src/checkPrim
+src/fur2prim
+src/prim2fasta
+src/senSpec
+src/cleanSeq
 src/checkTut.sh
 src/furTut.sh
 src/makeFurDb
+src/makeFurDb.c
 scripts/checkTut.sh
 scripts/furTut.sh
 scripts/*.awk
