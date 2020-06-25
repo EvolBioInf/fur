@@ -129,7 +129,7 @@ Seq *revCmpSeq(Seq *s) {
   Seq *n;
   n = newSeq(s->name);
   n->name = erealloc(n->name, strlen(n->name) + 8);
-  strncat(n->name, "_revCmp", 7);
+  strcat(n->name, "_revCmp");
   n->data = emalloc(s->l);
   for (int i = s->l - 1; i >= 0; i--)
     n->data[n->l++] = s->data[i];
