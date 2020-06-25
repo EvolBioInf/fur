@@ -17,6 +17,8 @@ Find unique genomic regions.
 ## Compile
 Compile the sources using `make`; the executable `fur` is now in the directory `build`
 ## Documentation
-The command `make doc` generates the manual `doc/fur.pdf`.
+* The command `make doc` generates the manual `doc/fur.pdf`.
+* The file doc/dockerDeb.txt contains instructions on how to run fur
+  in a docker container.
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)
