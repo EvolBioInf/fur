@@ -28,6 +28,7 @@ doc/tutorial.tex
 doc/senSpec.tex
 src/fur
 src/*.idx
+src/*.org
 src/tar2pri.awk
 src/makeFurDb
 scripts/checkTut.sh
