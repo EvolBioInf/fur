@@ -233,3 +233,63 @@
   print "#S_n\tS_p\tC"
   printf "%.3f\t%.3f\t%.3f\n", sn, sp, c
 #+end_src
+#+begin_src latex
+  The computation of sensitivity and specificity works best if we clean
+  the sequences first by removing runs of \texttt{N}s. To do this, the
+  sequences are collected into an array of strings before they are
+  cleaned and finally printed.
+    \begin{prog}[\texttt{cleanSeq}]\label{cleanSeq}
+      \textcolor{white}{}
+#+end_src
+#+begin_src awk <<cleanSeq>>=
+  #!/usr/bin/awk -f
+  //<<Count sequences, P. \ref{cleanSeq}>>
+  //<<Collect sequences, P. \ref{cleanSeq}>>
+  END {
+    //<<Clean sequences, P. \ref{cleanSeq}>>
+    //<<Print sequences, P. \ref{cleanSeq}>>
+  }
+#+end_src
+#+begin_src latex
+  \end{prog}
+  For each header, the sequence counter is incremented.
+#+end_src
+#+begin_src awk <<Count sequences, P. \ref{cleanSeq}>>=
+  /^>/ {
+    n++
+  }
+#+end_src
+#+begin_src latex
+  Sequence data is concatenated.
+#+end_src
+#+begin_src awk <<Collect sequences, P. \ref{cleanSeq}>>=
+  !/^>/ {
+    seq[n - 1] = seq[n - 1] $0
+  }
+#+end_src
+#+begin_src latex
+  The sequences are cleaned in three steps. First, remove prefixes
+  consisting of \texttt{N}s. Then, remove suffixes of \texttt{N}s, and
+  finally, convert any remaining run of \texttt{N}s into a sentinel
+  character, ``!''.
+#+end_src
+#+begin_src awk <<Clean sequences, P. \ref{cleanSeq}>>=
+  for (i = 0; i < n; i++) {
+    sub(/^NN+/, "", seq[i])
+    sub(/NN+$/, "", seq[i])
+    gsub(/NN+/, "!", seq[i])
+  }
+#+end_src
+#+begin_src latex
+  Before printing the sequences, they are split at the sentinels. The
+  resulting fragments get printed as sequences if they are at least 50
+  nucleotides long. Each sequence gets a unique name.
+#+end_src
+#+begin_src awk <<Print sequences, P. \ref{cleanSeq}>>=
+  for (i = 0; i < n; i++) {
+    c = split(seq[i], arr, "\n")
+    for (j = 1; j <= c; j++)
+      if (length(arr[j]) >= 50)
+	  printf ">S%d\n%s\n", ++n, arr[j]
+  }
+#+end_src

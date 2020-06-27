@@ -30,15 +30,13 @@ makeFurDb.c: makeFurDb.org
 	bash ../scripts/org2nw makeFurDb.org | notangle -RmakeFurDb.c > makeFurDb.c
 mfdbI.o: mfdbI.h
 
-tutorial: furTut.sh count.awk checkTut.sh
+tutorial: furTut.sh checkTut.sh
 furTut.sh: tutorial.org
 	bash ../scripts/org2nw tutorial.org | notangle -RfurTut.sh > furTut.sh
-count.awk: tutorial.org
-	bash ../scripts/org2nw tutorial.org | notangle -Rcount.awk > count.awk
 checkTut.sh: tutorial.org
 	bash ../scripts/org2nw tutorial.org | notangle -RcheckTut.sh > checkTut.sh
 
-aux: fur2prim prim2fasta checkPrim senSpec cleanSeq
+aux: fur2prim prim2fasta checkPrim senSpec cleanSeq count
 fur2prim: fur2prim.org
 	bash ../scripts/org2nw fur2prim.org | notangle -Rfur2prim > fur2prim
 	chmod +x fur2prim
@@ -51,9 +49,12 @@ checkPrim: checkPrim.org
 senSpec: senSpec.org
 	bash ../scripts/org2nw senSpec.org | notangle -RsenSpec > senSpec
 	chmod +x senSpec
-cleanSeq: tutorial.org
-	bash ../scripts/org2nw tutorial.org | notangle -RcleanSeq > cleanSeq
-	chmod + cleanSeq
+cleanSeq: senSpec.org
+	bash ../scripts/org2nw senSpec.org | notangle -RcleanSeq > cleanSeq
+	chmod +x cleanSeq
+count: fur.org
+	bash ../scripts/org2nw fur.org | notangle -Rcount > count
+	chmod +x count
 clean:
 	rm -f *.o *~ count.awk senSpec fur2prim prim2fasta checkPrim furTur.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
 test:

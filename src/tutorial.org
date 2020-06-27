@@ -43,7 +43,7 @@
   # Step                    Sequences  Nucleotides  Mutations (N)
   # -------------------------------------------------------------
   # Sliding window               1005       681264              0
-  # Presence in targets           267        76006            224
+  # Presence in targets           170        69407            151
   # Absence from neighbors         91        46844           4309
 #+end_src
 #+begin_src latex
@@ -88,33 +88,14 @@
   The consists of a name, coordinates within the concatenated reference
   sequence, and the number of mutations.
 
-  The file \texttt{tmpl.fasta} is supposed to contain 91 sequences with
-  46844 nucleotides, 4309 \texttt{N}, totaling $46844 + 4309 = 51153$
-  residues. To check this is actually the case, we write the AWK script
-  \texttt{count.awk}. It counts the headers and sums the sequence
-  lengths before reporting the number of templates and nucleotides.
-  \begin{prog}[\texttt{count.awk}]\label{count}
-    \textcolor{white}{}
-#+end_src
-#+begin_src awk <<count.awk>>=
-  {
-    if (/^>/)
-      c++
-    else {
-      t += length($1)
-      n += gsub("N", "")
-    }
-  }
-  END {
-    printf "# %s tmpl, %d nuc, %d N, %d total\n", c, t - n, n, t
-  }
-#+end_src
-#+begin_src latex
-  \end{prog}
-  Run the script to find the expected 91 templates with 51.1 kb.
+  The file \texttt{tmpl.fasta} is supposed to contain 91 sequences
+  with 46844 nucleotides, 4309 \texttt{N}, totaling $46844 + 4309 =
+  51153$ residues. To check this is actually the case, we use our
+  progam \texttt{count} to find the expected 91 templates with a total
+  of 51.2 kb.
 #+end_src
 #+begin_src sh <<Analyze tutorial data, P. \ref{furTut}>>=
-  awk -f count.awk tmpl.fasta 
+  count tmpl.fasta 
   # 91 tmpl, 46844 nuc, 4309 N, 51153 total
 #+end_src
 #+begin_src latex
@@ -133,7 +114,7 @@
   681,264, which is checked again.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  awk -f count.awk unique1.fasta
+  count unique1.fasta
   # 1005 tmpl, 681264 nuc, 0 N, 681264 total
 #+end_src
 #+begin_src latex
@@ -152,7 +133,7 @@
   151 = 69558$ bp.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  awk -f count.awk unique2.fasta
+  count unique2.fasta
   # 170 tmpl, 69407 nuc, 151 N, 69558 total
 #+end_src
 #+begin_src latex
@@ -212,75 +193,15 @@
 
   \section{Test Sensitivity and Specificity, \texttt{senSpec}}
   The sensitivity and specificity of the markers proposed by
-  \texttt{fur} can be calculated by \texttt{senSpec}
-  (Section~\ref{sec:senSpec}). This works best if we clean the sequences
-  first by removing runs of \texttt{N}s. To do this, the sequences are
-  collected into an array of strings before they are cleaned and finally
-  printed.
-  \begin{prog}[\texttt{senSpec}]\label{cleanSeq}
-    \textcolor{white}{}
-#+end_src
-#+begin_src awk <<cleanSeq>>=
-  #!/usr/bin/awk -f
-  #<<Count sequences, P. \ref{cleanSeq}>>
-  #<<Collect sequences, P. \ref{cleanSeq}>>
-  END {
-    #<<Clean sequences, P. \ref{cleanSeq}>>
-    #<<Print sequences, P. \ref{cleanSeq}>>
-  }
-#+end_src
-#+begin_src latex
-  \end{prog}
-  For each header, the sequence counter is incremented.
-#+end_src
-#+begin_src awk <<Count sequences, P. \ref{cleanSeq}>>=
-  /^>/ {
-    n++
-  }
-#+end_src
-#+begin_src latex
-  Sequence data is concatenated.
-#+end_src
-#+begin_src awk <<Collect sequences, P. \ref{cleanSeq}>>=
-  !/^>/ {
-    seq[n - 1] = seq[n - 1] $0
-  }
-#+end_src
-#+begin_src latex
-  The sequences are cleaned in three steps. First, remove prefixes
-  consisting of \texttt{N}s. Then, remove suffixes of \texttt{N}s, and
-  finally, convert any remaining run of \texttt{N}s into a sentinel
-  character, ``!''.
-#+end_src
-#+begin_src awk <<Clean sequences, P. \ref{cleanSeq}>>=
-  for (i = 0; i < n; i++) {
-    sub(/^NN+/, "", seq[i])
-    sub(/NN+$/, "", seq[i])
-    gsub(/NN+/, "!", seq[i])
-  }
-#+end_src
-#+begin_src latex
-  Before printing the sequences, they are split at the sentinels. The
-  resulting fragments get printed as sequences if they are at least 50
-  nucleotides long. Each sequence gets a unique name.
-#+end_src
-#+begin_src awk <<Print sequences, P. \ref{cleanSeq}>>=
-  for (i = 0; i < n; i++) {
-    c = split(seq[i], arr, "\n")
-    for (j = 1; i <= c; j++)
-      if (length(arr[j]) >= 50)
-	  printf ">S%d\n%s\n", ++n, arr[j]
-  }
-#+end_src
-#+begin_src latex
-  Now we can compute the sensitivity, specificity, and combined score of
-  the templates identified by \texttt{fur}.
+  \texttt{fur} can be calculated by \texttt{senSpec}.
+  (Section~\ref{sec:senSpec}). The sequences are cleaned first, and then
+  evaluated.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-./build/cleanSeq tmpl.fasta > tmpl2.fasta
-./build/senSpec -v query=tmpl2.fasta -v db=furDb
-#S_n	S_p	C
-1.000	0.998	0.982
+  cleanSeq tmpl.fasta > tmpl2.fasta
+  senSpec -v query=tmpl2.fasta -v db=furDb
+  #S_n	S_p	C
+  1.000	0.998	0.982
 #+end_src
 #+begin_src latex
   Given that we are testing on the same data from which the templates
@@ -293,7 +214,7 @@
   \texttt{primer3}.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  ./build/fur2prim tmpl.fasta > prim.txt
+  fur2prim tmpl.fasta > prim.txt
 #+end_src
 #+begin_src latex
   The command-line version of \texttt{primer3} is run on the input file
@@ -303,7 +224,7 @@
   primer3_core prim.txt > prim.out
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
-  ./build/prim2fasta -v file=primer prim.out 
+  prim2fasta -v file=primer prim.out 
 #+end_src
 #+begin_src latex
   This generates the primer files
@@ -311,9 +232,25 @@
   primer1.fasta
   primer2.fasta
   ...
+  primer509.fasta 
   \end{verbatim}
+
+  This is perhaps a bit too much. So instead of extracting all primers,
+  let's rank them by quality. Each primer pair has a
+  ``PRIMER\_PAIR\_X\_PENALTY'', where X is 0 for the best pair, 1 for
+  the second best, and so on. We can extract and sort these values to
+  discover the overall best primer pair.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  grep PRIMER_PAIR_0_PENALTY prim.out |
+      tr '=' '\t' |
+      sort -k 2 -n |
+      head -n 1
 #+end_src
 #+begin_src latex
+  This has penalty 0.054910, a number that can now be used to find the
+  corresponding primers in \texttt{prim.out}.
+
   \section{Checking Primers, \texttt{checkPrim}}\label{sec:checkTut}
   Primers are often checked by comparing them to the complete NCBI
   nucleotide database, \texttt{nt}. To avoid the overhead associated
@@ -348,7 +285,8 @@
   which is part of the BLAST package.
 #+end_src
 #+begin_src sh <<Get BLAST sequence database, P. \ref{checkTut}>>=
-  cd ../data
+  mkdir data
+  cd data
   update_blastdb.pl --decompress Betacoronavirus
 #+end_src
 #+begin_src latex
@@ -371,7 +309,7 @@
   contained in the database.
 #+end_src
 #+begin_src sh <<Carry out positive control, P. \ref{checkTut}>>=
-  ./build/checkPrim -v query=data/p1.fa \
+  checkPrim -v query=data/p1.fa \
 		    -v db=data/Betacoronavirus \
 		    -v taxid=2697049
 #+end_src
@@ -380,7 +318,7 @@
   SARS-CoV-2 are printed.
 #+end_src
 #+begin_src sh <<Carry out negative control, P. \ref{checkTut}>>=
-  ./build/checkPrim -v query=data/p1.fa \
+  checkPrim -v query=data/p1.fa \
 		    -v db=data/Betacoronavirus \
 		    -v negativeTaxid=2697049
 #+end_src

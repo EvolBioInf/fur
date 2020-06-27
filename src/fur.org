@@ -57,7 +57,7 @@
   data structures for intervals and their arrays, the program consists
   of the usual include section, declarations and definitions of
   functions, and finally the \texttt{main} function.
-  \begin{prog}[\texttt{fur.c}]\label{fur}
+  \begin{prog}[\texttt{fur}]\label{fur}
     \textcolor{white}{}
 #+end_src
 #+begin_src C <<fur.c>>=
@@ -949,5 +949,28 @@
   freeSeqArr(sa);
 #+end_src
 #+begin_src latex
+  To check the output of \texttt{fur} in the Tutorial
+  (Section~\ref{sec:tut}), we write the AWK script \texttt{count}. It
+  counts the headers and sums the sequence lengths before reporting the
+  number of templates and nucleotides.
+    \begin{prog}[\texttt{count}]\label{count}
+      \textcolor{white}{}
+#+end_src
+#+begin_src awk <<count>>=
+  #!/usr/bin/awk -f
+  {
+    if (/^>/)
+      c++
+    else {
+      t += length($1)
+      n += gsub("N", "")
+    }
+  }
+  END {
+    printf "# %s tmpl, %d nuc, %d N, %d total\n", c, t - n, n, t
+  }
+#+end_src
+#+begin_src latex
+  \end{prog}
   \texttt{Fur} is now ready to be used.
 #+end_src
