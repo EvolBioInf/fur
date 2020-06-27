@@ -1,0 +1,6 @@
+# Fox: a docker container for working with fur
+- Initial password for jdoe: password
+- Install a package
+sudo apt install <package>
+- Documentation, including a tutorial:
+http://guanine.evolbio.mpg.de/fur/fur.pdf

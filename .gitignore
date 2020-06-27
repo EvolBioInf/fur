@@ -1,3 +1,4 @@
+*~
 build/
 *.o
 *.a
@@ -43,3 +44,4 @@ src/makeFurDb.c
 scripts/checkTut.sh
 scripts/furTut.sh
 scripts/*.awk
+docker/bin
