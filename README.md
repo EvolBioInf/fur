@@ -15,10 +15,15 @@ Find unique genomic regions.
 * pst-tools
 * `wget`
 ## Compile
-Compile the sources using `make`; the executable `fur` is now in the directory `build`
+* Compile the sources using `make`; all executables are now in the
+  directory `build`
+* If this does not work on your system, consider using the "fox"
+  docker container (for "fur box"). It contains an installation of all
+  programs needed to work through the tutorial in the documentation.
+  -  `docker pull haubold/fox`
+  -  `docker container run --detach-keys="ctrl-@" -h fox -it haubold/fox`
 ## Documentation
-* The command `make doc` generates the manual `doc/fur.pdf`.
-* The file doc/dockerDeb.txt contains instructions on how to run fur
-  in a docker container.
+The command `make doc` generates the manual `doc/fur.pdf`, or use
+  the [typeset version](http://guanine.evolbio.mpg.de/fur/fur.pdf).
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)

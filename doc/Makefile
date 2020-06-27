@@ -11,7 +11,6 @@ all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex senSpec.tex 
 	latex $(NAME)
 	latex $(NAME)
 	dvipdf $(NAME)
-	scp $(NAME).pdf root@guanine.evolbio.mpg.de:/var/www/htdocs/fur/
 makeFurDb.tex: ../src/makeFurDb.org
 	bash ../scripts/org2nw ../src/makeFurDb.org | noweave -n -x > makeFurDb.tex
 senSpec.tex: ../src/senSpec.org

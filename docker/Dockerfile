@@ -1,6 +1,6 @@
 FROM ubuntu
 RUN apt update --fix-missing
-RUN yes | apt install libdivsufsort3 libgsl23 libgslcblas0 libgomp1 libbsd0 wget sudo
+RUN yes | apt install libbsd0 libdivsufsort3 libgomp1 libgsl23 libgslcblas0 ncbi-blast+ primer3 sudo wget
 RUN useradd -m -p NbqDBxZy0F.tE -s /bin/bash jdoe
 RUN usermod -aG sudo jdoe
 COPY bin/* /usr/local/bin/
