@@ -950,7 +950,7 @@
 #+end_src
 #+begin_src latex
   To check the output of \texttt{fur} in the Tutorial
-  (Section~\ref{sec:tut}), we write the AWK script \texttt{count}. It
+  (Section~\ref{sec:furTut}), we write the AWK script \texttt{count}. It
   counts the headers and sums the sequence lengths before reporting the
   number of templates and nucleotides.
     \begin{prog}[\texttt{count}]\label{count}
