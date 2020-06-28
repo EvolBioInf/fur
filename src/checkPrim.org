@@ -51,17 +51,18 @@
 #+begin_src awk <<Interact with user, P. \ref{checkPrim}>>=
   //<<Initialize default values of optional parameters, P. \ref{checkPrim}>>
   if (!query || !db || !(taxid || negativeTaxid)) {
-    print  "checkPrim: Check the specificity of PCR primers using BLAST"
-    print  "Usage: awk -f checkPrim "
-    print  "-v query=<query>"
-    print  "-v db=<db>"
-    print  "-v taxid=<taxid> || -v negativeTaxid=<negativeTaxid>"
+    print "checkPrim: Check the specificity of PCR primers using BLAST"
+    print "Usage: checkPrim <options>"
+    print "Options:"
+    print  "\t-v query=<query>"
+    print  "\t-v db=<db>"
+    print  "\t-v taxid=<taxid> || -v negativeTaxid=<negativeTaxid>"
     //<<Query optional parameters, P. \ref{checkPrim}>>
     exit 0
   }
 #+end_src
 #+begin_src latex
-  There are also optional parameters: The maximum number of mismatches
+  There are four optional parameters: The maximum number of mismatches
   (\texttt{maxMism}), the maximum length of an amplicon
   (\texttt{maxLen}), the number of threads used by BLAST
   (\texttt{numThreads}), and the $E$-value (\texttt{evalue}). I took the
@@ -80,10 +81,10 @@
   notation of AWK.
 #+end_src
 #+begin_src awk <<Query optional parameters, P. \ref{checkPrim}>>=
-  printf "[-v maxMism=<maxMism>; default: %d]\n", defMaxMism
-  printf "[-v maxLen=<maxLen>; default: %d]\n", defMaxLen
-  printf "[-v numThreads=<numThreads>; default: %d]\n", defNumThreads
-  printf "[-v evalue=<evalue>; default: %d]\n", defEvalue
+  printf "\t[-v maxMism=<maxMism>; default: %d]\n", defMaxMism
+  printf "\t[-v maxLen=<maxLen>; default: %d]\n", defMaxLen
+  printf "\t[-v numThreads=<numThreads>; default: %d]\n", defNumThreads
+  printf "\t[-v evalue=<evalue>; default: %d]\n", defEvalue
 #+end_src
 #+begin_src latex
   Any undefined optinal parameters are set to their default values.
@@ -106,24 +107,26 @@
   end positions on the subject, and two items of taxonomic information
   on the subject: the taxon id and its scientific name. In addition, we
   set the \texttt{outfmt} option such that the lengths of the query and
-  the alignment are printed. This allows us filter for full-length
-  matches. By default, BLAST results are sorted first by the input order
-  of the query---all matches of the first query followed by all matches
-  to the second, and so on---and then by their subject position. For
-  identifying spurious amplicons, it is more convenient to group the
-  results by subject and then sort by position within each subject.
+  the alignment are printed. This allows us to filter for full-length
+  matches, that is, we are looking for alignment that are global in the
+  query and local in the subject. By default, BLAST results are sorted
+  first by the input order of the query---all matches of the first query
+  followed by all matches to the second, and so on---and then by their
+  subject position. For identifying spurious amplicons, it is more
+  convenient to group the results by subject and then sort by position
+  within each subject.
 #+end_src
 #+begin_src awk <<Construct BLAST command, P. \ref{checkPrim}>>=
   tmpl = "blastn -task blastn-short -query %s -db %s -outfmt "
-  tmpl = tmpl "\"6 qacc sacc mismatch sstart send staxid ssciname "
-  tmpl = tmpl "qlen length\" -num_threads %d -evalue %d "
+  tmpl = tmpl "\"6 qacc sacc mismatch sstart send staxid "
+  tmpl = tmpl "qlen length ssciname\" -num_threads %d -evalue %d "
   if (taxid)
     tmpl = tmpl "| awk '$6 == \"%s\"' "
   else {
     taxid = negativeTaxid
     tmpl = tmpl "| awk '$6 != \"%s\"' "
   }
-  tmpl = tmpl "| awk '$3 <= %d && $8 == $9'"
+  tmpl = tmpl "| awk '$3 <= %d && $7 == $8'"
   tmpl = tmpl "| sort -k 2,2 -k 4,4n"
   cmd = sprintf(tmpl, query, db, numThreads, evalue, taxid, maxMism)
 #+end_src
@@ -136,34 +139,34 @@
     qacc[n] = $1
     sacc[n] = $2
     staxid[n] = $6
-    ssciname[n] = $7
+    ssciname[n] = $9
     <<Decide strand, P. \ref{checkPrim}>>
     n++
   }
   close(cmd)
 #+end_src
 #+begin_src latex
-  DNA is double-stranded and all PRC reactions take double-stranded DNA
-  as template, regardless of the actual nucleotide molecule
-  investigated. To visualize the primer configuration we are looking for
-  in our BLAST search, consider the forward and reverse primers $p_{\rm
-    f}$ and $p_{\rm r}$ depicted in Figure~\ref{fig:pri}. They bind the
-  forward and reverse strands of a template, $t_{\rm f}$ and $t_{\rm
-    r}$. So regardless of which template strand has been sequenced, the
-  5'-primer of a potential amplicon is on the forward, the 3'-primer on
-  the reverse strand.
+  All PRC reactions take double-stranded DNA as template. To visualize
+  the primer configuration we are looking for in our BLAST search,
+  consider the forward and reverse primers $p_{\rm f}$ and $p_{\rm r}$
+  in the top panel of Figure~\ref{fig:pri}. They bind the forward and
+  reverse strands of a template, $t_{\rm f}$ and $t_{\rm r}$. So
+  regardless of which template strand has been sequenced, the 5'-primer
+  of a potential amplicon is on the forward, the 3'-primer on the
+  reverse strand.
 
   \begin{figure}
     \input{primConfig}
     \caption{Forward and reverse PCR primers, $p_{\rm f}$ and $p_{\rm
-	r}$, along the forward or reverse strands of a template,
-      $t_{\rm f}$ and $t_{\rm r}$.}\label{fig:pri}
+	r}$ (top panel), along the forward or reverse strands of a
+      template, $t_{\rm f}$ and $t_{\rm r}$ (bottom
+      panel).}\label{fig:pri}
   \end{figure}
 
 
   BLAST encodes strand in the start and end positions of a match. If the
   start is less than the end, the match is on the forward strand;
-  otherwise, the match is on the reverse strand. I found it more
+  otherwise, the match is on the reverse strand. I find it more
   convenient to think of all matches in the customary 5' to 3'
   direction, which means I invert the coordinates of matches on the
   reverse strand and explicitly store the strand, 0 for forward, 1 for
@@ -191,7 +194,7 @@
   <<Print header, P. \ref{checkPrim}>>
   for (i = 0; i < n - 1; i++) {
     j = i + 1
-    l = send[j] - sstart[i] - 1
+    l = send[j] - sstart[i] + 1
     while (sacc[i] == sacc[j] && j < n && l <= maxLen) {
       if (strand[i] == 0 && strand[j] == 1)
 	<<Print result, P. \ref{checkPrim}>>
