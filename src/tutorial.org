@@ -20,7 +20,7 @@
   The example data is copied from a networked computer and unpacked.
 #+end_src
 #+begin_src sh <<Get tutorial data, P. \ref{furTut}>>=
-  curl guanine.evolbio.mpg.de/fur/eco105.tar.gz --output eco105.tar.gz
+  curl guanine.evolbio.mpg.de/fur/eco105.tar.gz -o eco105.tar.gz
   tar -xvzf eco105.tar.gz
 #+end_src
 #+begin_src latex
@@ -201,7 +201,7 @@
   cleanSeq tmpl.fasta > tmpl2.fasta
   senSpec -v query=tmpl2.fasta -v db=furDb
   #S_n	S_p	C
-  1.000	0.998	0.982
+  0.998   0.998   0.970
 #+end_src
 #+begin_src latex
   Given that we are testing on the same data from which the templates
@@ -232,14 +232,14 @@
   primer1.fasta
   primer2.fasta
   ...
-  primer509.fasta 
+  primer510.fasta 
   \end{verbatim}
 
   This is perhaps a bit too much. So instead of extracting all primers,
   let's rank them by quality. Each primer pair has a
-  ``PRIMER\_PAIR\_X\_PENALTY'', where X is 0 for the best pair, 1 for
-  the second best, and so on. We can extract and sort these values to
-  discover the overall best primer pair.
+  ``PRIMER\_PAIR\_X\_PENALTY'', where X is 0 for the best pair of a
+  particular template, 1 for the second best, and so on. We can extract
+  and sort these values to discover the overall best primer pair.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   grep PRIMER_PAIR_0_PENALTY prim.out |
