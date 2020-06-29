@@ -1,6 +1,6 @@
-FROM ubuntu
+FROM debian:stable-slim
 RUN apt update --fix-missing
-RUN yes | apt install curl libbsd0 libdivsufsort3 libgomp1 libgsl23 libgslcblas0 ncbi-blast+ primer3 sudo
+RUN yes | apt install --fix-missing curl libbsd0 libdivsufsort3 libgomp1 libgsl23 libgslcblas0 ncbi-blast+ primer3 sudo
 RUN useradd -m -p NbqDBxZy0F.tE -s /bin/bash jdoe
 RUN usermod -aG sudo jdoe
 COPY bin/* /usr/local/bin/
