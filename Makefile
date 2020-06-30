@@ -6,7 +6,6 @@ all:
 	cp src/fur build
 	cp src/makeFurDb build
 	cp src/fur2prim src/prim2fasta src/checkPrim src/senSpec src/count src/cleanSeq build
-	make -C docker
 	cp src/checkTut.sh src/furTut.sh scripts
 test:
 	@make -s -C src test
@@ -16,6 +15,8 @@ clean:
 	make -C common clean
 	make -C src    clean
 	make -C doc    clean
-.PHONY:	doc
+.PHONY:	doc docker
 doc:	
 	make -C doc
+docker:
+	make -C docker
