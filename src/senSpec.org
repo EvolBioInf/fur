@@ -17,19 +17,21 @@
   \begin{equation}\label{eq:sp}
   S_{\rm p} = \frac{t_{\rm p}}{t_{\rm p} + f_{\rm p}},
   \end{equation}
-  where $f_{\rm p}$ is the number false positive nuleotides.
+  where $f_{\rm p}$ is the number of nucleotides in neighbor hits, the
+  false positives.
 
   $S_{\rm n}$ and $S_{\rm p}$ are bounded by 0 and 1, the greater they
-  both are, the better. However, there is no gain in maximizing just one
-  of them at the expense of the other, so their correlation is often
-  used to measure classification accuracy \cite[p. 122]{hau06:int}:
+  both are, the better. However, it is easy to maximize just one of them
+  at the expense of the other, so their correlation is often used to
+  measure classification accuracy \cite[p. 122]{hau06:int}:
   \begin{equation}\label{eq:c}
   C=\frac{t_{\rm p}t_{\rm n}-f_{\rm p}f_{\rm n}}{\sqrt{(t_{\rm p}+f_{\rm
     p})(t_{\rm n}+f_{\rm n})(t_{\rm n}+f_{\rm p})(t_{\rm p}+f_{\rm n})}}.
   \end{equation}
 
   $C$ ranges between -1 and 1, with 1 indicating perfect
-  classification---all targets and no neighbors are hit---0 indicates no
+  classification---all template nucleotides are found in all targets and
+  none of them are found among the neighbors---0 indicates no
   discrimination, and -1 perfect anti-classification, where all
   neighbors are hit and no targets. When comparing the results of a
   \texttt{fur} run to the underlying database, the sensitivity, the

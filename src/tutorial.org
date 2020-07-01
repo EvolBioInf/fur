@@ -85,8 +85,8 @@
   GTCCAGATACAGCTTTTGATAGTTTATTATCCTGGATGATATCAGGAGCGATATCTATAAAGTTTATGCA
   \end{verbatim}
 
-  The consists of a name, coordinates within the concatenated reference
-  sequence, and the number of mutations.
+  The header consists of a name, coordinates within the concatenated
+  reference sequence, and the number of mutations.
 
   The file \texttt{tmpl.fasta} is supposed to contain 91 sequences
   with 46844 nucleotides, 4309 \texttt{N}, totaling $46844 + 4309 =
