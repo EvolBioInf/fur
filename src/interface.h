@@ -20,6 +20,7 @@ typedef struct args{
   char    v; /* version message? */
   char  err; /* error */
   char **fi; /* input files */
+  char    m; /* use megablast mode */
   char    u; /* print unique regions after sliding window analysis */
   char    U; /* print unique regions after checking for presence among targets */
   int    nf; /* number of input files */

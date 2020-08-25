@@ -26,6 +26,7 @@ Args *newArgs() {
   args->t   = DEFAULT_T;
   args->e   = DEFAULT_E;
   args->n   = DEFAULT_N;
+  args->m   = 0;
   args->u   = 0;
   args->U   = 0;
   args->k   = 0;
@@ -40,7 +41,7 @@ void freeArgs(Args *args) {
 
 Args *getArgs(int argc, char *argv[]) {
   int c;
-  char *optString = "hvuUxd:w:p:t:n:k:e:";
+  char *optString = "hvmuUxd:w:p:t:n:k:e:";
   Args *args = newArgs();
 
   while ((c = getopt(argc, argv, optString)) != -1) {
@@ -66,6 +67,9 @@ Args *getArgs(int argc, char *argv[]) {
       break;
     case 'k': /* step length of sliding window analysis */
       args->k = atoi(optarg);
+      break;
+    case 'm': /* use megablast mode */
+      args->m = 1;
       break;
     case 'u': /* print unique regions after sliding window Analysis */
       args->u = 1;
@@ -118,6 +122,7 @@ void printUsage() {
   printf("\t[-e <NUM> e-value for neighborhood search; default: %g]\n", DEFAULT_E);
   printf("\t[-t <NUM> number of threads in BLAST search; default: %d]\n", DEFAULT_T);
   printf("\t[-k <NUM> step length of sliding window analysis; default: w/10]\n");
+  printf("\t[-m megablast mode; default: blastn mode]\n");
   printf("\t[-u print unique regions after sliding window analysis and exit]\n");
   printf("\t[-U print unique regions after checking for presence in templates and exit]\n");
   printf("\t[-x exact matches only; default: mutations and homologies marked by 'N']\n");

@@ -788,14 +788,19 @@
 #+begin_src latex
   In the neighbor pipe we write the subject accession and query
   coordinates to the output file, \texttt{o.txt}, inside the database
-  directory.
+  directory. By default BLAST is run in the slower and more sensitive
+  ``blastn'' mode, but the user can switch to the faster and less
+  sensitive ``megablast'' mode.
 #+end_src
 #+begin_src C <<Construct neighbor pipe, P. \ref{fur}>>=
-  tmpl = "blastn -task blastn -db %s/blastdb -num_threads %d "
+  tmpl = "blastn -task %s -db %s/blastdb -num_threads %d "
     "-evalue %e -outfmt \"6 sacc qacc qstart qend\" "
     "| grep '^n' > "
     "%s/o.txt";
-  sprintf(cmd, tmpl, args->d, args->t, args->e, args->d);
+  if(args->m)
+    sprintf(cmd, tmpl, "megablast", args->d, args->t, args->e, args->d);
+  else
+    sprintf(cmd, tmpl, "blastn", args->d, args->t, args->e, args->d);
   pp = epopen(cmd, "w");
 #+end_src
 #+begin_src latex
