@@ -177,7 +177,9 @@
   ``blastn'' mode. Option \texttt{-m} switches this to the faster and
   less sensitive ``megablast'' mode.  This increases the yield from
   originally 91 fragments with 48.8 kb to 168 fragments with 69.0 kb, a
-  40\% jump, the candidates might now be less specific.
+  40\% jump. This is because fewer matches between candidates and
+  neighbors are found. However, the remaining candidates might now be
+  less specific.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   fur -d furDb -m > tmpl.fasta
