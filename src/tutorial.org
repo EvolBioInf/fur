@@ -137,16 +137,17 @@
   # 170 tmpl, 69407 nuc, 151 N, 69558 total
 #+end_src
 #+begin_src latex
-  Two \texttt{fur} parameters are of interest, the window length and the
-  $E$-value of the BLAST search during the subtraction step. Let's begin
-  with the window length, which by default is 80 bp. Much longer windows
-  result in sequences that are more difficult to find as exact matches
-  among all targets. For example, with 1 kb windows, there are 111
-  candidate regions, of which 26 are present in all targets. The final
-  tally is 18 regions with 18027 nucleotides and 2990 \texttt{N}. So the
-  final yield is quite different in spite of the fact that the amount of
-  nucleotides returned from the sliding window analysis, 635 kb, is
-  similar to the 681 kb found with 80 bp windows.
+  Three \texttt{fur} parameters are of interest. The first is the window
+  length; the other two affect the sensitivity of the BLAST run, which
+  can be modulated via its mode (algorithm), and its $E$-value. Let's
+  begin with the window length, which by default is 80 bp. Much longer
+  windows result in sequences that are more difficult to find as exact
+  matches among all targets. For example, with 1 kb windows, there are
+  111 candidate regions, of which 26 are present in all targets. The
+  final tally is 18 regions with 18027 nucleotides and 2990
+  \texttt{N}. So the final yield is quite different in spite of the fact
+  that the amount of nucleotides returned from the sliding window
+  analysis, 635 kb, is similar to the 681 kb found with 80 bp windows.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   fur -d furDb -w 1000 > tmpl.fasta
@@ -171,11 +172,27 @@
   # Absence from neighbors        174        53570           2922
 #+end_src
 #+begin_src latex
-  The second parameter we explore is the $E$-value for the BLAST-search
-  among the neighborhood sequences, which is $10^{-5}$ by default. When
-  decreased to, say, $10^{-20}$, the yield increases from the original
-  91 fragments with 46.8 kb to 102 fragments with 50.5 kb. However, the
-  candidates might now be less specific.
+  The second parameter we explore is the mode of the BLAST-search among
+  the neighborhood sequences. By default this is the sensitive
+  ``blastn'' mode. Option \texttt{-m} switches this to the faster and
+  less sensitive ``megablast'' mode.  This increases the yield from
+  originally 91 fragments with 48.8 kb to 168 fragments with 69.0 kb, a
+  40\% jump, the candidates might now be less specific.
+#+end_src
+#+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
+  fur -d furDb -m > tmpl.fasta
+  # Step                    Sequences  Nucleotides  Mutations (N)
+  # -------------------------------------------------------------
+  # Sliding window               1005       681264              0
+  # Presence in targets           170        69407            151
+  # Absence from neighbors        168        69052            137
+#+end_src
+#+begin_src latex
+  The third and last parameter we explore is the $E$-value of the
+  BLAST-search, which is $10^{-5}$ by default. When decreased to, say,
+  $10^{-20}$, the yield increases from the original 91 fragments with
+  46.8 kb to 102 fragments with 50.5 kb. Again, the candidates might
+  have lower specificity.
 #+end_src
 #+begin_src sh <<Refine tutorial analysis, P. \ref{furTut}>>=
   fur -d furDb -e 1e-20 > tmpl.fasta
