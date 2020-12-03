@@ -1,6 +1,3 @@
 all:
-	rm -f bin/*
-	cp ~/Bin/Blast/update_blastdb.pl ~/Bin/Blast/blastdbcmd ~/Bin/Blast/blastn ~/Bin/Blast/makeblastdb ./bin/
-	cp ~/Bin/macle ~/Bin/phylonium ./bin/
-	cp /home/haubold/Programming/C/fur/build/* ./bin/
+	cp /home/haubold/Programming/C/fur/scripts/furTut.sh .
 	docker build -t fox .

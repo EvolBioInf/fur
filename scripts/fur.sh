@@ -1,5 +1,5 @@
 echo -n "# Downloading data..."
-wget -q guanine.evolbio.mpg.de/fur/test.tar.gz
+curl guanine.evolbio.mpg.de/fur/test.tar.gz -o test.tar.gz
 tar -xzf test.tar.gz
 echo "done."
 echo -n "# Making fur database..."

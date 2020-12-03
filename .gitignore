@@ -29,7 +29,8 @@ doc/text.tex
 doc/tmpl.fasta
 doc/tutorial.tex
 doc/version.tex
-docker/bin
+docker/furTut.sh
+docker/startFox.sh
 scripts/*.awk
 scripts/checkTut.sh
 scripts/furTut.sh

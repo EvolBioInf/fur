@@ -2,5 +2,5 @@
 - Initial password for jdoe: password
 - Install a package
 sudo apt install <package>
-- Documentation, including a tutorial:
-http://guanine.evolbio.mpg.de/fur/fur.pdf
+- Documentation, including a tutorial: fur.pdf
+- Code for tutorial: furTut.sh
