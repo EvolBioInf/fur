@@ -29,7 +29,7 @@ cp src/phylonium /usr/local/bin
 cd ..
 rm -rf phylonium
 # Install fur dependencies
-go get github.com/evolbioinf/cli
+go get github.com/evolbioinf/clio
 go get github.com/evolbioinf/fasta
 # Install and test fur
 git clone https://github.com/evolbioinf/fur
