@@ -7,7 +7,7 @@ Find unique genomic regions.
 Building `fur` requires a number of packages and the two programs
 `macle` & `phylonium`.
 * Install packages:
-`sudo apt install autoconf build-essential curl git gnuplot libbsd-dev 
+`sudo apt install autoconf build-essential curl git gnuplot golang libbsd-dev 
     libbsd0 libdivsufsort-dev libdivsufsort3 libgsl-dev libgsl23 
     libsdsl-dev libsdsl3 ncbi-blast+ noweb primer3 sudo 
     texlive-latex-extra texlive-latex-recommended texlive-pstricks 
