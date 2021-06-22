@@ -10,6 +10,7 @@ doc/*.pdf
 doc/cdf.eps
 doc/cdf.tex
 doc/checkPrim.tex
+doc/cleanSeq.tex
 doc/date.tex
 doc/eco105.tar.gz
 doc/fur.bbl
@@ -39,6 +40,7 @@ src/*.idx
 src/checkPrim
 src/checkTut.sh
 src/cleanSeq
+src/cleanSeq.go
 src/count
 src/fur
 src/fur.c

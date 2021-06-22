@@ -219,7 +219,7 @@
   cleanSeq tmpl.fasta > tmpl2.fasta
   senSpec -v query=tmpl2.fasta -v db=furDb
   #S_n	S_p	C
-  0.998   0.998   0.970
+  1.000   0.995   0.962
 #+end_src
 #+begin_src latex
   Given that we are testing on the same data from which the templates

@@ -3,7 +3,7 @@ DATE    := $(shell git log -1 --format=%ai $(TAG) | sed 's/-/ /g' | awk '{printf
 VERSION := $(shell git describe | sed 's/^[vV]//; s/-.*//')
 NAME   = fur
 
-all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex senSpec.tex fur2prim.tex checkPrim.tex prim2fasta.tex tutorial.tex
+all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex senSpec.tex fur2prim.tex checkPrim.tex prim2fasta.tex tutorial.tex cleanSeq.tex
 	printf "%s\n" $(VERSION) > version.tex
 	printf "%s\n" $(DATE)    > date.tex
 	latex $(NAME)
@@ -27,5 +27,7 @@ prim2fasta.tex: ../src/prim2fasta.org
 	bash ../scripts/org2nw ../src/prim2fasta.org | noweave -n -x > prim2fasta.tex
 tutorial.tex: ../src/tutorial.org
 	bash ../scripts/org2nw ../src/tutorial.org | noweave -n -x > tutorial.tex
+cleanSeq.tex: ../src/cleanSeq.org
+	bash ../scripts/org2nw ../src/cleanSeq.org | noweave -n -x > cleanSeq.tex
 clean:
-	rm -f text.tex $(NAME).pdf makeFurDb.tex furIn.tex senSpec.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex
+	rm -f text.tex $(NAME).pdf makeFurDb.tex furIn.tex cleanSeq.tex senSpec.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex
