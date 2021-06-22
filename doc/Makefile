@@ -10,7 +10,8 @@ all: makeFurDb.tex $(NAME).tex furIn.tex header.tex ref.bib cdf.tex senSpec.tex 
 	bibtex $(NAME)
 	latex $(NAME)
 	latex $(NAME)
-	dvipdf $(NAME)
+	dvips -o -q $(NAME)
+	ps2pdf $(NAME).ps
 makeFurDb.tex: ../src/makeFurDb.org
 	bash ../scripts/org2nw ../src/makeFurDb.org | noweave -n -x > makeFurDb.tex
 senSpec.tex: ../src/senSpec.org
@@ -30,4 +31,4 @@ tutorial.tex: ../src/tutorial.org
 cleanSeq.tex: ../src/cleanSeq.org
 	bash ../scripts/org2nw ../src/cleanSeq.org | noweave -n -x > cleanSeq.tex
 clean:
-	rm -f text.tex $(NAME).pdf makeFurDb.tex furIn.tex cleanSeq.tex senSpec.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex
+	rm -f text.tex $(NAME).pdf $(NAME).ps makeFurDb.tex furIn.tex cleanSeq.tex senSpec.tex checkPrim.tex fur2prim.tex prim2fasta.tex tutorial.tex
