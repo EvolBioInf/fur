@@ -3,6 +3,7 @@
 *~
 build/
 checklist.txt
+data/bug.fasta
 doc/*.aux
 doc/*.dvi
 doc/*.log

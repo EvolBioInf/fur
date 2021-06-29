@@ -136,7 +136,7 @@
 #+end_src
 #+begin_src latex
   We clean a sequence by first identifying its long runs of \ty{N}. Then
-  we remove them and any short fragments thus produced.
+  remove them and any short fragments thus produced.
 #+end_src
 #+begin_src go <<Clean sequence, Pr.~\ref{pr:cle}>>=
   //<<Identify long runs of \ty{N}, Pr.~\ref{pr:cle}>>
@@ -145,7 +145,8 @@
 #+end_src
 #+begin_src latex
   We use a slice of intervals to store the start and end positions of
-  runs runs with at least the minimum number of \ty{N}s.
+  runs runs that are either prefixex, suffixes, or have the minimum
+  number of \ty{N}s.
 #+end_src
 #+begin_src go <<Identify long runs of \ty{N}, Pr.~\ref{pr:cle}>>=
   var runs []interval
@@ -153,7 +154,7 @@
   for i := 0; i < len(data); i++ {
 	  j := 0
 	  for i+j < len(data) && data[i+j] == 'N' { j++ }
-	  if j >= maxRunLen {
+	  if (i == 0 && j > 0) || i + j == len(data) || j >= maxRunLen {
 		  run.start = i
 		  run.end = i + j - 1
 		  runs = append(runs, run)
@@ -185,6 +186,15 @@
   if len(runs) > 0 && run.end < len(data) {
 	  seq := fasta.NewSequence(header, data[run.end+1:])
 	  fragments = append(fragments, seq)
+  }
+#+end_src
+#+begin_src latex
+  If there weren't any runs, there is only one fragment, the original
+  sequence.
+#+end_src
+#+begin_src go <<Remove long runs of \ty{N}, Pr.~\ref{pr:cle}>>=
+  if len(runs) == 0 {
+	  fragments = append(fragments, sequence)
   }
 #+end_src
 #+begin_src latex
