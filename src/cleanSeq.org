@@ -1,8 +1,9 @@
 #+begin_src latex
   \section{Introduction}
-  The marker candidates returned by \ty{fur} may contain long runs of
-  \ty{N}. The program \ty{cleanSeq} cuts these runs from the results of
-  \ty{fur} and ensures that the fragments produced are not too short.
+  The marker candidates returned by \ty{fur} may contain long internal
+  runs of \ty{N}, or prefixes or suffixes consisting of \ty{N}s. The
+  program \ty{cleanSeq} cuts these runs and ensures that the resulting
+  fragments are not too short.
 
   \section{Implementation}
   The outline of \ty{cleanSeq} has hooks for imports, types, variables,
@@ -36,11 +37,11 @@
   //<<Iterate over input, Pr.~\ref{pr:cle}>>
 #+end_src
 #+begin_src latex
-  \ty{CleanSeq} requires a maximum run length and a minimum fragment
-  length. The user can also use \ty{-v} to request the version.
+  \ty{CleanSeq} requires a maximum length of internal runs and a minimum
+  fragment length. The user can also use \ty{-v} to request the version.
 #+end_src
 #+begin_src go <<Declare options, Pr.~\ref{pr:cle}>>=
-  var optL = flag.Int("l", 150, "maximum length of run of Ns")
+  var optL = flag.Int("l", 150, "maximum length of internal run of Ns")
   var optM = flag.Int("m", 100, "minimum fragment length")
   var optV = flag.Bool("v", false, "print version & " +
 	  "program information")
@@ -57,7 +58,7 @@
 #+end_src
 #+begin_src go <<Set usage, Pr.~\ref{pr:cle}>>=
   u := "cleanSeq [-h] [option]... [file]..."
-  p := "Clean the sequences returned by fur."
+  p := "Cut runs of N from the sequences returned by fur."
   e := "cleanSeq foo.fasta"
   clio.Usage(u, p, e);
 #+end_src
@@ -104,8 +105,7 @@
 #+end_src
 #+begin_src latex
   In \ty{parse} we retrieve the arguments just passed and iterate over
-  the sequences in the input file, which are cleaned and the resulting
-  fragments printed.
+  the sequences in the input file to clean them.
 #+end_src
 #+begin_src go <<Functions, Pr.~\ref{pr:cle}>>=
   func parse(r io.Reader, args ...interface{}) {
@@ -113,10 +113,7 @@
 	  scanner := fasta.NewScanner(r)
 	  for scanner.ScanSequence() {
 		  sequence := scanner.Sequence()
-		  header := sequence.Header()
-		  data := sequence.Data()
 		  //<<Clean sequence, Pr.~\ref{pr:cle}>>
-		  //<<Print fragments, Pr.~\ref{pr:cle}>>
 	  }
   }
 #+end_src
@@ -135,30 +132,29 @@
   minFragLen := args[1].(int)
 #+end_src
 #+begin_src latex
-  We clean a sequence by first identifying its long runs of \ty{N}. Then
-  remove them and any short fragments thus produced.
+  We clean a sequence by first identifying its relevant runs of
+  \ty{N}. Then we remove the runs and any short fragments thus
+  produced. The remaining fragments are printed.
 #+end_src
 #+begin_src go <<Clean sequence, Pr.~\ref{pr:cle}>>=
-  //<<Identify long runs of \ty{N}, Pr.~\ref{pr:cle}>>
-  //<<Remove long runs of \ty{N}, Pr.~\ref{pr:cle}>>
+  //<<Identify runs of \ty{N}, Pr.~\ref{pr:cle}>>
+  //<<Remove runs of \ty{N}, Pr.~\ref{pr:cle}>>
   //<<Remove short fragments, Pr.~\ref{pr:cle}>>
+  //<<Print fragments, Pr.~\ref{pr:cle}>>
 #+end_src
 #+begin_src latex
   We use a slice of intervals to store the start and end positions of
-  runs runs that are either prefixex, suffixes, or have the minimum
-  number of \ty{N}s.
+  runs runs after we checked them.
 #+end_src
-#+begin_src go <<Identify long runs of \ty{N}, Pr.~\ref{pr:cle}>>=
+#+begin_src go <<Identify runs of \ty{N}, Pr.~\ref{pr:cle}>>=
   var runs []interval
   var run interval
-  for i := 0; i < len(data); i++ {
+  data := sequence.Data()
+  n := len(data)
+  for i := 0; i < n; i++ {
 	  j := 0
-	  for i+j < len(data) && data[i+j] == 'N' { j++ }
-	  if (i == 0 && j > 0) || i + j == len(data) || j >= maxRunLen {
-		  run.start = i
-		  run.end = i + j - 1
-		  runs = append(runs, run)
-	  }
+	  for i+j < n && data[i+j] == 'N' { j++ }
+	  //<<Check runs, Pr.~\ref{pr:cle}>>
 	  i += j
   }
 #+end_src
@@ -171,30 +167,78 @@
   }
 #+end_src
 #+begin_src latex
-  If our sequence contains one or more long runs of \ty{N}s, it is split
-  into the corresponding fragments.
+  A valid run is either a prefix, a suffix, or it has the minimum number
+  of \ty{N}s set by the user.
 #+end_src
-#+begin_src go <<Remove long runs of \ty{N}, Pr.~\ref{pr:cle}>>=
-  var fragments []*fasta.Sequence
-  prevEnd := 0
-  for _, run = range runs {
-	  seq := fasta.NewSequence(header,
-		  data[prevEnd:run.start])
-	  fragments = append(fragments, seq)
-	  prevEnd = run.end
+#+begin_src go <<Check runs, Pr.~\ref{pr:cle}>>=
+  if (i == 0 && j > 0) || i + j == n || j >= maxRunLen {
+	  run.start = i
+	  run.end = i + j - 1
+	  runs = append(runs, run)
   }
-  if len(runs) > 0 && run.end < len(data) {
-	  seq := fasta.NewSequence(header, data[run.end+1:])
-	  fragments = append(fragments, seq)
+#+end_src
+#+begin_src latex
+  By removing runs of \ty{N}, we split the sequence in fragments, which
+  we store in a slice. We consider two cases, no runs and at least one
+  run.
+#+end_src
+#+begin_src go <<Remove runs of \ty{N}, Pr.~\ref{pr:cle}>>=
+  var fragments []*fasta.Sequence
+  if len(runs) == 0 {
+	  //<<No run, Pr.~\ref{pr:cle}>>
+  } else {
+	  //<<At least one run, Pr.~\ref{pr:cle}>>
   }
 #+end_src
 #+begin_src latex
   If there weren't any runs, there is only one fragment, the original
-  sequence.
+  sequence, which we store.
 #+end_src
-#+begin_src go <<Remove long runs of \ty{N}, Pr.~\ref{pr:cle}>>=
-  if len(runs) == 0 {
-	  fragments = append(fragments, sequence)
+#+begin_src go <<No run, Pr.~\ref{pr:cle}>>=
+  fragments = append(fragments, sequence)
+#+end_src
+#+begin_src latex
+  If there is at least one run, we do three things. We ask whether we
+  are dealing with a prefix, we iterate over the internal runs, and we
+  extract the fragment to the left of the last run.
+#+end_src
+#+begin_src go <<At least one run, Pr.~\ref{pr:cle}>>=
+  //<<Is the run a prefix? Pr.~\ref{pr:cle}>>
+  //<<Deal with internal runs, Pr.~\ref{pr:cle}>>
+  //<<Extract last fragment, Pr.~\ref{pr:cle}>>
+#+end_src
+#+begin_src latex
+  Whether or not a run is a prefix only matters if there is more than
+  one run. In that case the end of the previous run is adjusted and the
+  prefix squeezed from the slice.
+#+end_src
+#+begin_src go <<Is the run a prefix? Pr.~\ref{pr:cle}>>=
+  prevEnd := -1
+  if runs[0].start == 0 && len(runs) > 1 {
+	  prevEnd = runs[0].end
+	  runs = runs[1:]
+  }
+#+end_src
+#+begin_src latex
+We iterate over the runs and store the fragments we get.
+#+end_src
+#+begin_src go <<Deal with internal runs, Pr.~\ref{pr:cle}>>=
+  header := sequence.Header()
+  for _, run = range runs {
+	  seq := fasta.NewSequence(header,
+		  data[prevEnd+1:run.start])
+	  fragments = append(fragments, seq)
+	  prevEnd = run.end
+  }
+#+end_src
+#+begin_src latex
+  If the last run wasn't a suffix, we extract the fragments its removal
+  generated.
+#+end_src
+#+begin_src go <<Extract last fragment, Pr.~\ref{pr:cle}>>=
+  if run.end < n {
+	  seq := fasta.NewSequence(header, data[run.end+1:])
+	  fragments = append(fragments, seq)
   }
 #+end_src
 #+begin_src latex
@@ -212,8 +256,7 @@
 #+end_src
 #+begin_src latex
   Any fragments produced at this stage have the same header. If there
-  are more than one, this is confusing. So in that case we number the
-  headers.
+  are more than one, this is confusing, so we number them.
 #+end_src
 #+begin_src go <<Remove short fragments, Pr.~\ref{pr:cle}>>=
   if len(fragments) > 1 {
@@ -242,6 +285,3 @@
 #+begin_src go <<Imports, Pr.~\ref{pr:cle}>>=
   "fmt"
 #+end_src
-
-
-
