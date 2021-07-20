@@ -55,6 +55,8 @@ count: fur.org
 cleanSeq: cleanSeq.go
 	go build -ldflags "-X main.version=$(VERSION) -X main.date=$(DATE)"  cleanSeq.go
 cleanSeq.go: cleanSeq.org
+	go get github.com/evolbioinf/clio
+	go get github.com/evolbioinf/fasta
 	bash ../scripts/org2nw cleanSeq.org | notangle -RcleanSeq.go | gofmt > cleanSeq.go
 clean:
 	rm -f *.o *~ cleanSeq cleanSeq.go count.awk senSpec fur2prim prim2fasta checkPrim furTur.sh checkTut.sh rm makeFurDb fur.c makeFurDb.c
