@@ -91,12 +91,16 @@
   The interaction with the user is now finished and the program on its
   way. 
   \subsection{Construct Database}
-  Database construction begins by reading the targets and the neighbors.
+  Database construction begins by reading the targets and the
+  neighbors. Occasionally a user may duplicate a target among the
+  neighbors or the other way round. This is always an error and we catch
+  it.
 #+end_src
 #+begin_src C <<Read data, P. \ref{makeFurDb}>>=
   SeqArr *ta, *ne;
   //<<Read targets, P. \ref{makeFurDb}>>
   //<<Read neighbors, P. \ref{makeFurDb}>>
+  //<<Check targets and neighbors don't intersect, P. \ref{makeFurDb}>>
 #+end_src
 #+begin_src latex
   Sequences and sequence arrays are defined in \texttt{seq.h}. This
@@ -155,7 +159,8 @@
     char *path = emalloc(strlen(dir) + strlen(file) + 2);
     path[0] = '\0';
     strcat(path, dir);
-    strcat(path, "/");
+    if (path[strlen(path)-1] != '/')
+      strcat(path, "/");
     strcat(path, file);
     seqArrAdd(sa, getJoinedSeq(path));
     free(path);
@@ -186,6 +191,20 @@
 #+begin_src C <<Free memory, P. \ref{makeFurDb}>>=
   freeSeqArr(ta);
   freeSeqArr(ne);
+#+end_src
+#+begin_src latex
+  We make sure no sequences were duplicated between targets and
+  neighbors.
+#+end_src
+#+begin_src C <<Check targets and neighbors don't intersect, P. \ref{makeFurDb}>>=
+  for (int i = 0; i < ta->n; i++) {
+    char *n1 = strrchr(ta->arr[i]->name, '/') + 1;
+    for (int j = 0; j < ne->n; j++) {
+      char *n2 = strrchr(ne->arr[j]->name, '/') + 1;
+      if (strcmp(n1, n2) == 0)
+	error("%s is neighbor and target\n", n1);
+    }
+  }
 #+end_src
 #+begin_src latex
   The data just read is now converted into the fur database. The
