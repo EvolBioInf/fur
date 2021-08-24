@@ -235,6 +235,17 @@
     printSplash(args);
 #+end_src
 #+begin_src latex
+  The last option we check is \ty{-p}, which might indicate a $P$-value
+  that's not between 0 and 1. In that case we write a friendly message
+  and print the usage.
+#+end_src
+#+begin_src C <<Interact with user, P. \ref{fur}>>=
+  if (args->p < 0.0 || args->p > 1.0) {
+    fprintf(stderr, "Please use a P-value between 0 and 1.\n");
+    printUsage();
+  }
+#+end_src
+#+begin_src latex
   \subsection{Find Unique Templates}
   Analysis of the targets and neighbors proceeds in three steps:
   \begin{enumerate}
