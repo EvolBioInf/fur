@@ -622,7 +622,7 @@
   we remove again to ensure accurate identification later.
 #+end_src
 #+begin_src C  <<Write targets to files, P. \ref{fur}>>=
-  in = 1;
+  in = 0;
   tmpl = "blastdbcmd -entry all -db %s/blastdb | sed 's/ $//'";
   sprintf(cmd, tmpl, args->d);
   pp = epopen(cmd, "r");
@@ -636,7 +636,7 @@
 #+begin_src C <<Iterate across BLAST database, P. \ref{fur}>>=
   while ((sp = getSeq(pp)) != NULL) {
     if (sp->name[0] == 't' && strcmp(sp->name, rn) != 0)  {
-      sprintf(name, "%s/t%d.fasta", args->d, in++);
+      sprintf(name, "%s/t%d.fasta", args->d, ++in);
       fp = efopen(name, "w");
       printSeq(fp , sp, -1);
       fclose(fp);
@@ -645,16 +645,19 @@
   }    
 #+end_src
 #+begin_src latex
-  To run \texttt{phylonium}, we construct and execute the appropriate
-  command, then save the results. These consist of a set of FASTA
-  entries with headers containing information about mutations in the
-  fragments. The mutations are marked in the sequences to inform primer
-  construction later.
+  If there was at least one target in addition to the target
+  representative, we run \texttt{phylonium}.  To do so, we construct and
+  execute the appropriate command, then save the results. These consist
+  of a set of FASTA entries with headers containing information about
+  mutations in the fragments. The mutations are marked in the sequences
+  to inform primer construction later.
 #+end_src
 #+begin_src C <<Run \texttt{phylonium}, P. \ref{fur}>>=
-  //<<Construct and execute \texttt{phylonium} command, P. \ref{fur}>>
-  //<<Save \texttt{phylonium} results, P. \ref{fur}>>
-  //<<Mark mutations, P. \ref{fur}>>
+  if (in > 0) {
+    //<<Construct and execute \texttt{phylonium} command, P. \ref{fur}>>
+    //<<Save \texttt{phylonium} results, P. \ref{fur}>>
+    //<<Mark mutations, P. \ref{fur}>>
+  }
 #+end_src
 #+begin_src latex
   \texttt{Phylonium} is applied to the target files just constructed. It
