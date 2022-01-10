@@ -4,14 +4,18 @@ Bernhard Haubold, `haubold@evolbio.mpg.de`
 ## Description
 Find unique genomic regions.
 ## Dependencies
-Building `fur` requires a number of packages and the two programs
+Building `fur` requires a number of packages, the Go compiler, and the two programs
 `macle` & `phylonium`.
 * Install packages:
-`sudo apt install autoconf build-essential cmake curl git gnuplot golang libbsd-dev 
+`$ sudo apt install autoconf build-essential cmake curl git gnuplot libbsd-dev 
     libbsd0 libdivsufsort-dev libdivsufsort3 libgsl-dev libgsl23 
     libsdsl-dev libsdsl3 ncbi-blast+ noweb primer3 sudo 
     texlive-latex-extra texlive-latex-recommended texlive-pstricks 
     texlive-science`
+* Install Go compiler:
+- Download package: `$ curl https://go.dev/dl/go1.17.6.linux-amd64.tar.gz -o go1.17.6.linux-amd64.tar.gz`
+- Remove old installation: `$ sudo rm -rf /usr/local/go`
+- Unpack and install: `$ sudo tar -C /usr/local -xzf go1.17.6.linux-amd64.tar.gz`
 * [Install `macle`](http://github.com/evolbioinf/macle)
 * [Install `phylonium`](http://github.com/evolbioinf/phylonium)
 ## Compile
