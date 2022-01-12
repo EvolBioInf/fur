@@ -20,7 +20,7 @@
   The example data is copied from a networked computer and unpacked.
 #+end_src
 #+begin_src sh <<Get tutorial data, P. \ref{furTut}>>=
-  curl guanine.evolbio.mpg.de/fur/eco105.tar.gz -o eco105.tar.gz
+  wget guanine.evolbio.mpg.de/fur/eco105.tar.gz
   tar -xvzf eco105.tar.gz
 #+end_src
 #+begin_src latex
