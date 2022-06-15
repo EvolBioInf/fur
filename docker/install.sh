@@ -5,8 +5,8 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get -y upgrade
-apt-get -y install autoconf build-essential curl git gnuplot golang libbsd-dev \
-    libbsd0 libdivsufsort-dev libdivsufsort3 libgsl-dev libgsl23 \
+apt-get -y install autoconf apt-utils build-essential curl git gnuplot golang libbsd-dev \
+    libbsd0 libdivsufsort-dev libdivsufsort3 libgsl-dev libgslcblas0 \
     libsdsl-dev libsdsl3 ncbi-blast+ noweb primer3 sudo \
     texlive-latex-extra texlive-latex-recommended texlive-pstricks \
     texlive-science
@@ -36,8 +36,8 @@ git clone https://github.com/evolbioinf/fur
 cd fur
 make
 cp build/* /usr/local/bin
-make doc
-cp doc/fur.pdf /usr/local/share/
+# make doc
+# cp doc/fur.pdf /usr/local/share/
 cd ..
 rm -rf fur
 # Clean up

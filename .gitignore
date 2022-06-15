@@ -34,6 +34,7 @@ doc/tutorial.tex
 doc/version.tex
 docker/furTut.sh
 docker/startFox.sh
+docker/fur.pdf
 scripts/*.awk
 scripts/checkTut.sh
 scripts/furTut.sh
