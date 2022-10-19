@@ -320,7 +320,7 @@
 #+begin_src latex
   For the positive control, we check that the candidate primers amplify
   a single region in SARS-CoV-2. The virus is identified by its
-  taxonomy-id, which can be looked up on the NCBI taxonomy web site and
+  taxon-ID, which can be looked up on the NCBI taxonomy web site and
   happens to be 2697049.  If everything is working, a single interval is
   returned for most if not all of the many SARS-CoV-2 sequences
   contained in the database.
@@ -328,7 +328,7 @@
 #+begin_src sh <<Carry out positive control, P. \ref{checkTut}>>=
   checkPrim -v query=data/p1.fa \
 		    -v db=data/Betacoronavirus \
-		    -v taxid=2697049
+		    -v taxids=2697049
 #+end_src
 #+begin_src latex
   For the negative control, all hits to sequences not classified as
@@ -337,7 +337,7 @@
 #+begin_src sh <<Carry out negative control, P. \ref{checkTut}>>=
   checkPrim -v query=data/p1.fa \
 		    -v db=data/Betacoronavirus \
-		    -v negativeTaxid=2697049
+		    -v negativeTaxids=2697049
 #+end_src
 #+begin_src latex
   If there is no cross-amplification, or the spurious amplicons are

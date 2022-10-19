@@ -6,25 +6,25 @@
   amplification, primers are compared to a suitable sequence database
   and all potential amplification products in a particular set of
   organisms reported. There already exists an excellent web-based
-  program to do this, Primer-BLAST. Intended foremost as a tool for
-  designing primers from scratch, it also contains a module for checking
-  primer specificity. However, running programs over the internet is
-  usually less convenient than running them locally. Our aim is
-  therefore to write a stand-alone version of this module,
-  \texttt{checkPrim}.
+  program to do this, Primer-BLAST. While Primer-BLAST is intended
+  foremost as a tool for designing primers from scratch, it also
+  contains a module for checking primer specificity. However, running
+  programs over the internet is usually less convenient than running
+  them locally. Our aim is therefore to write a stand-alone version of
+  this module, \texttt{checkPrim}.
 
   \section{Implementation}
-  \texttt{checkPrim} takes as input a set of primers, a BLAST
-  database, and an organism identified by an NCBI taxon-id. It returns
-  the virtual PCR products, or amplicons, found in members of that
-  taxon. It can also do the opposite, return the amplicons found outside
-  the members of the focal taxon.
+  \texttt{checkPrim} takes as input a set of primers, a BLAST database,
+  and an organism identified by one or more NCBI taxon-IDs. It returns
+  the virtual PCR products, or amplicons, found in members of the taxa
+  concerned. It can also do the opposite, return the amplicons found
+  outside the members of the focal taxa.
 
-  The program first switches the field separator from default white
+  \ty{checkPrim} first switches the field separator from default white
   space to tab. It then interacts with the user, sets optional
   parameters to their default values, and constructs the BLAST command
-  for looking up the primer matches. It then searches these matches for
-  potential amplicons.
+  for looking up the primer matches. Finally, it analyzes the BLAST
+  results to look for potential amplicons.
   \begin{prog}[\texttt{checkPrim}]\label{checkPrim}
     \textcolor{white}{}
 #+end_src
@@ -42,24 +42,36 @@
 #+begin_src latex
   \end{prog}
   The user is asked to supply three parameters: A file containing one or
-  more primers (\texttt{query}), a BLAST database (\texttt{db}), and a
-  taxon-id that is interpreted either as the target (\texttt{taxid}) or
-  its complement (\texttt{negativeTaxid}). If one of them is not
-  supplied, a usage message is printed prompting for complete input. In
-  addition, optional parameters can be set.
+  more primers (\texttt{query}), a BLAST database (\texttt{db}), and at
+  least one taxon-ID, which is interpreted either as the target
+  (\texttt{taxids}) or its complement (\texttt{negativeTaxids}). The
+  taxon-IDs can also be supplied as files (\ty{taxidList} and
+  \ty{negativeTaxidList}). If one of the three required parameters is
+  not supplied, a usage message is printed prompting for complete
+  input. In addition, optional parameters can be set.
 #+end_src
 #+begin_src awk <<Interact with user, P. \ref{checkPrim}>>=
   //<<Initialize default values of optional parameters, P. \ref{checkPrim}>>
-  if (!query || !db || !(taxid || negativeTaxid)) {
+  if (!query || !db || !(taxids || negativeTaxids ||
+			 taxidList || negativeTaxidList)) {
     print "checkPrim: Check the specificity of PCR primers using BLAST"
     print "Usage: checkPrim <options>"
     print "Options:"
     print  "\t-v query=<query>"
     print  "\t-v db=<db>"
-    print  "\t-v taxid=<taxid> || -v negativeTaxid=<negativeTaxid>"
+    //<<Print taxon-ID options, P. \ref{checkPrim}>>
     //<<Query optional parameters, P. \ref{checkPrim}>>
     exit 0
   }
+#+end_src
+#+begin_src latex
+  The user can set taxon-IDs with comma-delimited lists or with files.
+#+end_src
+#+begin_src awk <<Print taxon-ID options, P. \ref{checkPrim}>>=
+  printf "\t-v taxids=<t1,t2...> || "
+  printf "-v negativeTaxids=<t1,t2...> || "
+  printf "-v taxidList=<foo.txt> || "
+  printf "-v negativeTaxidList=<foo.txt>\n"
 #+end_src
 #+begin_src latex
   There are four optional parameters: The maximum number of mismatches
@@ -83,7 +95,8 @@
 #+begin_src awk <<Query optional parameters, P. \ref{checkPrim}>>=
   printf "\t[-v maxMism=<maxMism>; default: %d]\n", defMaxMism
   printf "\t[-v maxLen=<maxLen>; default: %d]\n", defMaxLen
-  printf "\t[-v numThreads=<numThreads>; default: %d]\n", defNumThreads
+  printf "\t[-v numThreads=<numThreads>; default: %d]\n",
+    defNumThreads
   printf "\t[-v evalue=<evalue>; default: %d]\n", defEvalue
 #+end_src
 #+begin_src latex
@@ -102,33 +115,44 @@
 #+begin_src latex
   The BLAST search is based on the \texttt{blastn-short} mode of the
   \texttt{blastn} program. This mode is optimized for sequences shorter
-  than 50 nucleotides. Five aspects of each BLAST hit are saved: The
-  query and subject accessions, the number of mismatches, the start and
-  end positions on the subject, and two items of taxonomic information
-  on the subject: the taxon id and its scientific name. In addition, we
-  set the \texttt{outfmt} option such that the lengths of the query and
-  the alignment are printed. This allows us to filter for full-length
-  matches, that is, we are looking for alignment that are global in the
-  query and local in the subject. By default, BLAST results are sorted
-  first by the input order of the query---all matches of the first query
-  followed by all matches to the second, and so on---and then by their
-  subject position. For identifying spurious amplicons, it is more
-  convenient to group the results by subject and then sort by position
-  within each subject.
+  than 50 nucleotides. We also set the BLAST database and deal with the
+  taxon-IDs the user supplied. We return five aspects of each BLAST hit
+  (\ty{-ioutfmt}): The query and subject accessions, the number of
+  mismatches, the start and end positions on the subject, and two items
+  of taxonomic information on the subject: the taxon id and its
+  scientific name. In addition, we set the \texttt{outfmt} option such
+  that the lengths of the query and the alignment are printed. This
+  allows us to filter for full-length matches, that is, we are looking
+  for alignment that are global in the query and local in the
+  subject. By default, BLAST results are sorted first by the input order
+  of the query---all matches of the first query followed by all matches
+  to the second, and so on---and then by their subject position. For
+  identifying spurious amplicons, it is more convenient to group the
+  results by subject and then sort by position within each subject.
 #+end_src
 #+begin_src awk <<Construct BLAST command, P. \ref{checkPrim}>>=
-  tmpl = "blastn -task blastn-short -query %s -db %s -outfmt "
-  tmpl = tmpl "\"6 qacc sacc mismatch sstart send staxid "
+  tmpl = "blastn -task blastn-short -query %s -db %s "
+  //<<Deal with taxon-IDs, P. \ref{checkPrim}>>
+  tmpl = tmpl "-outfmt \"6 qacc sacc mismatch sstart send staxid "
   tmpl = tmpl "qlen length ssciname\" -num_threads %d -evalue %d "
-  if (taxid)
-    tmpl = tmpl "| awk '$6 == \"%s\"' "
-  else {
-    taxid = negativeTaxid
-    tmpl = tmpl "| awk '$6 != \"%s\"' "
-  }
   tmpl = tmpl "| awk '$3 <= %d && $7 == $8'"
   tmpl = tmpl "| sort -k 2,2 -k 4,4n"
   cmd = sprintf(tmpl, query, db, numThreads, evalue, taxid, maxMism)
+#+end_src
+#+begin_src latex
+  The user can supply taxon-IDs in one of four formats: positive or
+  negative comma-delimited lists, and files of positive or negative
+  taxon-IDs.
+#+end_src
+#+begin_src awk <<Deal with taxon-IDs, P. \ref{checkPrim}>>=
+  if (taxids)
+    tmpl = tmpl "-taxids " taxids " "
+  else if (negativeTaxids)
+    tmpl = tmpl "-negative_taxids " negativeTaxids " "
+  else if (taxidList)
+    tmpl = tmpl "-taxidlist " taxidList " "
+  else if (negativeTaxidList)
+      tmpl = tmpl "-negative_taxidlist " negativeTaxidList " "
 #+end_src
 #+begin_src latex
   The BLAST command is run and the results are saved.
@@ -152,7 +176,7 @@
   in the top panel of Figure~\ref{fig:pri}. They bind the forward and
   reverse strands of a template, $t_{\rm f}$ and $t_{\rm r}$. So
   regardless of which template strand has been sequenced, the 5'-primer
-  of a potential amplicon is on the forward, the 3'-primer on the
+  of a potential amplicon is on the forward strand, the 3'-primer on the
   reverse strand.
 
   \begin{figure}
@@ -164,7 +188,7 @@
   \end{figure}
 
 
-  BLAST encodes strand in the start and end positions of a match. If the
+  BLAST encodes strand in the start and end positions of matches. If the
   start is less than the end, the match is on the forward strand;
   otherwise, the match is on the reverse strand. I find it more
   convenient to think of all matches in the customary 5' to 3'
