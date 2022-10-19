@@ -41,8 +41,7 @@ cp build/* /usr/local/bin
 cd ..
 rm -rf fur
 # Clean up
-apt-get -y remove autoconf build-essential git gnuplot golang libbsd-dev \
-    libdivsufsort-dev libgsl-dev libsdsl-dev noweb \
+apt-get -y remove autoconf build-essential git gnuplot golang noweb \
     texlive-latex-extra texlive-latex-recommended texlive-pstricks \
     texlive-science
 apt clean
