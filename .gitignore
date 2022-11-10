@@ -4,6 +4,7 @@
 build/
 checklist.txt
 data/bug.fasta
+data/bugFur.db
 doc/*.aux
 doc/*.dvi
 doc/*.log

@@ -404,23 +404,18 @@
 #+begin_src latex
   A sliding window analysis by \texttt{macle} returns pairs of values,
   $(m, C_{\rm m})$, where $m$ is the window midpoint and $C_{\rm m}$ its
-  complexity. Let $t$ be the uniqueness threshold; if $C_{\rm m}\ge t$,
-  the corresponding window is deemed unique. Such a window also belongs
-  to a unique interval of one or more overlapping unique windows. As the
-  algorithm parses the windows from left to right, it toggles between
-  being inside or outside a unique interval.
+  complexity. We determine the start and end of the current window and
+  decide whether or not it is inside a unique interval. After iterating
+  across the windows we store the last unique interval we opened.
 #+end_src
 #+begin_src C <<Sliding window analysis, P. \ref{fur}>>=
   //<<Prepare sliding window analysis, P. \ref{fur}>>
   while (fscanf(pp, "%f %f", &m, &c) != EOF) {
     //<<Determine window start and end, P. \ref{fur}>>
-    if (in) {
-      //<<Inside unique interval, P. \ref{fur}>>
-    } else {
-      //<<Outside unique interval, P. \ref{fur}>>
-    }
+    //<<Window inside unique interval?, P. \ref{fur}>>
   }
   pclose(pp);
+  //<<Store last unique interval P. \ref{fur}>>
 #+end_src
 #+begin_src latex
   The sliding window analysis requires the opening of a pipe for reading
@@ -429,8 +424,9 @@
   from the output, and the third removes windows without reliable
   sequence data, where $C_{\rm m}=-1$. In addition, the sliding window
   analysis requires variables for holding the current midpoint and
-  complexity values, the interval array, and a variable to indicate
-  whether the program is inside a unique interval or not.
+  complexity values, the interval array, start and end points of windows
+  and intervals, and a variable to indicate whether the program is
+  inside a unique interval or not.
 #+end_src
 #+begin_src C <<Prepare sliding window analysis, P. \ref{fur}>>=
   tmpl =
@@ -441,7 +437,7 @@
   pp = epopen(cmd, "r");
   float m, c;
   ia = newIntvArr();
-  int is, ie, in = 0;
+  int is, ie, ws, we, in = 0;
 #+end_src
 #+begin_src latex
   The start and end points of a window are calculated roughly as $m\pm w
@@ -458,8 +454,19 @@
   position to the left.
 #+end_src
 #+begin_src C <<Determine window start and end, P. \ref{fur}>>=
-  int ws = m - args->w / 2;
-  int we = m + args->w / 2 - 1;
+  ws = m - args->w / 2;
+  we = m + args->w / 2 - 1;
+#+end_src
+#+begin_src latex
+  We decide whether the current window is inside a unique interval or
+  not.
+#+end_src
+#+begin_src C <<Window inside unique interval?, P. \ref{fur}>>=
+  if (in) {
+    //<<Inside unique interval, P. \ref{fur}>>
+  } else {
+    //<<Outside unique interval, P. \ref{fur}>>
+  }
 #+end_src
 #+begin_src latex
   If a unique \emph{window} overlaps an existing unique \emph{interval},
@@ -488,6 +495,15 @@
     in = 1;
     is = m - args->w / 2;
     ie = m + args->w / 2 - 1;
+  }
+#+end_src
+#+begin_src latex
+  The last unique interval we opened still needs to be stored.
+#+end_src
+#+begin_src C <<Store last unique interval P. \ref{fur}>>=
+  ws = ie + 1;
+  if (in) {
+    //<<Inside unique interval, P. \ref{fur}>>
   }
 #+end_src
 #+begin_src latex
