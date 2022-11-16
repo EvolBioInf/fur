@@ -405,9 +405,12 @@
   A sliding window analysis by \texttt{macle} returns pairs of values,
   $(m, C_{\rm m})$, where $m$ is the window midpoint and $C_{\rm m}$ its
   complexity. We determine the start and end of the current window and
-  decide whether or not it is inside a unique interval. After iterating
-  across the windows, we might still be inside the last unique
-  interval. In that case we store it.
+  decide whether or not it is inside a unique interval. A unique
+  interval is closed by the first non-unique window that starts to the
+  right of the interval, see $I_1$ in Figure~\ref{fig:sw}. However,
+  after iterating across all windows, the start of the last window might
+  still be inside the last interval, $I_2$ in Figure~\ref{fig:sw} is an
+  example. So we check for this and store the last interval if needed.
 #+end_src
 #+begin_src C <<Sliding window analysis, P. \ref{fur}>>=
   //<<Prepare sliding window analysis, P. \ref{fur}>>
@@ -428,9 +431,8 @@
   from the output, and the third removes windows without reliable
   sequence data, where $C_{\rm m}=-1$. In addition, the sliding window
   analysis requires variables for holding the current midpoint and
-  complexity values, the interval array, start and end points of windows
-  and intervals, and a variable to indicate whether the program is
-  inside a unique interval or not.
+  complexity values, the interval array, and the start and end points of
+  windows and intervals.
 #+end_src
 #+begin_src C <<Prepare sliding window analysis, P. \ref{fur}>>=
   tmpl =
