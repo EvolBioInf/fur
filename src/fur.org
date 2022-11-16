@@ -406,16 +406,20 @@
   $(m, C_{\rm m})$, where $m$ is the window midpoint and $C_{\rm m}$ its
   complexity. We determine the start and end of the current window and
   decide whether or not it is inside a unique interval. After iterating
-  across the windows we store the last unique interval we opened.
+  across the windows, we might still be inside the last unique
+  interval. In that case we store it.
 #+end_src
 #+begin_src C <<Sliding window analysis, P. \ref{fur}>>=
   //<<Prepare sliding window analysis, P. \ref{fur}>>
+  int in = 0;
   while (fscanf(pp, "%f %f", &m, &c) != EOF) {
     //<<Determine window start and end, P. \ref{fur}>>
     //<<Window inside unique interval?, P. \ref{fur}>>
   }
   pclose(pp);
-  //<<Store last unique interval P. \ref{fur}>>
+  if (in) {
+    //<<Store last unique interval P. \ref{fur}>>
+  }
 #+end_src
 #+begin_src latex
   The sliding window analysis requires the opening of a pipe for reading
@@ -437,7 +441,7 @@
   pp = epopen(cmd, "r");
   float m, c;
   ia = newIntvArr();
-  int is, ie, ws, we, in = 0;
+  int is, ie, ws, we;
 #+end_src
 #+begin_src latex
   The start and end points of a window are calculated roughly as $m\pm w
@@ -498,13 +502,10 @@
   }
 #+end_src
 #+begin_src latex
-  The last unique interval we opened still needs to be stored.
+  We store the last unique interval.
 #+end_src
 #+begin_src C <<Store last unique interval P. \ref{fur}>>=
-  ws = ie + 1;
-  if (in) {
-    //<<Inside unique interval, P. \ref{fur}>>
-  }
+  intvArrAdd(ia, newIntv(is, ie));
 #+end_src
 #+begin_src latex
   The result of the sliding window analysis is reported.
