@@ -360,8 +360,8 @@
 #+end_src
 #+begin_src latex
   The complexity threshold is a function of aggregate sequence length,
-  GC-content, window length, and the inverse of the cumulative
-  distribution function (CDF) of the match length null
+  GC-content, window length, and the inverse of the cumulative density
+  function (CDF) of the match length null
   distribution. Figure~\ref{fig:cdf} shows this function and how
   choosing a particular CDF-value on the $y$-axis, 0.95 in the example,
   corresponds to a complexity-threshold on the $x$-axis, 0.019. Sequence
@@ -370,14 +370,14 @@
 
   \begin{figure}
     \begin{center}
-      \scalebox{0.6}{\input{cdf}}
+      \includegraphics{cdf}
     \end{center}
-    \caption{Cumulative distribution function (CDF) of the match
-      complexity ($C_{\rm m}$) in 500 bp windows over a 35.5 Mb data set
-      with GC-content 0.5~\cite{pir18:hig}. The parameter choice
-      corresponds to the neighbors depicted in Figure~\ref{fig:eco}. The
-      vertical line indicates the complexity threshold for a cumulative
-      value of 0.95.}\label{fig:cdf}
+    \caption{Cumulative density function (CDF) of the match complexity
+      ($C_{\rm m}$) in 500 bp windows over a 35.5 Mb data set with
+      GC-content 0.5~\cite{pir18:hig}. The parameter choice corresponds
+      to the neighbors depicted in Figure~\ref{fig:eco}. The vertical
+      line indicates the complexity threshold for a cumulative value of
+      0.95.}\label{fig:cdf}
   \end{figure}
 #+end_src
 #+begin_src C <<Compute complexity threshold, P. \ref{fur}>>=
