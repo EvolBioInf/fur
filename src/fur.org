@@ -847,91 +847,58 @@
   pclose(pp);
 #+end_src
 #+begin_src latex
-  BLAST may return overlapping regions. These are summarized before
-  marking them.
+  To mark the regions found in the neighbors, we open the BLAST output,
+  scan it, and remove the BLAST output afterwards.
 #+end_src
 #+begin_src C <<Mark regions found among neighbors, P. \ref{fur}>>=
   tmpl = "%s/o.txt";
   sprintf(name, tmpl, args->d);
   fp = efopen(name, "r");
-  //<<Summarize neighbor BLAST output, P. \ref{fur}>>
-  fclose(fp);
-  //<<Set homologous neighbor regions to N, P. \ref{fur}>>
-  //<<Free BLAST resources, P. \ref{fur}>>
-#+end_src
-#+begin_src latex
-  To summarize the output of the BLAST search among neighbors, space for
-  the results is created before the results themselves are scanned.
-#+end_src
-#+begin_src C <<Summarize neighbor BLAST output, P. \ref{fur}>>=
-  //<<Allocate space for output of neighbor BLAST, P. \ref{fur}>>
   //<<Scan output of neighbor BLAST, P. \ref{fur}>>
+  fclose(fp);
+  //<<Remove BLAST output file, P. \ref{fur}>>
 #+end_src
 #+begin_src latex
-  We allocate space for the start and end positions of each homologous
-  regions and initialize these to values that allow us to later
-  summarize overlapping intervals.
-#+end_src
-#+begin_src C <<Allocate space for output of neighbor BLAST, P. \ref{fur}>>=
-  int *start = emalloc(sa->n * sizeof(int));
-  int *end   = emalloc(sa->n * sizeof(int));
-  for (int i = 0; i < sa->n; i++) {
-    start[i] = INT_MAX;
-    end[i]   = -1;
-  }
-#+end_src
-#+begin_src latex
-  \texttt{INT\_MAX} is the maximum value an integer may take and is
-  defined in \texttt{limits.h}.
-#+end_src
-#+begin_src C <<Include headers, P. \ref{fur}>>=
-  #include <limits.h>
-#+end_src
-#+begin_src latex
-  During the scan of the BLAST output, intervals are extended to the
-  left and the right.
+  For each line of BLAST output scanned, we get the query index, the
+  query start, and its end. Then we set the query region to \ty{N}.
 #+end_src
 #+begin_src  C <<Scan output of neighbor BLAST, P. \ref{fur}>>=
-  int ii, qs, qe;
+  int qi, qs, qe;
   char s[32];
-  while (fscanf(fp, "%s %d %d %d", s, &ii, &qs, &qe) != EOF) {
-    if (qs < start[ii])
-      start[ii] = qs ;
-    if (qe > end[ii])
-      end[ii] = qe;
+  while (fscanf(fp, "%s %d %d %d", s, &qi, &qs, &qe) != EOF) {
+    //<<Set homologous neighbor regions to N, P. \ref{fur}>>
   }
 #+end_src
 #+begin_src latex
-  The regions with homology among the neighbors are set to \texttt{N},
+  If the template hasn't been deleted yet, we calculate the length of
+  the region to be set to \ty{N}. If that region is greater than zero
+  and the user asked for exact matches only, we delete the template. If
+  that's not the case, we set the homologous positions to \ty{N},
   bearing in mind that BLAST-coordinates are 1-based, character arrays
-  0-based. As the arrays with the start and end coordinates are not
-  needed any more afterwards, they are freed.
+  0-based.
 #+end_src
 #+begin_src C <<Set homologous neighbor regions to N, P. \ref{fur}>>=
-  for (int i = 0; i < sa->n; i++) {
-    int l = end[i] - start[i] + 1;
+  if (sa->arr[qi]) {
+    int l = qe - qs + 1;
     if (l > 0 && args->x) {
-      freeSeq(sa->arr[i]);
-      sa->arr[i] = NULL;
-      continue;
+      freeSeq(sa->arr[qi]);
+      sa->arr[qi] = NULL;
+    } else {
+      for (int i = qs - 1; i < qe; i++)
+	sa->arr[qi]->data[i] = 'N';
     }
-    for (int j = start[i] - 1; j < end[i]; j++)
-      sa->arr[i]->data[j] = 'N';
   }
 #+end_src
 #+begin_src latex
-  The resources used up by the BLAST run, the output file and the arrays
-  of start and end positions, are freed again.
+  We remove the BLAST output file.
 #+end_src
-#+begin_src C <<Free BLAST resources, P. \ref{fur}>>=
+#+begin_src C <<Remove BLAST output file, P. \ref{fur}>>=
   tmpl = "rm %s/o.txt";
   sprintf(cmd, tmpl, args->d);
   if (system(cmd) < 0) {
     fprintf(stderr, "couldn't run system call %s\n", cmd);
     exit(0);
   }
-  free(start);
-  free(end);
 #+end_src
 #+begin_src latex
   In order to report the results of the subtraction step, we iterate
