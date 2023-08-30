@@ -20,6 +20,6 @@ Make sure you've installed the packages `git`, `make`, `noweb`, `texlive-science
 `texlive-pstricks`, `texlive-latex-extra`,
 and `texlive-fonts-extra`.  
   `$ make doc`  
-  The documentation is now in `doc/ifurDoc.pdf`.
+  The documentation is now in `doc/furDoc.pdf`.
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)

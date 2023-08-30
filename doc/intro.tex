@@ -1,0 +1,116 @@
+The design of diagnostic PCR primers is often hampered by an excess of
+candidates that also amplify off-target regions. To minimize the
+chance of cross-amplification, primers should be designed from
+template sequences that are unique to the target strain. The program
+\texttt{fur} \emph{finds unique regions} by comparing the genomes of a
+sample of target strains to the genomes of the closest relatives the
+targets are to be distinguished from. The underlying heuristic is that
+any region that distinguishes a target from its closest relatives,
+also distinguishes it from all other sequences out there.
+
+Consider, for example, \textit{Escherichia coli} ST131, a multi-drug
+resistant strain that causes urinary tract and blood infections in
+humans~\cite{pet14:glo}. \emph{E. coli} ST131 belongs to the B2
+phylogenetic subgroup, which corresponds to serotype O25b:H4.
+Figure~\ref{fig:eco} shows the phylogeny of 105 \emph{E. coli} B2
+strains. The clade marked ST131 comprises 95 strains newly sequenced
+by~\cite{pet14:glo}, plus three STS131 reference genomes, SE15, NA114,
+and EC958. This clade defines the \emph{targets} marked $\mathcal{T}$
+in Figure~\ref{fig:eco}. The seven remaining
+\emph{E. coli} strains are the \emph{neighbors}, $\mathcal{N}$. They also
+belong to the B2 group, but not to ST131~\cite{pet14:glo}. The aim is
+to find regions specific to ST131. In Section~\ref{sec:furTut} a
+tutorial-style analysis of this data set shows how to do this
+using \texttt{fur}.
+
+    \begin{figure}
+      \begin{center}
+	\tiny
+	\resizebox{\textwidth}{!}{\input{eco105}}
+      \end{center}
+      \caption{Phylogeny of 105 strains of \emph{Eschericia coli}
+	computed from whole genome sequences using
+	\texttt{phylonium}~\cite{klo20:phy}. The scale bar is the number of
+	substitutions per site. The clade marked ST131 contains the
+	pathogenic targets ($\mathcal{T}$), the remaining seven
+	strains are the neighbors ($\mathcal{N}$).}\label{fig:eco}
+    \end{figure}
+
+
+The program takes $k$ target sequences, $T=\{t_1,t_2,...,t_k\}$, and
+$l$ neighbor sequences, $N=\{n_1,n_2,...,n_l\}$ as input. Then it
+picks one target sequence, by default the shortest, as target
+representative, $r$, and subtracts from $r$ all regions homologous to
+the neighbors. The remaining target regions are a superset of the
+desired markers.
+
+It is convenient to think of sequences as sets of regions, so we can
+write our set of putative markers, $m$, as the representative minus
+the neighbors,
+\begin{equation}\label{eq:fur1}
+m \leftarrow r\setminus N.
+\end{equation}
+The marker set is then reduced by intersecting it with the targets
+\begin{equation}\label{eq:fur2}
+m \leftarrow m\cap T,
+\end{equation}
+and checked one more time for neighbor material in a second
+subtraction step,
+\begin{equation}\label{eq:fur3}
+m \leftarrow m\setminus N.
+\end{equation}
+The first subtraction step is implemented using only exact
+matching. It is thus fast, but perhaps not as sensitive as required
+for the final output. This is generated in the second subtraction
+step, which is implemented by comparing $m$ against $N$ using
+Blast. The second subtraction is thus slower but more sensitive than
+the first.
+
+Steps (\ref{eq:fur1})--(\ref{eq:fur3}) summarize the \ty{fur}
+algorithm. Among them, step~(\ref{eq:fur1}) is limiting as the exact
+matching done here is based on the computation of an enhanced suffix
+array~\cite{abo04:rep}. Naïvely, we could compute an enhanced suffix
+array of $N$ and then stream $r$ against that. However, this would
+require $O(|N|)$ memory with a large constant. For large $N$, this
+quickly grows beyond the memory of conventional hardware, especially
+if we are interested in analyzing mammalian genomes. However, the
+sequences that make up $N$ can be analyzed sequentially making the
+memory requirement proportional to the size of the longest neighbor
+sequence, $O(\mbox{max}(|n_i|)$. Since we can always further subdivide
+elements of $N$, \ty{fur} can be used to analyze very large data sets.
+
+The program \ty{fur} doesn't operate directly on the target and
+neighbor sequences. Instead, it reads a database constructed with the
+program \ty{makeFurDb}, which is also part of this package. The
+input to \ty{makeFurDb} is a directory of target sequences, and a
+directory of neighbor sequences. Each sequence file in these
+directories contains the genome of one taxon, perhaps in multiple
+FASTA sequences representing contigs of chromosomes. The database
+calculation from these sequences is a slow, one-off operation,
+while \ty{fur} is normally quick and may be run repeatedly, with
+various parameter combinations.
+
+\begin{table}
+\caption{The eight programs in the package \ty{fur}.}\label{tab:pro}
+\begin{center}
+\begin{tabular}{cll}
+\hline
+\# & Name & Purpose\\\hline
+1 & \ty{checkPrim} & check primers through \emph{in silico} PCR\\
+2 & \ty{cleanSeq} & remove runs of \ty{N} from \ty{fur} output\\
+3 & \ty{fur2prim} & convert \ty{fur} output to primers\\
+4 & \ty{fur} & find unique regions\\
+5 & \ty{madis} & match length distribution\\
+6 & \ty{makeFurDb} & construct \ty{fur} database\\
+7 & \ty{prim2fasta} & extract primers from \ty{primer3} output\\
+8 & \ty{senSpec} & compute the sensitivity an specificity of \ty{fur} output\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Apart from \ty{makeFurDb} and \ty{fur}, this package also contains
+six auxiliary programs for cleaning the output of \ty{fur}, assessing
+its quality, and extracting primers from it (Table~\ref{tab:pro}). The
+application of these auxiliary programs is also demonstrated in the
+tutorial.

@@ -1,28 +1,25 @@
+\documentclass[a4paper]{report}
 \input{header}
 \begin{document}
-\frontmatter
 \pagestyle{noweb}
 
-\title{\texttt{fur} \input{version}: Find Unique Genome
-Regions\\\small \texttt{https://github.com/haubold/fur}}
-\author{\input{author}}
-%%\input{date}
-%%\date{\displaydate{tagDate}}
+\title{\ty{ifur}: Iterate \ty{fur} to Find Unique Regions}
+\author{Bernhard Haubold}
+\date{\input{date}}
 \maketitle
 
-%%\listoftheorems[ignoreall,show={tdefn}]
 \tableofcontents
-\listoftheorems[show={tdefn}]
-\mainmatter
+
+\chapter{Introduction}\label{sec:intro}
+\input{intro}
 \chapter{Make \texttt{fur} Database, \texttt{makeFurDb}}\label{ch:makeFurDb}
 \input{makeFurDb}
 \chapter{Find Unique Regions, \texttt{fur}}
-\input{furIn}
+\input{fur}
+\chapter{Calculate the Match Length Distribution, \ty{madis}}\label{ch:mad}
+\input{madis}
 \chapter{Clean Sequences, \ty{cleanSeq}}
 \input{cleanSeq}
-\chapter{Compute the Sensitivity and Specificity
-of \texttt{fur}, \texttt{senSpec}}\label{ch:senSpec}
-\input{senSpec}
 \chapter{Convert Unique Regions to Input for \texttt{primer3}, \texttt{fur2prim}}
 \input{fur2prim}
 \chapter{Extract Primers from \texttt{primer3}
@@ -30,12 +27,13 @@ Output, \texttt{prim2fasta}}
 \input{prim2fasta}
 \chapter{Check Primers, \texttt{checkPrim}}
 \input{checkPrim}
+\chapter{Package \ty{util}}
+\input{util}
 \chapter{Tutorial}\label{ch:tut}
 \input{tutorial.tex}
 
-\backmatter
-\chapter{List of code chunks}
-\nowebchunks
+%\chapter{List of code chunks}
+% \nowebchunks
 \bibliography{ref}
 \end{document}
 

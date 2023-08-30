@@ -14,8 +14,8 @@ doc/cleanSeq.tex
 doc/date.tex
 doc/fur.tex
 doc/fur2prim.tex
-doc/ifurDoc.pdf
-doc/ifurDoc.ps
+doc/furDoc.pdf
+doc/furDoc.ps
 doc/*.toc
 doc/madis.tex
 doc/makeFurDb.tex
