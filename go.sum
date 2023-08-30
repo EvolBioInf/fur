@@ -1,0 +1,14 @@
+github.com/evolbioinf/clio v0.0.0-20210309091639-82cb91a31b0c h1:TkHWkaNNpQC+/HCKjAi85vXC8HC7py2YPMSBUOkGmkU=
+github.com/evolbioinf/clio v0.0.0-20210309091639-82cb91a31b0c/go.mod h1:Jh4QPiChVHZHe7fwj+xcSs6kUcQbQVzsd/ht3PIoaaU=
+github.com/evolbioinf/esa v0.0.0-20230118084626-6c007d3df927 h1:VDHrJ/vHyPPl+YW2vkc+pGn8JQViJiRJQho/KbCQams=
+github.com/evolbioinf/esa v0.0.0-20230118084626-6c007d3df927/go.mod h1:0JNa7ETkcaWF3NFOdBi/inmA63TjZIuvIeJpkxBhAow=
+github.com/evolbioinf/esa v0.0.0-20230428092833-66d4eac05d77 h1:p0AV7ltMonvs7gANDdkzvxBpYEf181tKJixOYc0xxiM=
+github.com/evolbioinf/esa v0.0.0-20230428092833-66d4eac05d77/go.mod h1:JHdYx+agish2s0bExLYu4sfnkIpQfzQkugwgq+yPXDY=
+github.com/evolbioinf/fasta v0.0.0-20220329100526-fa625fa59b5d h1:13pT8++1YrSDWT1cD1R+L/N7ulgjkKrnhBgXMUYyKYk=
+github.com/evolbioinf/fasta v0.0.0-20220329100526-fa625fa59b5d/go.mod h1:1bD5OMlu85gdxSDr74kxUElPjLc/EVTzkRw2UT+FMhg=
+github.com/evolbioinf/fasta v0.0.0-20230419094527-219cc47d94b2 h1:Ipt7iPoRCqsIhtVNTq1bUwtFj2auwoX+xxmwBm+vEDA=
+github.com/evolbioinf/fasta v0.0.0-20230419094527-219cc47d94b2/go.mod h1:1bD5OMlu85gdxSDr74kxUElPjLc/EVTzkRw2UT+FMhg=
+github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965 h1:5qTR2yzRTRYhmDcWBUWPkxj1AhUWoDLkgypOADbJ5OY=
+github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965/go.mod h1:SaiLF93OldWIG3wdOZ+aZSNoklGESyYLi5yGQRXONLs=
+golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=
+golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
