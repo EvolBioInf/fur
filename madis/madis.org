@@ -1,0 +1,268 @@
+#+begin_export latex
+\section{Introduction}
+The program \ty{fur} classifies windows as unique \emph{vs} non-unique
+based on the number of match factors inside that window. The threshold
+number of matches per window of length $w$ is
+\[
+t = w/q + 1,
+\]
+where $q$ is the quantile of the match length probability
+distribution. The match length probability distribution is known via
+the distribution of shortest unique substring lengths, or shustring
+lengths, as a shustring is just one longer than a match
+\cite{hau09:est}. The program \ty{madis} makes the match length
+distribution accessible. It takes as input the sequence length and GC
+content. As output the user can choose between the probability
+function, density and cumulative, and a specific quantile.
+
+\section{Implementation}
+The program \ty{madis} has hooks for imports and the logic of the main
+function.
+\bpr{madis}{pr:mad}
+#+end_export
+#+begin_src go <<madis.go>>=
+  package main
+
+  import (
+	  //<<Imports, Pr. \ref{pr:mad}>>
+  )
+
+  func main() {
+	  //<<Main function, Pr. \ref{pr:mad}>>
+  }
+#+end_src
+#+begin_export latex
+\epr
+In the main function we prepare the error messages, set the usage,
+declare and parse the options, and calculate the match length
+distribution.
+#+end_export
+#+begin_src go <<Main function, Pr. \ref{pr:mad}>>=
+  util.PrepareErrorMessages("madis")
+  //<<Set usage, Pr. \ref{pr:mad}>>
+  //<<Declare options, Pr. \ref{pr:mad}>>
+  //<<Parse options, Pr. \ref{pr:mad}>>
+  //<<Calculate match length distribution, Pr. \ref{pr:mad}>>
+#+end_src
+#+begin_export latex
+We import \ty{util}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mad}>>=
+  "github.com/evolbioinf/ifur/util"
+#+end_src
+#+begin_export latex
+The usage consists of the actual usage message, an explanation of the
+purpose of \ty{madis}, and an example command.
+#+end_export
+#+begin_src go <<Set usage, Pr. \ref{pr:mad}>>=
+  u := "madis [option]..."
+  p := "Calculate the match length distribution."
+  e := "madis -l 90000 -g 0.45"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_export latex
+We import \ty{clio}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mad}>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_export latex
+We declare an option for the sequence length (\ty{-l}), the GC content
+(\ty{-g}), the quantile (\ty{-q}), and the version (\ty{-v}).
+#+end_export
+#+begin_src go <<Declare options, Pr. \ref{pr:mad}>>=
+  optL := flag.Int("l", 100000, "sequence length")
+  optG := flag.Float64("g", 0.5, "GC content")
+  msg := "quantile (default probability density)"
+  optQ := flag.Float64("q", 0.0, msg)
+  optV := flag.Bool("v", false, "version")
+#+end_src
+#+begin_export latex
+We import \ty{flag}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mad}>>=
+  "flag"
+#+end_src
+#+begin_export latex
+We parse the options and respond immediately to the version option, as
+this would stop the program.
+#+end_export
+#+begin_src go <<Parse options, Pr. \ref{pr:mad}>>=
+  flag.Parse()
+  if *optV {
+	  util.PrintInfo("madis")
+  }
+#+end_src
+#+begin_export latex
+We either print a quantile or the PDF and CDF. For both we use a
+\ty{tabwriter}, which uses blanks to justify the columns. At the end
+we flush the \ty{tabwriter}.
+#+end_export
+#+begin_src go <<Calculate match length distribution, Pr. \ref{pr:mad}>>=
+  w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+  if *optQ > 0 {
+	  //<<Print quantile, Pr. \ref{pr:mad}>>
+  } else {
+	  //<<Print PDF and CDF, Pr. \ref{pr:mad}>>
+  }
+  w.Flush()
+#+end_src
+#+begin_export latex
+We import \ty{tabwriter} and \ty{os}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mad}>>=
+  "text/tabwriter"
+  "os"
+#+end_src
+#+begin_export latex
+We print a quantile.
+#+end_export
+#+begin_src go <<Print quantile, Pr. \ref{pr:mad}>>=
+  fq := sus.Quantile(*optL, *optG, *optQ) - 1
+  fmt.Fprintf(w, "#p\tQ(p)\t\n")
+  fmt.Fprintf(w, "%g\t%d\t\n", *optQ, fq)
+#+end_src
+#+begin_export latex
+We import \ty{sus} and \ty{fmt}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mad}>>=
+  "github.com/evolbioinf/sus"
+  "fmt"
+#+end_src
+#+begin_export latex
+The print the header of the probabilities table, followed by the
+probabilities where the density function is greater than zero.
+#+end_export
+#+begin_src go <<Print PDF and CDF, Pr. \ref{pr:mad}>>=
+  //<<Print header, Pr. \ref{pr:mad}>>
+  //<<Print probabilities where $\mbox{PDF}(x)> 0$, Pr. \ref{pr:mad}>>
+#+end_src
+#+begin_export latex
+We write the table header consisting of the columns $x$,
+$\mbox{PDF}(x)$, and $\mbox{CDF}(x)$.
+#+end_export
+#+begin_src go <<Print header, Pr. \ref{pr:mad}>>=
+  fmt.Fprintf(w, "#x\tPDF(x)\tCDF(x)\t\n")
+#+end_src
+#+begin_export latex
+We skip the values of $x$ where $\mbox{PDF}(x)=0$ and then print the
+$\mbox{PDF}(x)$ and $\mbox{CDF}(x)$ as long as $\mbox{PDF}(x)>0$.
+#+end_export
+#+begin_src go <<Print probabilities where $\mbox{PDF}(x)> 0$, Pr. \ref{pr:mad}>>=
+  x := 0
+  cdf := 0.0
+  pdf := sus.Prob(*optL, *optG, x)
+  //<<Skip $\mbox{PDF}(x)=0$, Pr. \ref{pr:mad}>>
+  for pdf > 0 {
+	  cdf += pdf
+	  fmt.Fprintf(w, "%2d\t%.3g\t%.3g\t\n", x-1, pdf, cdf)
+	  x++
+	  pdf = sus.Prob(*optL, *optG, x)
+  }
+#+end_src
+#+begin_export latex
+We skip the values of $x$ where $\mbox{PDF}(x)=0$.
+#+end_export
+#+begin_src go <<Skip $\mbox{PDF}(x)=0$, Pr. \ref{pr:mad}>>=
+  for pdf == 0 {
+	  x++
+	  pdf = sus.Prob(*optL, *optG, x)
+  }
+#+end_src
+#+begin_export latex
+We've finished writing \ty{madis}, time to test it.
+\section{Testing}
+We start our testing by plotting the probability density of match
+lengths in a 1 Mb sequence. The result is shown in Figure~\ref{fig:pdf}.
+\begin{figure}
+  \begin{center}
+    \includegraphics{../madis/pdf}
+  \end{center}
+  \caption{Probability density function of match lengths for a random
+    1 Mb sequence with GC content 0.5. The vertical lines indicate the
+    5\% and 95\% quantiles.}\label{fig:pdf}
+\end{figure}
+#+end_export
+#+begin_src sh <<cli, Ch. \ref{ch:mad}>>=
+  madis -l 1000000 | plotLine
+#+end_src
+#+begin_export latex
+To check the theoretical probability density function, we simulate a 1
+Mb sequence and calculate the frequencies of shortest unique
+substrings in it. Our match lengths are just one less than the
+shortest substring lengths. Figure~\ref{fig:pdf} shows that the
+expected and observed, or simulated, distributions are
+indistinguishable by eye.
+#+end_export
+#+begin_src sh <<cli, Ch. \ref{ch:mad}>>=
+  ranseq -l 1000000 |
+      shustring -r -l -q |
+      tail -n +3 |
+      awk '{c[$2]++}END{for(a in c)print a-1, c[a]/NR}' |
+      plotLine
+#+end_src
+#+begin_export latex
+We now write a set of automatic tests. Our program for testing has
+hooks for imports and for the logic of the main testing function.
+#+end_export
+#+begin_src go <<madis_test.go>>=
+  package main
+
+  import (
+	  "testing"
+	  //<<Testing imports, Pr. \ref{pr:mad}>>
+  )
+
+  func TestMadis(t *testing.T) {
+	  //<<Testing, Pr. \ref{pr:mad}>>
+  }
+#+end_src
+#+begin_export latex
+We construct a set of tests and then iterate over them.
+#+end_export
+#+begin_src go <<Testing, Pr. \ref{pr:mad}>>=
+  var tests []*exec.Cmd
+  //<<Construct tests, Pr. \ref{pr:mad}>>
+  for i, test := range tests {
+	  //<<Run test, Pr. \ref{pr:mad}>>
+  }
+#+end_src
+#+begin_export latex
+We import \ty{exec}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:mad}>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+We construct a test of the probability density function and a test of
+the quantile.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:mad}>>=
+  test := exec.Command("./madis", "-l", "1000000", "-g", "0.1")
+  tests = append(tests, test)
+  test = exec.Command("./madis", "-l", "1000000", "-g", "0.1",
+	  "-q", "0.05")
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+We run the test and compare the result we get with the result we want,
+which is stored in files \ty{r1.txt} and \ty{r2.txt}.
+#+end_export
+#+begin_src go <<Run test, Pr. \ref{pr:mad}>>=
+  g, e := test.Output()
+  if e != nil { t.Error(e) }
+  f := "r" + strconv.Itoa(i+1) + ".txt"
+  w, e := os.ReadFile(f)
+  if e != nil { t.Error(e) }
+  if !bytes.Equal(g, w) {
+	  t.Errorf("get:\n%s\nwant:\n%s\n", g, w)
+  }
+#+end_src
+#+begin_export latex
+We import \ty{strconv}, \ty{os}, and \ty{bytes}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:mad}>>=
+  "strconv"
+  "os"
+  "bytes"
+#+end_src
