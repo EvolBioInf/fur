@@ -1,0 +1,120 @@
+#+begin_export latex
+\section{Introduction}
+!The package \ty{util} provides utility functions for the \ty{ifur}
+!package.
+\section{Implementation}
+The outline of \ty{util} contains hooks for imports, variables, and
+functions.  \bpa{util}{pa:util}
+#+end_export
+#+begin_src go <<util.go>>=
+  package util
+
+  import (
+	  //<<Imports, Pa. \ref{pa:util}>>
+  )
+  //<<Variables, Pa. \ref{pa:util}>>
+  //<<Functions, Pa. \ref{pa:util}>>
+#+end_src
+#+begin_export latex
+\epa
+\subsection{\ty{PrintInfo}}
+!\ty{PrintInfo} takes as arguments the name. As output it prints this
+!name, together with the version, compilation date, 
+!my name, email address, and the program's license. Then it exits.
+#+end_export
+#+begin_src go <<Functions, Pa. \ref{pa:util}>>=
+  func PrintInfo(n string) {
+	  v := version
+	  d := date
+	  a := "Bernhard Haubold"
+	  e := "haubold@evolbio.mpg.de"
+	  l := "Gnu General Public License, " +
+		  "https://www.gnu.org/licenses/gpl.html"
+	  clio.PrintInfo(n, v, d, a, e, l)
+	  os.Exit(0)
+  }
+#+end_src
+#+begin_export latex
+The variables \ty{version} and \ty{date} are declared as global to
+allow their injection at compile time.
+#+end_export
+#+begin_src go <<Variables, Pa. \ref{pa:util}>>=
+  var version, date string
+#+end_src
+#+begin_export latex
+We import \ty{clio}  and \ty{os}.
+#+end_export
+#+begin_src go <<Imports, Pa. \ref{pa:util}>>=
+  "github.com/evolbioinf/clio"
+  "os"
+#+end_src
+#+begin_export latex
+\subsection{\ty{Check}}
+!\ty{Check} takes as argument an error, prints that error, and exits.
+#+end_export
+#+begin_src go <<Functions, Pa. \ref{pa:util}>>=
+  func Check(e error) {
+	  if e != nil {
+		  log.Fatal(e)
+	  }
+  }
+#+end_src
+#+begin_export latex
+We import \ty{log}.
+#+end_export
+#+begin_src go <<Imports, Pa. \ref{pa:util}>>=
+  "log"
+#+end_src
+#+begin_export latex
+\subsection{\ty{PrepareErrorMessages}}
+As we just saw, we handle errors via the \ty{log} package. By default,
+this prefixes the error message with time and date. Instead, we'd like
+error messages prefixed with the name of the program and with date and
+time suppressed.
+!\ty{PrepareErrorMessages} takes as argument the program name and sets this as
+!the prefix for error messages from the \ty{log} package.
+#+end_export
+#+begin_src go <<Functions, Pa. \ref{pa:util}>>=
+  func PrepareErrorMessages(name string) {
+	  m := fmt.Sprintf("%s - ", name)
+	  log.SetPrefix(m)
+	  log.SetFlags(0)
+  }
+#+end_src
+#+begin_export latex
+We import \ty{fmt}.
+#+end_export
+#+begin_src go <<Imports, Pa. \ref{pa:util}>>=
+  "fmt"
+#+end_src
+#+begin_export latex
+\subsection{\ty{IsFasta}}
+!\ty{IsFasta} takes as argument the name of a file and determines
+!whether or not it has the extension of a FASTA file.
+#+end_export
+#+begin_src go <<Functions, Pa. \ref{pa:util}>>=
+  func IsFasta(f string) bool {
+	  a := strings.Split(f, ".")
+	  s := a[len(a)-1]
+	  if s == "fasta" || s == "fna" || s == "ffn" ||
+		  s == "faa" || s == "frn" || s == "fa" {
+		  return true
+	  }
+	  return false
+  }
+#+end_src
+#+begin_export latex
+We import \ty{strings}.
+#+end_export
+#+begin_src go <<Imports, Pa. \ref{pa:util}>>=
+  "strings"
+#+end_src
+#+begin_export latex
+\subsection{\ty{Version}}
+!\ty{Version} returns the program version.
+#+end_export
+#+begin_src go <<Functions, Pa. \ref{pa:util}>>=
+  func Version() string {
+	  return version
+  }
+#+end_src
