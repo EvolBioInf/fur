@@ -1,0 +1,1346 @@
+#+begin_export latex
+\section{Introduction}
+The program \ty{fur} takes as input a set of target sequences and a
+set of closely related neighbor sequences, which it reads from a
+database constructed with \ty{makeFurDb}. It returns as output the
+regions that are present in all targets but absent from the
+neighbors. Such regions can be used to develop diagnostic markers for
+the targets, for example.
+
+\section{Implementation}
+The outline of \ty{fur} contains hooks for imports, types, functions,
+and the logic of the main function.  \bpr{fur}{pr:fur}
+#+end_export
+#+begin_src go <<fur.go>>=
+  package main
+
+  import (
+	  //<<Imports, Pr. \ref{pr:fur}>>
+  )
+  //<<Types, Pr. \ref{pr:fur}>>
+  //<<Functions, Pr. \ref{pr:fur}>>
+  func main() {
+	  //<<Main function, Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+\epr
+In the main function, we prepare the error messages, set the usage,
+declare and parse the options, and find the unique regions.
+#+end_export
+#+begin_src go <<Main function, Pr. \ref{pr:fur}>>=
+  util.PrepareErrorMessages("fur")
+  //<<Set usage, Pr. \ref{pr:fur}>>
+  //<<Declare options, Pr. \ref{pr:fur}>>
+  //<<Parse options, Pr. \ref{pr:fur}>>
+  //<<Find unique regions, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We import \ty{util}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "github.com/evolbioinf/ifur/util"
+#+end_src
+#+begin_export latex
+The usage consists of three parts, the actual usage message, an
+explanation of the purpose of \ty{fur}, and an example command.
+#+end_export
+#+begin_src go <<Set usage, Pr. \ref{pr:fur}>>=
+  u := "fur -d <db> [option]..."
+  p := "Find unique regions."
+  e := "fur -d fur.db"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_export latex
+We import \ty{clio}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_export latex
+Apart from the obligatory version option, we declare an option for
+entering the name of the database. We also declare options for the
+sliding window analysis of step~(\ref{eq:fur1}), options for
+intersecting the marker candidates with the remaining targets in
+step~(\ref{eq:fur2}), and options for the final subtraction in
+step~(\ref{eq:fur3}).
+#+end_export
+#+begin_src go <<Declare options, Pr. \ref{pr:fur}>>=
+  optV := flag.Bool("v", false, "version")
+  optD := flag.String("d", "", "database")
+  //<<Options for step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>
+  //<<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>
+  //<<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We import \ty{flag}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "flag"
+#+end_src
+#+begin_export latex
+Step~(\ref{eq:fur1}) is implemented as a sliding window analysis. So
+we declare an option for setting the window length. We also declare
+the quantile of the match length distribution. By default we set
+the quantile to 0.01, which means we are looking for regions with
+\emph{short} matches to minimize the false-positives that are passed
+on from this step. At the end of this step, the user can print the
+result and exit.
+#+end_export
+#+begin_src go <<Options for step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>=
+  optW := flag.Int("w", 80, "window length")
+  m := "quantile of match length distribution"
+  optQ := flag.Float64("q", 0.01, m)
+  m = "print unique regions after sliding window analysis " +
+	  "and exit"
+  optU := flag.Bool("u", false, m)
+#+end_src
+#+begin_export latex
+Step~(\ref{eq:fur2}) is delegated to \ty{phylonium}, for which we
+don't expose any options. However, the user can restrict the output
+from phylonium to exact matches. She can again also print the result
+of this step and exit.
+#+end_export
+#+begin_src go <<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
+  m = "print unique regions after checking for presence " +
+	  "in templates and exit"
+  optX := flag.Bool("x", false, "exact matches only")
+  optUU := flag.Bool("U", false, m)
+#+end_src
+#+begin_export latex
+Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
+the E-value, the number of threads, and a switch to megablast mode
+instead of the default blastn mode. We also set the minimum length of
+the final regions at this point.
+#+end_export
+#+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
+  optE := flag.Float64("e", 1e-5, "E-value for Blast")
+  optT := flag.Int("t", 8, "Number of threads for Phylonium and Blast")
+  optM := flag.Bool("m", false, "megablast mode (default blastn)")
+  optN := flag.Int("n", 100, "number of nucleotides in region")
+#+end_src
+#+begin_export latex
+We parse the options and respond to the version, \ty{-v}. We also make
+sure the user has supplied a database name with \ty{-d}, and, if so,
+that the database exists and has the correct version.
+#+end_export
+#+begin_src go <<Parse options, Pr. \ref{pr:fur}>>=
+  flag.Parse()
+  if *optV {
+	  util.PrintInfo("fur")
+  }
+  if *optD == "" {
+	  fmt.Fprintf(os.Stderr, "please supply database\n")
+	  os.Exit(1)
+  } else {
+	  _, err := os.Stat(*optD)
+	  util.Check(err)
+  }
+  //<<Check database version, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We import \ty{fmt} and \ty{os}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "fmt"
+  "os"
+#+end_src
+#+begin_export latex
+We get the database version and the program version. Then we compare
+the two versions.
+#+end_export
+#+begin_src go <<Check database version, Pr. \ref{pr:fur}>>=
+  //<<Get database version, Pr. \ref{pr:fur}>>
+  //<<Get program version, Pr. \ref{pr:fur}>>
+  //<<Compare versions, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We extract the database version from the file \ty{v.txt}. It has the
+format
+\begin{center}
+\ty{v<x>.<y>[-<key>]}
+\end{center}
+for example,
+\begin{center}
+  \ty{v0.1-g8efa155}
+\end{center}
+But the part \ty{-g8efa155} might be missing. We extract \ty{x.y} and
+store it as a a floating point number.
+#+end_export
+#+begin_src go <<Get database version, Pr. \ref{pr:fur}>>=
+  db, err := os.ReadFile(*optD + "/v.txt")
+  util.Check(err)
+  ds := strings.Split(string(db[1:]), "-")[0]
+  if db[len(db)-1] == '\n' { db = db[:len(db)-1] }
+  dv, err := strconv.ParseFloat(ds, 64)
+  if err != nil {
+	  m := "couldn't read the datatase version from %s"
+	  log.Fatalf(m, ds)
+  }
+#+end_src
+#+begin_export latex
+We import \ty{strings}, \ty{strconv} and \ty{log}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "strings"
+  "strconv"
+  "log"
+#+end_src
+#+begin_export latex
+We get the program version from the utility function \ty{Version} and
+also store it as a floating point number.
+#+end_export
+#+begin_src go <<Get program version, Pr. \ref{pr:fur}>>=
+  vs := util.Version()
+  ps := strings.Split(vs[1:], "-")[0]
+  pv, err := strconv.ParseFloat(ps, 64)
+  util.Check(err)
+#+end_src
+#+begin_export latex
+If the program version is less than the database version, then
+\ty{fur} is not compatible with the database and we bail with a
+friendly message.
+#+end_export
+#+begin_src go <<Compare versions, Pr. \ref{pr:fur}>>=
+  m = "fur v%s is incompatible with database v%s\n"
+  if pv < dv {
+	  fmt.Fprintf(os.Stderr, m, ps, ds)
+	  os.Exit(1)
+  }
+#+end_src
+#+begin_export latex
+As explained in Chapter~\ref{sec:intro}, we find the desired unique
+regions in three steps. Steps (\ref{eq:fur2}) and (\ref{eq:fur3} are
+only attempted if the previous step yielded any candidate regions. We
+structure the remainder of the implementation along these steps. Each
+step is documented by a line in an output table. We use a tab writer
+to format the table, which we write to the standard output stream.
+#+end_export
+#+begin_src go <<Find unique regions, Pr. \ref{pr:fur}>>=
+  regions := make([]*fasta.Sequence, 0)
+  rw := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ',
+	  tabwriter.AlignRight)
+  //<<Run step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>
+  if len(regions) > 0 {
+	  //<<Run step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>
+  }
+  if len(regions) > 0 {
+	  //<<Run step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+We import \ty{fasta} and \ty{tabwriter}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "github.com/evolbioinf/fasta"
+  "text/tabwriter"
+#+end_src
+#+begin_export latex
+\subsection{First Subtraction, Step~(\ref{eq:fur1})}
+To run step~(\ref{eq:fur1}), we read the ends, subject them to a
+sliding window analysis, and extract the high-complexity regions from
+the target rep. Then we report on the results of
+step~(\ref{eq:fur1}). We also decide on whether or not to print the
+current set of regions.
+#+end_export
+#+begin_src go <<Run step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>=
+  //<<Read ends of matches, Pr. \ref{pr:fur}>>
+  //<<Run sliding window analysis of ends, Pr. \ref{pr:fur}>>
+  //<<Extract complex regions, Pr. \ref{pr:fur}>>
+  //<<Report results of step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>
+  //<<Print results of step (\ref{eq:fur1})? Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+The ends of the matches are contained in the database file
+\ty{e.fasta}. We open this file, store the sequences of ends it
+contains, and close it again.
+#+end_export
+#+begin_src go <<Read ends of matches, Pr. \ref{pr:fur}>>=
+  var ends []*fasta.Sequence
+  f, err := os.Open(*optD + "/e.fasta")
+  util.Check(err)
+  sc := fasta.NewScanner(f)
+  for sc.ScanSequence() {
+	  ends = append(ends, sc.Sequence())
+  }
+  f.Close()
+#+end_src
+#+begin_export latex
+The aim of the sliding window analysis is to find intervals where the
+number of matches is greater than some threshold, $t$. So we begin by
+calculating this threshold. Then we iterate over the end
+sequences. For each end sequence that is at least as long as the
+sliding window, we open the first window and slide it across the
+sequence.
+#+end_export
+#+begin_src go <<Run sliding window analysis of ends, Pr. \ref{pr:fur}>>=
+  //<<Calculate $t$, Pr. \ref{pr:fur}>>
+  intervals := make([][]*interval, len(ends))
+  for i, end := range ends {
+	  d := end.Data()
+	  if len(d) >= *optW {
+		  //<<Open first window, Pr. \ref{pr:fur}>>
+		  //<<Slide window, Pr. \ref{pr:fur}>>
+	  }
+  }
+#+end_src
+#+begin_export latex
+The threshold number of matches per window of length $w$ is calculated
+as
+\[
+t = w / q + 1,
+\]
+where $q$ is the quantile of the match length probability
+distribution. This is accessed via the quantile of the shustring
+probability distribution, a shustring being just one greater than a
+maximal match~\cite{hau09:est}. The shustring probability distribution is a
+function of the length, $l$, and GC content, $g$, of the neighor
+sequences. We read these quantities from the database file \ty{n.txt}.
+#+end_export
+#+begin_src go <<Calculate $t$, Pr. \ref{pr:fur}>>=
+  d, err := os.ReadFile(*optD + "/n.txt")
+  util.Check(err)
+  fields := strings.Fields(string(d))
+  l, err := strconv.Atoi(fields[1])
+  util.Check(err)
+  g, err := strconv.ParseFloat(fields[3], 64)
+  util.Check(err)
+  q := sus.Quantile(l, g, *optQ) - 1
+  t := int(math.Round(float64(*optW) / float64(q)))
+#+end_src
+#+begin_export latex
+We import \ty{sus} and \ty{math}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "github.com/evolbioinf/sus"
+  "math"
+#+end_src
+#+begin_export latex
+The result of the sliding window analysis is a set of high-complexity
+intervals. An interval has a start and an end.
+#+end_export
+#+begin_src go <<Types, Pr. \ref{pr:fur}>>=
+  type interval struct {
+	  s, e int
+  }
+#+end_src
+#+begin_export latex
+At the start of the sliding window analysis, we open the first window
+and count the number of match ends it contains, which is one less than
+the number of matches it spans.
+#+end_export
+#+begin_src go <<Open first window, Pr. \ref{pr:fur}>>=
+  nm := 1
+  l := 0
+  r := 0
+  for r < *optW {
+	  if d[r] == '1' {
+		  nm++
+	  }
+	  r++
+  }
+#+end_src
+#+begin_export latex
+We have opened our first window and now analyze the matches it
+contains. Then we shift the window. This cycle of analysis and
+shifting is repeated until the right window border reaches the end of
+the data. If at this point we still have an open interval, we store
+that.
+#+end_export
+#+begin_src go <<Slide window, Pr. \ref{pr:fur}>>=
+  open := false
+  var iv *interval
+  for r < len(d) {
+	  //<<Analyze number of matches, Pr. \ref{pr:fur}>>
+	  //<<Shift window, Pr. \ref{pr:fur}>>
+  }
+  if open {
+	  intervals[i] = append(intervals[i], iv)
+  }
+#+end_src
+#+begin_export latex
+If the number of matches in the current window is greater than the
+threshold, we process that high-complexity window. Otherwise we do
+nothing, unless we have an open interval to the left of our
+window, in which case we close the interval and store it.
+#+end_export
+#+begin_src go <<Analyze number of matches, Pr. \ref{pr:fur}>>=
+  if nm >= t {
+	  //<<Process high-complexity window, Pr. \ref{pr:fur}>>
+  } else if open && iv.e < l {
+	  open = false
+	  intervals[i] = append(intervals[i], iv)
+  }
+#+end_src
+#+begin_export latex
+With a high-complexity window in hand, we check whether we have an
+open interval. If so, we extend its end; otherwise, we allocate a new
+interval that spans the current window.
+#+end_export
+#+begin_src go <<Process high-complexity window, Pr. \ref{pr:fur}>>=
+  if open {
+	  iv.e = r
+  } else {
+	  iv = new(interval)
+	  iv.s = l
+	  iv.e = r
+	  open = true
+  }
+#+end_src
+#+begin_export latex
+Before shifting the window by one position, we check whether the old
+window starts or ends at a match. If it starts at a match, the number
+of matches for the new window is decremented by one.  If it ends at a
+match, the number of matches for the new window is incremented by one.
+#+end_export
+#+begin_src go <<Shift window, Pr. \ref{pr:fur}>>=
+  if d[l] == '1' {
+	  nm--
+  }
+  l++
+  if d[r] == '1' {
+	  nm++
+  }
+  r++
+#+end_src
+#+begin_export latex
+We now have a set of high-complexity intervals on the target rep. To
+extract the corresponding nucleotide sequences, we first read the
+target rep, then cut out the high-complexity regions and store them.
+#+end_export
+#+begin_src go <<Extract complex regions, Pr. \ref{pr:fur}>>=
+  //<<Read target rep, Pr. \ref{pr:fur}>>
+  //<<Store complex regions, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+The sequences of the target rep are contained in the database file
+\ty{r.fasta}. We read them from there, check the uniqueness of their
+accession, and store them in a slice. To prepare the uniqueness test,
+we also construct a map for storing the accessions, \ty{seqAcc}.
+#+end_export
+#+begin_src go <<Read target rep, Pr. \ref{pr:fur}>>=
+  f, err = os.Open(*optD + "/r.fasta")
+  util.Check(err)
+  seqAcc := make(map[string]bool)
+  sc = fasta.NewScanner(f)
+  var r []*fasta.Sequence
+  for sc.ScanSequence() {
+	  s := sc.Sequence()
+	  //<<Check uniqueness of accession, Pr. \ref{pr:fur}>>
+	  r = append(r, s)
+  }
+#+end_src
+#+begin_export latex
+The accession of a sequence is usually stored as the first token of a
+header. If we encounter a duplicate, we bail with message.
+#+end_export
+#+begin_src go <<Check uniqueness of accession, Pr. \ref{pr:fur}>>=
+  acc := strings.Fields(s.Header())[0]
+  if seqAcc[acc] {
+	  log.Fatalf("%q is not a unique accession", acc)
+  }
+  seqAcc[acc] = true
+#+end_src
+#+begin_export latex
+We iterate over the intervals for each of the sequences that make up
+the target representative, and store each region with at least minimum
+length.
+#+end_export
+#+begin_src go <<Store complex regions, Pr. \ref{pr:fur}>>=
+  for i, interval := range intervals {
+	  d := r[i].Data()
+	  for _, iv := range interval {
+		  l := iv.e - iv.s + 1
+		  if l >= *optN {
+			  //<<Store region, Pr. \ref{pr:fur}>>
+		  }
+	  }
+  }
+#+end_src
+#+begin_export latex
+A region is stored with a header modeled on
+\begin{center}
+\ty{name\_(start..end)}
+\end{center}
+The suffix containing the start and end coordinates ensures that the
+region has a unique name. Since Blast truncates names after the first
+blank, we reduce the name to the first field of the header.
+#+end_export
+#+begin_src go <<Store region, Pr. \ref{pr:fur}>>=
+  arr := strings.Fields(r[i].Header())
+  h := fmt.Sprintf("%s_(%d..%d)",
+	  arr[0], iv.s+1, iv.e+1)
+  region := fasta.NewSequence(h, d[iv.s:iv.e+1])
+  regions = append(regions, region)
+#+end_src
+#+begin_export latex
+We report the results of each of the three major steps in a table
+consisting of four columns, the step, the number of sequences, the
+combined length of the sequences, and the number of \ty{N}s they
+contain. For this we prepare a table and then write its first entry.
+#+end_export
+#+begin_src go <<Report results of step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>=
+  //<<Prepare table, Pr. \ref{pr:fur}>>
+  //<<Write table entry, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+The first line in the table are the four
+column headers.
+#+end_export
+#+begin_src go <<Prepare table, Pr. \ref{pr:fur}>>=
+  fmt.Fprintf(rw, "%s\t%s\t%s\t%s\t\n", "Step         ",
+	  "Sequences", "Length", "Ns")
+  fmt.Fprintf(rw, "%s\t%s\t%s\t%s\t\n", "-------------",
+	  "---------", "------", "--")
+#+end_src
+#+begin_export latex
+For our first table entry, we declare a format that we can later
+reuse. Then we calculate the combined sequence length and the number
+of \ty{N}s with a function call, print the entry, and flush the writer
+if this was the last table entry.
+#+end_export
+#+begin_src go <<Write table entry, Pr. \ref{pr:fur}>>=
+  rf := "%s\t%d\t%d\t%d\t\n"
+  ns := len(regions)
+  le, nn := countNucl(regions)
+  fmt.Fprintf(rw, rf, "Subtraction_1", ns, le, nn)
+  if len(regions) == 0  || *optU {
+	  rw.Flush()
+  }
+#+end_src
+#+begin_export latex
+The function \ty{countNucl} takes as input a set of sequences,
+calculates their lengths, counts the \ty{N}s they contain, and returns
+these two numbers.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:fur}>>=
+  func countNucl(sequences []*fasta.Sequence) (l, n int) {
+	  for _, sequence := range sequences {
+		  l += len(sequence.Data())
+		  for _, c := range sequence.Data() {
+			  if c == 'N' { n++ }
+		  }
+	  }
+	  return l, n
+  }
+#+end_src
+#+begin_export latex
+If the user requested the regions found so far, we print them to the
+standard output stream and exit.
+#+end_export
+#+begin_src go <<Print results of step (\ref{eq:fur1})? Pr. \ref{pr:fur}>>=
+  if *optU {
+	  for _, region := range regions {
+		  fmt.Printf("%s\n", region)
+	  }
+	  os.Exit(0)
+  }
+#+end_src
+#+begin_export latex
+\subsection{Intersection, Step~(\ref{eq:fur2})}
+In step~(\ref{eq:fur2}) we intersect the regions found so far with the
+remaining targets. This only makes sense if there are at least two
+targets. So we count the targets, and if there are at least two, we
+implement step~(\ref{eq:fur2}) as a \ty{phylonium} run. This takes as
+input a file containing the unique regions we just extracted. They
+serve as the reference, onto which \ty{phylonium} piles the remaining
+target sequences. \ty{Phylonium} writes its output to a file, from
+where we read it back into \ty{fur}. We delete this output file and
+the input file of unique regions again to leave the database as we
+found it. Like at the end of the previous step, we report its results
+and may be also print them.
+#+end_export
+#+begin_src go <<Run step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
+  numTargets := 0
+  //<<Count targets, Pr. \ref{pr:fur}>>
+  if numTargets > 1 {
+	  //<<Write unique regions to file, Pr. \ref{pr:fur}>>
+	  //<<Run \ty{phylonium}, Pr. \ref{pr:fur}>>
+	  //<<Read \ty{phylonium} output from file, Pr. \ref{pr:fur}>>
+	  //<<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>
+  }
+  //<<Report results of step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>
+  //<<Print results of step (\ref{eq:fur2})?, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+The targets are in directory \ty{t}, so we count its entries, which
+are one less than the total number of targets.
+#+end_export
+#+begin_src go <<Count targets, Pr. \ref{pr:fur}>>=
+  dirEntries, err := os.ReadDir(*optD + "/t")
+  numTargets = len(dirEntries) + 1
+#+end_src
+#+begin_export latex
+We write the unique regions to a unique file, which we then close
+again.
+#+end_export
+#+begin_src go <<Write unique regions to file, Pr. \ref{pr:fur}>>=
+  f, err = os.CreateTemp(*optD, "*.fasta")
+  util.Check(err)
+  for _, region := range regions {
+	  fmt.Fprintf(f, "%s\n", region)
+  }
+  f.Close()
+#+end_src
+#+begin_export latex
+We initialize the \ty{phylonium} command. Then we prepare its
+arguments and set them. We run the command and analyze the error
+returned.
+#+end_export
+#+begin_src go <<Run \ty{phylonium}, Pr. \ref{pr:fur}>>=
+  cmd := exec.Command("phylonium")
+  //<<Prepare args, Pr. \ref{pr:fur}>>
+  cmd.Args = args
+  out, err := cmd.CombinedOutput()
+  //<<Analyze \ty{phylonium} error, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We run \ty{phylonium} with the unique regions as reference and a
+unique file we still need to construct, \ty{pf}, as output
+file. \ty{Phylonium} balks if this file already exists, perhaps from a
+failed previous \ty{fur} run. So we delete \ty{p.fasta} if it already
+exists. The remaining arguments are the number of threads and
+sequence files contained in the target directory. The globbing of
+these file names has to be done by us as the command is not executed
+in a shell, which usually takes care of globbing.
+#+end_export
+#+begin_src go <<Prepare args, Pr. \ref{pr:fur}>>=
+  rf := f.Name()
+  pf := ""
+  //<<Construct \ty{phylonium} output, \ty{pf}, Pr. \ref{pr:fur}>>
+  _, err := os.Stat(pf)
+  if err == nil {
+	  err = os.Remove(pf)
+	  util.Check(err)
+  }
+  ts := strconv.Itoa(*optT)
+  args := []string{"phylonium", "-t", ts, "-p", pf, "-r", rf}
+  tf, err := filepath.Glob(*optD + "/t/*")
+  args = append(args, tf...)
+#+end_src
+#+begin_export latex
+We import \ty{filepath}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "path/filepath"
+#+end_src
+#+begin_export latex
+We construct a unique file and store its name as the \ty{phylonium}
+output file, \ty{pf}.
+#+end_export
+#+begin_src go <<Construct \ty{phylonium} output, \ty{pf}, Pr. \ref{pr:fur}>>=
+  f, err = os.CreateTemp(*optD, "*.fasta")
+  util.Check(err)
+  pf = f.Name()
+  f.Close()
+#+end_src
+#+begin_export latex
+\ty{Phylonium} returns a non-zero state if the homology found in one
+sequence is less than 20\%. This can easily happen in the context of
+\ty{fur}, where a potentially short unique region is intersected with
+whole genomes. For low homology output \ty{phylonium} prints error
+messages containing the word \emph{homology}.
+
+Another cause of a non-zero return is an empty intersection. Again,
+this is a genuine result. In this case \ty{phylonium} reports the
+results of failed distance computations.
+
+So on error we check whether the output contains the words
+\emph{homology} or \emph{nan}, in which case we assume that no error
+occurred, otherwise we bail and print the output \ty{phylonium}
+printed to its standard error and output streams.
+#+end_export
+#+begin_src go <<Analyze \ty{phylonium} error, Pr. \ref{pr:fur}>>=
+  if err != nil {
+	  i := bytes.Index(out, []byte("homology"))
+	  j := bytes.Index(out, []byte("nan"))
+	  if i < 0  && j < 0 {
+		  fmt.Fprintf(os.Stderr,"%s\n", out)
+		  os.Exit(1)
+	  }
+  }
+#+end_src
+#+begin_export latex
+We open the \ty{phylonium} output file, iterate over the regions it
+contains, and save them. Then we clean up the regions we got.
+#+end_export
+#+begin_src go <<Read \ty{phylonium} output from file, Pr. \ref{pr:fur}>>=
+  regions = regions[:0]
+  f, err = os.Open(pf)
+  util.Check(err)
+  sc = fasta.NewScanner(f)
+  for sc.ScanSequence() {
+	  s := sc.Sequence()
+	  regions = append(regions, s)
+  }
+  f.Close()
+  //<<Clean up regions, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We begin the clean up of the output from \ty{phylonium} by removing
+short regions. Then we enter the mutations detected by \ty{phylonium}
+in the remaining regions and adjust the sequence headers. Finally, we
+remove the occasional exclamation mark inserted by
+\ty{phylonium}. These appear to indicate the boundaries between
+sequences that are, in fact, contiguous.
+#+end_export
+#+begin_src go <<Clean up regions, Pr. \ref{pr:fur}>>=
+  //<<Remove short regions, Pr. \ref{pr:fur}>>
+  //<<Enter mutations, Pr. \ref{pr:fur}>>
+  //<<Adjust headers, Pr. \ref{pr:fur}>>
+  //<<Remove exclamation marks, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We remove regions shorter than the minimum length.
+#+end_export
+#+begin_src go <<Remove short regions, Pr. \ref{pr:fur}>>=
+  i := 0
+  for _, region := range regions {
+	  if len(region.Data()) >= *optN {
+		  regions[i] = region
+		  i++
+	  }
+  }
+  regions = regions[:i]
+#+end_src
+#+begin_export latex
+\ty{Phylonium} returns sequences with headers of the form
+\[
+\ty{>part}_i\ (s_{\rm p}..e_{\rm p})\ n\ p_1\ p_2\ ...\ p_n
+\]
+where $n$ is the number of mutations found in the interval $[s_{\rm
+    p},e_{\rm p}]$ at the one-based positions $p_1, p_2,...,p_n$. We
+get these positions from the header and iterate over them. The user
+might have requested only exact matches, in which case we might lose
+some or all of the regions. So again, we use the reslicing technique
+we just applied to remove short regions.
+#+end_export
+#+begin_src go <<Enter mutations, Pr. \ref{pr:fur}>>=
+  i = 0
+  for _, region := range regions {
+	  //<<Get mutation positions, Pr. \ref{pr:fur}>>
+	  //<<Iterate over mutation positions, Pr. \ref{pr:fur}>>
+  }
+  regions = regions[:i]
+#+end_src
+#+begin_export latex
+The number of mutations is the third field of the header, followed by
+the actual positions.
+#+end_export
+#+begin_src go <<Get mutation positions, Pr. \ref{pr:fur}>>=
+  arr := strings.Fields(region.Header())
+  n, err := strconv.Atoi(arr[2])
+  util.Check(err)
+  pos := make([]int, 0)
+  for j := 0; j < n; j++ {
+	  x, err := strconv.Atoi(arr[j+3])
+	  util.Check(err)
+	  pos = append(pos, x-1)
+  }
+#+end_src
+#+begin_export latex
+Unless the user requested only exact matches, we set polymorphic
+nucleotides to \ty{N}, so they can be avoided when designing primers.
+#+end_export
+#+begin_src go <<Iterate over mutation positions, Pr. \ref{pr:fur}>>=
+  if *optX && len(pos) > 0 { continue }
+  for _, p := range pos {
+	  region.Data()[p] = 'N'
+  }
+  regions[i] = region
+  i++
+#+end_src
+#+begin_export latex
+As we've said, the headers returned by \ty{phylonium} have the format
+\[
+\ty{>part}_i\ (s_{\rm p}..e_{\rm p})\ n\ p_1\ p_2\ ...\ p_n
+\]
+where $(s_{\rm p}..e_{\rm p}$ is the one-based interval,
+end-exclusive.  We'd like to convert this to the interval in the
+underlying target representative, $(s_{\rm r}...e_{\rm r}$),
+end-inclusive. For this, we iterate over the regions returned by
+\ty{phylonium}. For each region, we extract the interval $(s_{\rm
+  p}..e_{\rm p})$ from the header and convert it to $(s_{\rm
+  r}..e_{\rm r})$.
+#+end_export
+#+begin_src go <<Adjust headers, Pr. \ref{pr:fur}>>=
+  for _, region := range regions {
+	  //<<Extract $(s_{\rm p}..e_{\rm p})$, Pr. \ref{pr:fur}>>
+	  //<<Convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, Pr. \ref{pr:fur}>>
+	  //<<Replace header, Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+We split the header at the parentheses and save the mutation
+string. Then we split the interval at the dot-dot. We also convert the
+positions we get from one-based to zero-based and from end-exclusive
+to end-inclusive.
+#+end_export
+#+begin_src go <<Extract $(s_{\rm p}..e_{\rm p})$, Pr. \ref{pr:fur}>>=
+  arr := strings.Split(region.Header(), "(")
+  arr = strings.Split(arr[1], ")")
+  mutations := arr[1]
+  arr = strings.Split(arr[0], "..")
+  sp, err := strconv.Atoi(arr[0])
+  util.Check(err)
+  ep, err := strconv.Atoi(arr[1])
+  util.Check(err)
+  sp -= 1
+  ep -= 2
+#+end_src
+#+begin_export latex
+To convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, we
+declare variables for $s_{\rm r}$ and $e_{\rm r}$. We also declare a
+variable for the index of the slice of intervals in which we found a
+match, and a hook for additional variables we might need when
+iterating over the intervals. Since intervals are stored as slices of
+slices, we iterate over them in a nested loop, from which we need to
+break whenever we've accomplished the conversion. So we label the
+outer loop to eventually use a labeled \ty{break} in our analysis of
+individual intervals. An additional property of our search is that
+both the intervals returned in step~(\ref{eq:fur1}) and the regions
+returned in step~(\ref{eq:fur2}) are ordered. This allows us to resume
+each search where we left off in the previous round.
+#+end_export
+#+begin_src go <<Convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, Pr. \ref{pr:fur}>>=
+  var sr, er, ii, iii int
+  //<<Variables for loop over intervals, Pr. \ref{pr:fur}>>
+  intervals:
+  for ii < len(intervals) {
+	  ivals := intervals[ii]
+	  for iii < len(ivals) {
+		  //<<Analyze interval, Pr. \ref{pr:fur}>>
+	  }
+	  iii = 0
+	  ii++
+  }
+#+end_src
+#+begin_export latex
+The central statistic when analyzing the intervals is their cumulative
+length, $c$, of intervals that have at least the minimum length,
+$m$. For a given interval $(s_{\rm i}..e_{\rm i})$ of length $l=e_{\rm
+  i}-s_{\rm i}+1$, $l\ge m$, we determine whether $(s_{\rm p}..e_{\rm
+  p})$ intersects $(c..c+l-1)$. If so, we calculate $s_{\rm r}=s_{\rm
+  i}+s_{\rm p}-c$ and $e_{\rm r}=s_{\rm i}+e_{\rm p}-c$. We also note
+that the unique region was found, increment $c$ by $l+1$, and break
+out of the loop. If we don't break out of the loop, we just increment
+$c$ by $l+1$.
+#+end_export
+#+begin_src go <<Analyze interval, Pr. \ref{pr:fur}>>=
+  ival := ivals[iii]
+  iii++
+  l := ival.e - ival.s + 1
+  if l < *optN { continue }
+  if sp <= c+l-1 && ep >= c {
+	  sr = ival.s + sp - c
+	  er = ival.s + ep - c
+	  found = true
+	  c += l+1
+	  break intervals
+  }
+  c += l+1
+#+end_src
+#+begin_export latex
+We declare the variables \ty{c} and \ty{found}.
+#+end_export
+#+begin_src go <<Variables for loop over intervals, Pr. \ref{pr:fur}>>=
+  c := 0
+  found := false
+#+end_src
+#+begin_export latex
+If the region was found, we construct its new header and replace the
+old one. The header consists of the header of the appropriate
+representative sequence and the interval $(s_{\rm r}..e_{\rm r})$
+printed one-based. These two elements, the header of the target
+representative and the interval, are joined into one string by an
+underscore to generate unique headers for the subsequent Blast
+step. If, on the other hand, we didn't find the region, something is
+wrong and we bail with message.
+#+end_export
+#+begin_src go <<Replace header, Pr. \ref{pr:fur}>>=
+  if found {
+	  h := fmt.Sprintf("%s_(%d..%d) %s", r[ii].Header(),
+		  sr+1, er+1, mutations)
+	  region.SetHeader(h)
+  } else {
+	  log.Fatalf("Coudn't find region %s\n",
+		  region.Header())
+  }
+#+end_src
+#+begin_export latex
+We replace exclamation marks by \ty{N}s.
+#+end_export
+#+begin_src go <<Remove exclamation marks, Pr. \ref{pr:fur}>>=
+  for _, region := range regions {
+	  for i, c := range region.Data() {
+		  if c == '!' {
+			  region.Data()[i] = 'N'
+		  }
+	  }
+  }
+#+end_src
+#+begin_export latex
+We delete the input file \ty{rf} and the output file \ty{pf.fasta}
+used by \ty{phylonium}.
+#+end_export
+#+begin_src go <<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>=
+  err = os.Remove(rf)
+  util.Check(err)
+  err = os.Remove(pf)
+  util.Check(err)
+#+end_src
+#+begin_export latex
+We report the results from this step.
+#+end_export
+#+begin_src go <<Report results of step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
+  ns = len(regions)
+  le, nn = countNucl(regions)
+  fmt.Fprintf(rw, rf, "Intersection ", ns, le, nn)
+  if len(regions) == 0 || *optUU {
+	  rw.Flush()
+  }
+#+end_src
+#+begin_export latex
+If requested to do so, we iterate over the regions left over after
+this step, print them to the standard output stream, and exit.
+#+end_export
+#+begin_src go <<Print results of step (\ref{eq:fur2})?, Pr. \ref{pr:fur}>>=
+  if *optUU {
+	  for _, region := range regions {
+		  fmt.Printf("%s\n", region)
+	  }
+	  os.Exit(0)
+  }
+#+end_src
+#+begin_export latex
+\subsection{Second Subtraction, Step~(\ref{eq:fur3})}
+In step~(\ref{eq:fur3}) we compare the unique regions to the
+neighborhood using Blast. We run Blast in two steps, fast megablast
+followed by slow blastn. For this we construct two Blast commands and
+iterate over them.
+
+For each Blast run, we mask the homologous regions detected with
+\ty{N}s. After masking, regions are potentially marred by long
+stretches of \ty{N}. Flanking \ty{N}s are always useless, so we remove
+them. Internal \ty{N}s may or may not be bridged by PCR, so we leave
+these unchanged. If need be, they can be deleted later using the
+program \ty{cleanSeq}. For our final output there is a minimum number
+of nucleotides, so we remove the regions with fewer nucleotides.
+
+After iterating Blast, we report on the remaining regions and print
+them.
+#+end_export
+#+begin_src go <<Run step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
+  cmds := make([]*exec.Cmd, 0)
+  //<<Construct Blast commands, Pr. \ref{pr:fur}>>
+  for _, cmd := range cmds {
+	  //<<Run Blast command, Pr. \ref{pr:fur}>>
+	  //<<Mask homologous regions, Pr. \ref{pr:fur}>>
+	  //<<Remove flanking \ty{N}s, Pr. \ref{pr:fur}>>
+	  //<<Remove regions with too few nucleotides, Pr. \ref{pr:fur}>>
+  }
+  //<<Report results of step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>
+  //<<Print final set of regions, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We import \ty{exec}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+We construct the Blast options, construct a template for the Blast
+commands, and construct the megablast command. Then we construct the
+blastn command, unless the user opted for megablast only.
+#+end_export
+#+begin_src go <<Construct Blast commands, Pr. \ref{pr:fur}>>=
+  //<<Construct Blast options, Pr. \ref{pr:fur}>>
+  //<<Construct Blast template, Pr. \ref{pr:fur}>>
+  //<<Construct megablast command, Pr. \ref{pr:fur}>>
+  if !*optM {
+	  //<<Construct blastn command, Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+We set five options in Blast, the values of which we first need to
+construct. The options are the database path, the number of threads,
+the E-value, the task, and the output format. As output format we set
+the query accession, start, and end---the coordinates for masking
+later on.
+#+end_export
+#+begin_src go <<Construct Blast options, Pr. \ref{pr:fur}>>=
+  da := *optD + "/n"
+  th := *optT
+  ev := *optE
+  ta := "megablast"
+  of := "6 qaccver qstart qend"
+#+end_src
+#+begin_export latex
+The Blast template has space for our five Blast options. The output
+format is a composite string, so we append it later to the arguments
+slice.
+#+end_export
+#+begin_src go <<Construct Blast template, Pr. \ref{pr:fur}>>=
+  tm := "blastn -db %s -num_threads %d "
+  tm += "-evalue %g -task %s -outfmt "
+#+end_src
+#+begin_export latex
+We generate the arguments for the Blast command, append the output
+format, set the arguments, and store the command.
+#+end_export
+#+begin_src go <<Construct megablast command, Pr. \ref{pr:fur}>>=
+  as := fmt.Sprintf(tm, da, th, ev, ta)
+  args := strings.Fields(as)
+  args = append(args, of)
+  cmd := exec.Command("blastn")
+  cmd.Args = args
+  cmds = append(cmds, cmd)
+#+end_src
+#+begin_export latex
+We repeat this for the blastn command, only with a different task.
+#+end_export
+#+begin_src go <<Construct blastn command, Pr. \ref{pr:fur}>>=
+  ta = "blastn"
+  as = fmt.Sprintf(tm, da, th, ev, ta)
+  args = strings.Fields(as)
+  args = append(args, of)
+  cmd = exec.Command("blastn")
+  cmd.Args = args
+  cmds = append(cmds, cmd)
+#+end_src
+#+begin_export latex
+To run the Blast command, we pipe the unique regions through its
+standard input stream. Then we analyze the Blast error and its output.
+#+end_export
+#+begin_src go <<Run Blast command, Pr. \ref{pr:fur}>>=
+  stdin, err := cmd.StdinPipe()
+  util.Check(err)
+  go func() {
+	  defer stdin.Close()
+	  for _, region := range regions {
+		  fmt.Fprintf(stdin, "%s\n", region)
+	  }
+  }()
+  b, err := cmd.CombinedOutput()
+  //<<Analyze Blast error, Pr. \ref{pr:fur}>>
+  //<<Analyze Blast output, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+If Blast threw an error, the output consists of an error message,
+which we print and exit.
+#+end_export
+#+begin_src go <<Analyze Blast error, Pr. \ref{pr:fur}>>=
+  if err != nil {
+	  log.Fatalf("%s\n", string(b))
+  }
+#+end_src
+#+begin_export latex
+We import \ty{log}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "log"
+#+end_src
+#+begin_export latex
+We split the Blast output into lines of hits, a slice of byte
+slices. Since the Blast output is terminated by a newline, the last
+entry returned by the split is an empty slice, which we discard.
+#+end_export
+#+begin_src go <<Analyze Blast output, Pr. \ref{pr:fur}>>=
+  hits := bytes.Split(b, []byte("\n"))
+  hits = hits[:len(hits)-1]
+#+end_src
+#+begin_export latex
+We import \ty{bytes}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "bytes"
+#+end_src
+#+begin_export latex
+In order to conveniently mask the homologous regions, we first index
+the regions by accession. Then we iterate over the Blast hits. For
+each hit we extract the query accession and coordinates, and mask it
+in the corresponding unique region.
+#+end_export
+#+begin_src go <<Mask homologous regions, Pr. \ref{pr:fur}>>=
+  //<<Index unique regions, Pr. \ref{pr:fur}>>
+  for _, hit := range hits {
+	  //<<Extract qacc, qstart, and qend, Pr. \ref{pr:fur}>>
+	  //<<Mask hit, Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+We construct a map between the accessions and the indexes of our
+unique regions.
+#+end_export
+#+begin_src go <<Index unique regions, Pr. \ref{pr:fur}>>=
+  regMap := make(map[string]int)
+  le = 0
+  for i, region := range regions {
+	  le += len(region.Data())
+	  acc := strings.Fields(region.Header())[0]
+	  regMap[acc] = i
+  }
+#+end_src
+#+begin_export latex
+We convert the hit into a string and split it into its three
+fields. If we don't get the three fields specified in the output
+format, something's gone wrong and we quit with a friendly
+message. Then we read the query accession from the first field, the
+query start from the second field, and the query end from the third.
+#+end_export
+#+begin_src go <<Extract qacc, qstart, and qend, Pr. \ref{pr:fur}>>=
+  arr := strings.Fields(string(hit))
+  if len(arr) != 3 {
+	  log.Fatalf("Failed Blast: %s\n", string(hit))
+  }
+  qacc := arr[0]
+  qstart, err := strconv.Atoi(arr[1])
+  util.Check(err)
+  qend, err := strconv.Atoi(arr[2])
+  util.Check(err)
+#+end_src
+#+begin_export latex
+We get the unique sequence referred to by the query accession, adjust
+the query start and end, and set the positions between them to \ty{N}.
+#+end_export
+#+begin_src go <<Mask hit, Pr. \ref{pr:fur}>>=
+  i := regMap[qacc]
+  r := regions[i].Data()
+  //<<Adjust query start and query end, Pr. \ref{pr:fur}>>
+  for i := qstart; i <= qend; i++ {
+	  r[i] = 'N'
+  }
+#+end_src
+#+begin_export latex
+We adjust the one-based Blast coordinates to the zero-based string
+coordinates. Then we check whether the qstart is at least 15 bases
+downstream from the start of the region, 15 being the minimum length
+of a PCR primer. Any stretch of nucleotides shorter than that is not
+worth preserving. We do the same at the end of the region.
+#+end_export
+#+begin_src go <<Adjust query start and query end, Pr. \ref{pr:fur}>>=
+  qstart--
+  qend--
+  offset := 15
+  if qstart < offset {
+	  qstart = 0
+  }
+  if qend > len(r) - offset - 1 {
+	  qend = len(r) - 1
+  }
+#+end_src
+#+begin_export latex
+We remove prefixes and suffixes of \ty{N}s, adjust the headers if
+necessary, and return the freshly edited regions to their slice.
+#+end_export
+#+begin_src go <<Remove flanking \ty{N}s, Pr. \ref{pr:fur}>>=
+  for i, region := range regions {
+	  h := region.Header()
+	  r := bytes.TrimLeft(region.Data(), "N")
+	  dl := len(region.Data()) - len(r)
+	  r = bytes.TrimRight(r, "N")
+	  dr := len(region.Data()) - len(r) - dl
+	  if dl > 0 || dr > 0 {
+		  //<<Adjust header, Pr. \ref{pr:fur}>>
+	  }
+	  s := fasta.NewSequence(h, r)
+	  regions[i] = s
+  }
+#+end_src
+#+begin_export latex
+We recall the structure of our header,
+\[
+\ty{>}\mbox{prefix}\_(s...e)\ n\ p_1\ p_2\ ...\ p_n
+\]
+When adjusting the header we need to adjust the start and end
+positions, $s$ and $e$, and the mutations, which form the header's
+suffix. So we extract the prefix, the suffix, and the start and
+end. Then we adjust start and end, before we adjust the
+mutations. With the new coordinates in hand, we construct the new
+header.
+#+end_export
+#+begin_src go <<Adjust header, Pr. \ref{pr:fur}>>=
+  //<<Extract prefix, Pr. \ref{pr:fur}>>
+  //<<Extract mutations, Pr. \ref{pr:fur}>>
+  //<<Extract start and end, Pr. \ref{pr:fur}>>
+  //<<Adjust start and end, Pr. \ref{pr:fur}>>
+  //<<Adjust mutations, Pr. \ref{pr:fur}>>
+  //<<Construct header, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We split the header at opening parentheses. The last of them opens the
+pair of positions, all other opening parentheses remain in the prefix.
+#+end_export
+#+begin_src go <<Extract prefix, Pr. \ref{pr:fur}>>=
+  arr := strings.Split(h, "_(")
+  prefix := arr[0]
+#+end_src
+#+begin_export latex
+The mutations are to the right of the last closing parenthesis. We
+store them as a slice of integers.
+#+end_export
+#+begin_src go <<Extract mutations, Pr. \ref{pr:fur}>>=
+  arr = strings.Split(arr[1], ")")
+  muts := strings.Fields(arr[1])
+  mutations := make([]int, 0)
+  for _, m := range muts {
+	  i, err := strconv.Atoi(m)
+	  util.Check(err)
+	  mutations = append(mutations, i)
+  }
+#+end_src
+#+begin_export latex
+The first field in our string array now contains the start and end
+position separated by two dots.
+#+end_export
+#+begin_src go <<Extract start and end, Pr. \ref{pr:fur}>>=
+  arr = strings.Split(arr[0], "..")
+  s, err := strconv.Atoi(arr[0])
+  util.Check(err)
+  e, err := strconv.Atoi(arr[1])
+  util.Check(err)
+#+end_src
+#+begin_export latex
+We move the start to the left and the end to the right.
+#+end_export
+#+begin_src go <<Adjust start and end, Pr. \ref{pr:fur}>>=
+  s += dl
+  e -= dr
+#+end_src
+#+begin_export latex
+The mutations array contains the number of mutations followed by their
+positions. We iterate over the positions, adjust them, and check they
+lie within the adjusted interval. If so, we store the position in a new
+integer slice.
+#+end_export
+#+begin_src go <<Adjust mutations, Pr. \ref{pr:fur}>>=
+  nm := make([]int, 0)
+  l := e - s
+  for i := 1; i < len(mutations); i++ {
+	  x := mutations[i] - dl
+	  if x > 0 && x <= l {
+		  nm = append(nm, x)
+	  }
+  }
+#+end_src
+#+begin_export latex
+The header consists of the prefix, the interval, the number of
+mutations, and the mutation positions.
+#+end_export
+#+begin_src go <<Construct header, Pr. \ref{pr:fur}>>=
+  n := len(nm)
+  h = fmt.Sprintf("%s_(%d..%d) %4d",
+	  prefix, s, e, n)
+  for _, m := range nm {
+	  h = fmt.Sprintf("%s  %d", h, m)
+  }
+#+end_src
+#+begin_export latex
+We iterate over the regions and only retain those with enough
+nucleotides.
+#+end_export
+#+begin_src go <<Remove regions with too few nucleotides, Pr. \ref{pr:fur}>>=
+  i := 0
+  sa := make([]*fasta.Sequence, 1)
+  for _, region := range regions {
+	  sa[0] = region
+	  l, n := countNucl(sa)
+	  if l-n >= *optN {
+		  regions[i] = region
+		  i++
+	  }
+  }
+  regions = regions[:i]
+#+end_src
+#+begin_export latex
+We report the results of this step.
+#+end_export
+#+begin_src go <<Report results of step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
+  ns = len(regions)
+  le, nn = countNucl(regions)
+  fmt.Fprintf(rw, rf, "Subtraction_2", ns, le, nn)
+  rw.Flush()
+#+end_src
+#+begin_export latex
+We print our final set of regions.
+#+end_export
+#+begin_src go <<Print final set of regions, Pr. \ref{pr:fur}>>=
+  for _, region := range regions {
+	  fmt.Printf("%s\n", region)
+  }
+#+end_src
+#+begin_export latex
+This concludes \ty{fur}, let's test it.
+
+\section{Testing}
+Our testing program contains hooks for imports and the testing logic.
+#+end_export
+#+begin_src go <<fur_test.go>>=
+  package main
+
+  import (
+	  "testing"
+	  //<<Testing imports, Pr. \ref{pr:fur}>>
+  )
+
+  func TestFur(t *testing.T) {
+	  //<<Testing, Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+We construct a set of tests and iterate over them.
+#+end_export
+#+begin_src go <<Testing, Pr. \ref{pr:fur}>>=
+  var tests []*exec.Cmd
+  //<<Construct tests, Pr. \ref{pr:fur}>>
+  for i, test := range tests {
+	  //<<Run test, Pr. \ref{pr:fur}>>
+  }
+#+end_src
+#+begin_export latex
+We import \ty{exec}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:fur}>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+We construct four tests. The first runs with all options set to their
+default values. In the second test we vary the quantile of the match
+length distribution. In the third test we also vary the window length.
+In the fourth test we also set the number of threads.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:fur}>>=
+  d := "test.db"
+  test := exec.Command("./fur", "-d", d)
+  tests = append(tests, test)
+  test = exec.Command("./fur", "-d", d, "-q", "0.5")
+  tests = append(tests, test)
+  test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150")
+  tests = append(tests, test)
+  test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150",
+	  "-t", "8")
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+For each test we compare the result we get with the result we want,
+which is contained in files \ty{r1.txt}, \ty{r2.txt}, and \ty{r3.txt}.
+#+end_export
+#+begin_src go <<Run test, Pr. \ref{pr:fur}>>=
+  get, err := test.Output()
+  if err != nil { t.Error(err) }
+  f := "r" + strconv.Itoa(i+1) + ".txt"
+  want, err := os.ReadFile(f)
+  if err != nil {	t.Error(err) }
+  if !bytes.Equal(get, want) {
+	  t.Errorf("get:\n%s\nwant:\n%s\n", get, want)
+  }
+#+end_src
+#+begin_export latex
+We import \ty{strconv}, \ty{os}, and \ty{bytes}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:fur}>>=
+  "strconv"
+  "os"
+  "bytes"
+#+end_src
+
