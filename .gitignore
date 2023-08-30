@@ -3,7 +3,7 @@ test
 bin
 checklist.txt
 data/eco2*
-data/covid/fur.db
+data/covid
 doc/*.aux
 doc/*.bbl
 doc/*.blg
