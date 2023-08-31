@@ -225,7 +225,7 @@ If the user requested the version, we call the utility function
 We import \ty{util}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
-  "github.com/evolbioinf/ifur/util"
+  "github.com/evolbioinf/fur/util"
 #+end_src
 #+begin_export latex
 If the user didn't set a targets directory, we exit with a friendly

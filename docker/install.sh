@@ -5,37 +5,18 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get -y upgrade
-apt-get -y install autoconf apt-utils build-essential curl git gnuplot golang libbsd-dev \
+apt-get -y install apt-utils build-essential curl git gnuplot golang libbsd-dev \
     libbsd0 libdivsufsort-dev libdivsufsort3 libgsl-dev libgslcblas0 \
-    libsdsl-dev libsdsl3 ncbi-blast+ noweb primer3 sudo \
+    libsdsl-dev libsdsl3 ncbi-blast+ noweb phylonium primer3 sudo \
     texlive-latex-extra texlive-latex-recommended texlive-pstricks \
     texlive-science
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-# Install macle
-git clone https://github.com/evolbioinf/macle
-cd macle
-make
-cp build/macle /usr/local/bin
-cd ..
-rm -rf macle
-# Install phylonium
-git clone https://github.com/evolbioinf/phylonium
-cd phylonium
-autoreconf -fi -Im4
-./configure
-make
-cp src/phylonium /usr/local/bin
-cd ..
-rm -rf phylonium
-# Install fur dependencies
-go get github.com/evolbioinf/clio
-go get github.com/evolbioinf/fasta
-# Install and test fur
+# Install fur
 git clone https://github.com/evolbioinf/fur
 cd fur
 make
-cp build/* /usr/local/bin
+cp bin/* /usr/local/bin
 # make doc
 # cp doc/fur.pdf /usr/local/share/
 cd ..

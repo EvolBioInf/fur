@@ -10,7 +10,10 @@ all:
 		cp $$prog/$$prog bin; \
 	done
 test:
-	echo test
+	test -d bin || mkdir bin
+	for pack in $(packs); do \
+		make -C $$pack; \
+	done
 	for prog in $(progs) $(packs); do \
 		make test -C $$prog; \
 	done

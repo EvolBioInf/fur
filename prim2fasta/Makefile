@@ -5,3 +5,5 @@ $(exe): $(exe).org
 	chmod +x $(exe)
 clean:
 	rm $(exe)
+test:
+	@echo "The program $(exe) is not tested."

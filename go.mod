@@ -1,4 +1,4 @@
-module github.com/evolbioinf/ifur
+module github.com/evolbioinf/fur
 
 go 1.18
 
@@ -9,6 +9,4 @@ require (
 	github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965
 )
 
-require golang.org/x/sys v0.5.0 // indirect
-
-replace github.com/evolbioinf/ifur/util => ../util
+replace github.com/evolbioinf/fur/util => ../util

@@ -48,7 +48,7 @@ distribution.
 We import \ty{util}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:mad}>>=
-  "github.com/evolbioinf/ifur/util"
+  "github.com/evolbioinf/fur/util"
 #+end_src
 #+begin_export latex
 The usage consists of the actual usage message, an explanation of the

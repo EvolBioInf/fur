@@ -12,7 +12,7 @@ Make sure you've installed the packages `git`, `golang`, `make`, and `noweb`.
 As an alternative to building `fur`, we also post it as a [docker
   container](https://hub.docker.com/r/haubold/fox). The container
   includes all programs needed to work through the tutorial at the end
-  of the documentation in `~/fox.pdf`.
+  of the documentation in `~/furDoc.pdf`.
   -  `$ docker pull haubold/fox`
   -  `$ docker container run --detach-keys="ctrl-@" -h fox -it haubold/fox`
 ## Make the Documentation

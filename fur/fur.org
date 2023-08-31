@@ -39,7 +39,7 @@ declare and parse the options, and find the unique regions.
 We import \ty{util}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
-  "github.com/evolbioinf/ifur/util"
+  "github.com/evolbioinf/fur/util"
 #+end_src
 #+begin_export latex
 The usage consists of three parts, the actual usage message, an
@@ -192,7 +192,10 @@ also store it as a floating point number.
 #+end_export
 #+begin_src go <<Get program version, Pr. \ref{pr:fur}>>=
   vs := util.Version()
-  ps := strings.Split(vs[1:], "-")[0]
+  ps := ""
+  if len(vs) > 0 {
+	  ps = strings.Split(vs[1:], "-")[0]
+  }
   pv, err := strconv.ParseFloat(ps, 64)
   util.Check(err)
 #+end_src

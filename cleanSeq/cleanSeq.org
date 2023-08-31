@@ -6,9 +6,8 @@
   fragments are not too short.
 
   \section{Implementation}
-  The outline of \ty{cleanSeq} has hooks for imports, types, variables,
-  functions, and the logic of the main function.
-    \bpr{cleanSeq}{pr:cle}
+  The outline of \ty{cleanSeq} has hooks for imports, types, functions,
+  and the logic of the main function.  \bpr{cleanSeq}{pr:cle}
 #+end_src
 #+begin_src go <<cleanSeq.go>>=
   package main
@@ -16,7 +15,6 @@
   import (
 	  //<<Imports, Pr.~\ref{pr:cle}>>
   )
-  //<<Variables, Pr.~\ref{pr:cle}>>
   //<<Types, Pr.~\ref{pr:cle}>>
   //<<Functions, Pr.~\ref{pr:cle}>>
   func main() {
@@ -24,15 +22,21 @@
   }
 #+end_src
 #+begin_src latex
-  \epr
-  In the main function we declare the options, set the usage, parse the
-  options, and iterate over the input.
+  \epr In the main function we prepare the error messages, declare the
+  options, set the usage, parse the options, and iterate over the input.
 #+end_src
 #+begin_src go <<Main function, Pr.~\ref{pr:cle}>>=
+  util.PrepareErrorMessages("cleanSeq")
   //<<Declare options, Pr.~\ref{pr:cle}>>
   //<<Set usage, Pr.~\ref{pr:cle}>>
   //<<Parse options, Pr.~\ref{pr:cle}>>
   //<<Iterate over input, Pr.~\ref{pr:cle}>>
+#+end_src
+#+begin_export latex
+We import \ty{util}.
+#+end_export
+#+begin_src go <<Imports, Pr.~\ref{pr:cle}>>=
+  "github.com/evolbioinf/fur/util"
 #+end_src
 #+begin_src latex
   \ty{CleanSeq} requires a maximum length of internal runs and a minimum
@@ -72,25 +76,8 @@
 #+begin_src go <<Parse options, Pr.~\ref{pr:cle}>>=
   flag.Parse()
   if *optV {
-	  a := "Bernhard Haubold"
-	  e := "haubold@evolbio.mpg.de"
-	  l := "GNU General Public License, " +
-		  "https://www.gnu.org/licenses/gpl.html"
-	  clio.PrintInfo("cleanSeq", version, date, a, e, l)
-	  os.Exit(0)
+	  util.PrintInfo("cleanSeq")
   }
-#+end_src
-#+begin_src latex
-  The variables \ty{version} and \ty{date} get injected at compile time.
-#+end_src
-#+begin_src go <<Variables, Pr.~\ref{pr:cle}>>=
-  var version, date string
-#+end_src
-#+begin_src latex
-  We import \ty{os}.
-#+end_src
-#+begin_src go <<Imports, Pr.~\ref{pr:cle}>>=
-  "os"
 #+end_src
 #+begin_src latex
   We iterate over the input by calling \ty{clio.PaseFiles} on the input
