@@ -14,7 +14,10 @@ As an alternative to building `fur`, we also post it as a [docker
   includes all programs needed to work through the tutorial at the end
   of the documentation in `~/furDoc.pdf`.
   -  `$ docker pull haubold/fox`
-  -  `$ docker container run --detach-keys="ctrl-@" -h fox -it haubold/fox`
+  -  `$ docker run -it --env="DISPLAY" --net=host -v ~/fox_share:/home/jdoe/fox_share --detach-keys="ctrl-@" fox`  
+  This constructs the directory `fox_share` in your home directory and
+  in the container's home directory, for sharing files between the two
+  environments.
 ## Make the Documentation
 Make sure you've installed the packages `git`, `make`, `noweb`, `texlive-science`,
 `texlive-pstricks`, `texlive-latex-extra`,
