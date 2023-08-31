@@ -19,9 +19,11 @@ test:
 	for prog in $(progs) $(packs); do \
 		make test -C $$prog; \
 	done
-.PHONY: doc test
+.PHONY: doc test docker
 doc:
 	make -C doc
+docker:
+	make -C docker
 clean:
 	for prog in $(progs) $(packs) doc; do \
 		make clean -C $$prog; \
