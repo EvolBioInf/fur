@@ -11,7 +11,7 @@ doc/*.dvi
 doc/*.log
 doc/checkPrim.tex
 doc/cleanSeq.tex
-doc/date.tex
+doc/date.txt
 doc/fur.tex
 doc/fur2prim.tex
 doc/furDoc.pdf
@@ -22,8 +22,8 @@ doc/makeFurDb.tex
 doc/prim2fasta.tex
 doc/tutorial.tex
 doc/util.tex
-docker/fur.pdf
-docker/furTut.sh
+doc/version.txt
+docker/furDoc.pdf
 docker/startFox.sh
 experiments
 # Databases
