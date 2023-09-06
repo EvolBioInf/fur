@@ -1,6 +1,9 @@
-# `fur`
+# `fur`: Find Unique Regions
 ## Description
-Iterated [`fur`](https://github.com/evolbioinf/fur).
+The program `fur` takes as input a set of target genome sequences and
+a set of related genome sequences, the neighbors. It returns the
+sequence regions common to all targets that are absent form the
+neighbors. Such regions can be used as candidate genetic markers.
 ## Author
 [Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
 ## Make the Programs
