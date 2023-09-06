@@ -171,10 +171,10 @@ store it as a a floating point number.
   db, err := os.ReadFile(*optD + "/v.txt")
   util.Check(err)
   ds := strings.Split(string(db[1:]), "-")[0]
-  if db[len(db)-1] == '\n' { db = db[:len(db)-1] }
+  ds = strings.TrimRight(ds, "\n")
   dv, err := strconv.ParseFloat(ds, 64)
   if err != nil {
-	  m := "couldn't read the datatase version from %s"
+	  m := "couldn't read the datatase version from %q"
 	  log.Fatalf(m, ds)
   }
 #+end_src
