@@ -8,7 +8,7 @@ neighbors. Such regions can be used as candidate genetic markers.
 [Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
 ## Make the Programs
 Make sure you've installed the packages `git`, `golang`,
-``libdivsufsort-dev`, `make`, and `noweb`. Then make the programs.  
+`libdivsufsort-dev`, `make`, and `noweb`. Then make the programs.  
   `$ make`  
   The directory `bin` now contains the binaries, scripts are in
   `scripts`.
