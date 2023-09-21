@@ -7,7 +7,8 @@ neighbors. Such regions can be used as candidate genetic markers.
 ## Author
 [Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
 ## Make the Programs
-Make sure you've installed the packages `git`, `golang`, `make`, and `noweb`.  
+Make sure you've installed the packages `git`, `golang`,
+``libdivsufsort-dev`, `make`, and `noweb`. Then make the programs.  
   `$ make`  
   The directory `bin` now contains the binaries, scripts are in
   `scripts`.
@@ -24,7 +25,7 @@ As an alternative to building `fur`, we also post it as a [docker
 ## Make the Documentation
 Make sure you've installed the packages `git`, `make`, `noweb`, `texlive-science`,
 `texlive-pstricks`, `texlive-latex-extra`,
-and `texlive-fonts-extra`.  
+and `texlive-fonts-extra`. Then make the documentation.  
   `$ make doc`  
   The documentation is now in `doc/furDoc.pdf`.
 ## License
