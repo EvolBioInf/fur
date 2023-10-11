@@ -15,7 +15,7 @@ furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) version.txt date.txt
 %.tex: ../*/%.org furDoc.tex
 	bash ../scripts/org2nw $< | awk -f ../scripts/preWeave.awk | noweave -n -x | sed 's/_test/\\_test/g' > $@
 version.txt: ../.git/COMMIT_EDITMSG
-	echo $(version) | tr '-' ' ' | awk '{printf "%s", $$1; if ($$2) printf "-%s" $$2; printf "\n"}' > version.txt
+	echo $(version) | tr '-' ' ' | awk '{printf "%s", $$1; if ($$2) printf "-%s", $$2; printf "\n"}' > version.txt
 date.txt: ../.git/COMMIT_EDITMSG
 	echo $(date) | tr '_' ' ' > date.txt
 clean:
