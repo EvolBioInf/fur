@@ -14,9 +14,9 @@ furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) version.txt date.txt
 	ps2pdf -dALLOWPSTRANSPARENCY furDoc.ps
 %.tex: ../*/%.org furDoc.tex
 	bash ../scripts/org2nw $< | awk -f ../scripts/preWeave.awk | noweave -n -x | sed 's/_test/\\_test/g' > $@
-version.txt:
-	echo $(version) | tr '-' ' ' | awk '{printf "%s-%s\n", $$1, $$2}' > version.txt
-date.txt:
+version.txt: ../.git/COMMIT_EDITMSG
+	echo $(version) | tr '-' ' ' | awk '{printf "%s", $$1; if ($$2) printf "-%s" $$2; printf "\n"}' > version.txt
+date.txt: ../.git/COMMIT_EDITMSG
 	echo $(date) | tr '_' ' ' > date.txt
 clean:
 	rm -f furDoc.pdf furDoc.ps furDoc.dvi furDoc.aux furDoc.bbl  furDoc.blg  furDoc.dvi  furDoc.log $(SRC1) version.txt date.txt
