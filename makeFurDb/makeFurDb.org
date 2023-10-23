@@ -13,16 +13,16 @@ out these steps, \ty{makeFurDb} fills the database with six elements,
 \item a file containing the target sequence on which the search for
   diagnostic markers is centered, the target representative,
   \ty{r.fasta}
-\item a file containing the enhanced suffix array, ESA, of the target
-  representative, \ty{r.idx}
 \item a directory containing all targets minus the target
   representative, \ty{t/}
+\item a file containing the end positions of the match factors of the
+  target representative, \ty{e.fasta}
 \item a Blast database of the neighbors, \ty{n}
 \item a file containing the combined length of the neighbor sequences
   and their GC content, \ty{n.txt}
 \end{enumerate}
 The implementation of \ty{makeFurDb} is structured along the
-construction of these six parts of the database.
+construction of these six database parts.
 
 \section{Implementation}
 Our outline of \ty{makeFurDb} contains hooks for imports, functions,
@@ -61,8 +61,8 @@ We prepare error handling by calling the utility function
 #+begin_src latex
   We declare options for printing the version, for picking the
   directories holding the targets, the neighbors, and the database, for
-  picking the target representative, and for allowing an existing
-  database to be overwritten.
+  picking the target representative, for allowing an existing
+  database to be overwritten, and for the number of threads.
 #+end_src
 #+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
   optV := flag.Bool("v", false, "version")
@@ -72,6 +72,7 @@ We prepare error handling by calling the utility function
   optR := flag.String("r", "", "target representative " +
 	  "(default shortest)")
   optO := flag.Bool("o", false, "overwrite existing database")
+  optTT := flag.Int("T", 0, "threads (default logical CPUs)")
 #+end_src
 #+begin_src latex
   We import \ty{flag}.
@@ -116,8 +117,9 @@ We import \ty{clio}.
   "github.com/evolbioinf/clio"
 #+end_src
 #+begin_export latex
-We parse the options and respond to the version option, \ty{-v}, and
-the three directory options, \ty{-t}, \ty{-n}, \ty{-d}.
+We parse the options and respond to the version option, \ty{-v}, 
+the three directory options, \ty{-t}, \ty{-n}, \ty{-d}, and the
+threads option, \ty{-T}.
 #+end_export
 #+begin_src go <<Parse options, Pr. \ref{pr:mfd}>>=
   flag.Parse()
@@ -125,6 +127,7 @@ the three directory options, \ty{-t}, \ty{-n}, \ty{-d}.
   //<<Respond to \ty{-t}, Pr. \ref{pr:mfd}>>
   //<<Respond to \ty{-n}, Pr. \ref{pr:mfd}>>
   //<<Respond to \ty{-d}, Pr. \ref{pr:mfd}>>
+  //<<Respond to \ty{-T}, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
 If the user requested the version, we call the utility function
@@ -194,6 +197,21 @@ following sections.
 
 #+end_src
 #+begin_export latex
+If the user left the number of threads unspecified, we set it to the
+number of logical CPUs.
+#+end_export
+#+begin_src go <<Respond to \ty{-T}, Pr. \ref{pr:mfd}>>=
+  if *optTT == 0 {
+	  (*optTT) = runtime.NumCPU()
+  }
+#+end_src
+#+begin_export latex
+We import \ty{runtime}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
+  "runtime"
+#+end_src
+#+begin_export latex
 If the user allowed the database to be overwritten, we remove
 it. Otherwise, we bail with a friendly message.
 #+end_export
@@ -214,10 +232,10 @@ done by storing the names of the targets and neighbors in
 maps. However, map keys are accessed randomly. To impose order on
 them, we sort the names before making sure they don't overlap. Then we
 construct the six elements of the \ty{fur} database to store the
-version, the target representative, $r$, its ESA, the other targets,
-the blast database of neighbors, and the statistics of the neighbor
-sequences. These statistics are later used by \ty{fur} to calculate
-the null distribution of match lengths.
+version, the target representative, $r$, the other targets, the ends
+of matches, the blast database of neighbors, and the statistics of the
+neighbor sequences. These statistics are later used by \ty{fur} to
+calculate the null distribution of match lengths.
 #+end_export
 #+begin_src go <<Construct \ty{fur} database, Pr. \ref{pr:mfd}>>=
   //<<Read names of targets and neighbors, Pr. \ref{pr:mfd}>>
@@ -225,8 +243,8 @@ the null distribution of match lengths.
   //<<Do targets and neighbors overlap? Pr. \ref{pr:mfd}>>
   //<<Write version to \ty{v.txt}, Pr. \ref{pr:mfd}>>
   //<<Write $r$ to \ty{r.fasta}, Pr. \ref{pr:mfd}>>
-  //<<Write ESA of $r$ to \ty{r.idx}, Pr. \ref{pr:mfd}>>
   //<<Write the other targets to \ty{t/}, Pr. \ref{pr:mfd}>>
+  //<<Write match ends to \ty{e.fasta}, Pr. \ref{pr:mfd}>>
   //<<Write Blast database of neighbors to \ty{n}, Pr. \ref{pr:mfd}>>
   //<<Write statistics of neighbors to \ty{n.txt}, Pr. \ref{pr:mfd}>>
 #+end_src
@@ -363,8 +381,8 @@ write the version to it, and close it again.
 \subsection{Target Representative, \ty{r.fasta}}
 If the user didn't set a target representative, we need to pick
 one. In any case, we report which target is used as
-representative. Then we copy the target representative to \ty{r.fasta}
-inside the database and close the files again.
+representative. Then we store the target sequences and write them to
+file.
 #+end_export
 #+begin_src go <<Write $r$ to \ty{r.fasta}, Pr. \ref{pr:mfd}>>=
   if *optR == "" {
@@ -372,11 +390,9 @@ inside the database and close the files again.
   }
   fmt.Fprintf(os.Stderr, "using %s as target representative\n",
 	  (*optR))
-  source := *optT + "/" + *optR
-  dest := *optD + "/r.fasta"
-  //<<Open source and destination files, Pr. \ref{pr:mfd}>>
-  //<<Copy source to destination, Pr. \ref{pr:mfd}>>
-  //<<Close source and destination files, Pr. \ref{pr:mfd}>>
+  rep := *optT + "/" + *optR
+  //<<Store $r$, Pr. \ref{pr:mfd}>>
+  //<<Write $r$, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
 By default, the target representative is the shortest target
@@ -412,6 +428,7 @@ lengths.
   p := *optT + "/" + target
   f, err := os.Open(p)
   util.Check(err)
+  defer f.Close()
   sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  l += len(sc.Sequence().Data())
@@ -424,35 +441,35 @@ We import \ty{fasta}.
   "github.com/evolbioinf/fasta"
 #+end_src
 #+begin_export latex
-We open the source file for reading and create the destination file
-for writing.
+We open the file containing $r$, iterate over its sequences, clean
+them, and store them.
 #+end_export
-#+begin_src go <<Open source and destination files, Pr. \ref{pr:mfd}>>=
-  r, err := os.Open(source)
+#+begin_src go <<Store $r$, Pr. \ref{pr:mfd}>>=
+  f, err = os.Open(rep)
   util.Check(err)
-  w, err := os.Create(dest)
-  util.Check(err)
-#+end_src
-#+begin_export latex
-We scan the sequences of the target representative. Each sequence is
-converted to upper case, purged of characters other than the four
-canonical nucleotides, \ty{A}, \ty{C}, \ty{G}, or \ty{T} unless the
-user opted to keep them, and the header is reduced to the first token,
-usually the accession. Then the sequence is added to the destination
-file.
-#+end_export
-#+begin_src go <<Copy source to destination, Pr. \ref{pr:mfd}>>=
-  sc := fasta.NewScanner(r)
+  defer f.Close()
+  var repSeqs []*fasta.Sequence
+  sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  seq := sc.Sequence()
-	  d := bytes.ToUpper(seq.Data())
-	  if !*optK {
-		  //<<Remove non-canonical residues, Pr. \ref{pr:mfd}>>
-	  }
-	  header := strings.Fields(seq.Header())[0]
-	  seq = fasta.NewSequence(header, d)
-	  fmt.Fprintf(w, "%s\n", seq)
+	  //<<Clean sequence, Pr. \ref{pr:mfd}>>
+	  repSeqs = append(repSeqs, seq)
   }
+#+end_src
+#+begin_export latex
+Cleaning consists of setting the sequence data to upper case. We also
+remove non-canonical nucleotides, unless the user opted to keep
+them. In the last cleaning step we reduce the header to the first
+token, usually the accession. This ensures that there are no blanks in
+the names of the sequences later passed to Blast.
+#+end_export
+#+begin_src go <<Clean sequence, Pr. \ref{pr:mfd}>>=
+  d := bytes.ToUpper(seq.Data())
+  if !*optK {
+	  //<<Remove non-canonical nucleotides, Pr. \ref{pr:mfd}>>
+  }
+  h := strings.Fields(seq.Header())[0]
+  seq = fasta.NewSequence(h, d)
 #+end_src
 #+begin_export latex
 We import \ty{bytes} and \ty{strings}.
@@ -462,16 +479,9 @@ We import \ty{bytes} and \ty{strings}.
   "strings"
 #+end_src
 #+begin_export latex
-We close the source and destination files again.
-#+end_export
-#+begin_src go <<Close source and destination files, Pr. \ref{pr:mfd}>>=
-  r.Close()
-  w.Close()
-#+end_src
-#+begin_export latex
 We remove the non-canonical bases using reslicing.
 #+end_export
-#+begin_src go <<Remove non-canonical residues, Pr. \ref{pr:mfd}>>=
+#+begin_src go <<Remove non-canonical nucleotides, Pr. \ref{pr:mfd}>>=
   i := 0
   for _, c := range d {
 	  if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
@@ -482,60 +492,16 @@ We remove the non-canonical bases using reslicing.
   d = d[:i]
 #+end_src
 #+begin_export latex
-\subsection{Index of the Target Representative, \ty{r.idx}}
-The ESA of $r$ functions later on as the index into the target
-representative. We calculate this ESA and write it to the file
-\ty{r.idx}.
+We write $r$ to \ty{r.fasta}.
 #+end_export
-#+begin_src go <<Write ESA of $r$ to \ty{r.idx}, Pr. \ref{pr:mfd}>>=
-  //<<Calculate ESA of $r$, Pr. \ref{pr:mfd}>>
-  //<<Write ESA to \ty{r.idx}, Pr. \ref{pr:mfd}>>
-#+end_src
-#+begin_export latex
-We concatenate the sequences of the target rep and calculate their
-ESA.
-#+end_export
-#+begin_src go <<Calculate ESA of $r$, Pr. \ref{pr:mfd}>>=
-  var d []byte
-  f, err = os.Open(*optD + "/r.fasta")
+#+begin_src go <<Write $r$, Pr. \ref{pr:mfd}>>=
+  dest := *optD + "/r.fasta"
+  w, err := os.Create(dest)
   util.Check(err)
-  defer f.Close()
-  sc = fasta.NewScanner(f)
-  for sc.ScanSequence() {
-	  s := sc.Sequence().Data()
-	  d = append(d, s...)
+  defer w.Close()
+  for _, repSeq := range repSeqs {
+	  fmt.Fprintf(w, "%s\n", repSeq)
   }
-  es := esa.MakeEsa(d)
-#+end_src
-#+begin_export latex
-We import \ty{esa}.
-#+end_export
-#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
-  "github.com/evolbioinf/esa"
-#+end_src
-#+begin_export latex
-To maximize efficiency, we encode the ESA as a gob before writing it
-to file.
-#+end_export
-#+begin_src go <<Write ESA to \ty{r.idx}, Pr. \ref{pr:mfd}>>=
-  var buf bytes.Buffer
-  enc := gob.NewEncoder(&buf)
-  err = enc.Encode(es)
-  util.Check(err)
-  f, err = os.Create(*optD + "/r.idx")
-  util.Check(err)
-  defer f.Close()
-  writer := bufio.NewWriter(f)
-  writer.Write(buf.Bytes())
-  err = writer.Flush()
-  util.Check(err)
-#+end_src
-#+begin_export latex
-We import \ty{gob} and \ty{bufio}.
-#+end_export
-#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
-  "encoding/gob"
-  "bufio"
 #+end_src
 #+begin_export latex
 \subsection{Target Directory, \ty{t/}}
@@ -554,6 +520,294 @@ inside the database.
 	  util.Check(err)
 	  err = os.WriteFile(dest, sd, 0666)
   }
+#+end_src
+#+begin_export latex
+\subsection{Match Ends, \ty{e.fasta}}
+The match ends are calculated from the ESA of $r$
+(Algorithm~\ref{alg:nml}, line 1). The ESA is used to calculate the
+match lengths between $r$ and the neighbors by streaming the neighbors
+against $r$ (Algorithm~\ref{alg:nml}, lines 2--14). We convert these
+match lengths to match ends and write them to file.
+\begin{algorithm}
+  \caption{Computing match lengths between $r$ and neighborhood.}\label{alg:nml}
+  \begin{algorithmic}[1]
+    \input{../makeFurDb/newMlAlg}
+  \end{algorithmic}
+\end{algorithm}
+#+end_export
+#+begin_src go <<Write match ends to \ty{e.fasta}, Pr. \ref{pr:mfd}>>=
+  //<<Calculate ESA of $r$, Pr. \ref{pr:mfd}>>
+  //<<Calculate match lengths, Pr. \ref{pr:mfd}>>
+  //<<Convert match lengths to match ends, Pr. \ref{pr:mfd}>>
+  //<<Write match ends, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We concatenate the sequences of the target rep and calculate the ESA
+of the resulting single sequence.
+#+end_export
+#+begin_src go <<Calculate ESA of $r$, Pr. \ref{pr:mfd}>>=
+  var r []byte
+  for _, repSeq := range repSeqs {
+	  r = append(r, repSeq.Data()...)
+  }
+  resa := esa.MakeEsa(r)
+#+end_src
+#+begin_export latex
+We import \ty{esa}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
+  "github.com/evolbioinf/esa"
+#+end_src
+#+begin_export latex
+The match lengths are calculated by streaming all neighbor sequences
+against the ESA of $r$. We distribute the streaming work along sets of
+neighbor files, which we construct first. Then we concurrently stream
+the sets of neighbor sequences against the target representative. For
+this we use the concurrency pattern based on a \ty{sync.WaitGroup},
+which we can think of as a counter of working goroutines
+\cite[p. 237ff]{don16:go}. This concurrency pattern is built from a
+channel and a \ty{WaitGroup}, both of which we initialize outside of
+the loop in which we spawn the goroutines. The channel,
+\ty{matchLengths}, allows us to pass a slice of match lengths out of
+the goroutine in which it was filled in. Inside the loop we increment
+the counter of the working goroutines and construct the goroutine for
+streaming. After the loop, we construct the closer and iterator that
+are also part of the \ty{WaitGroup} concurrency pattern, as
+illustrated in Figure~8.5 of \cite[p. 239]{don16:go}.
+
+The results of the myriad matching operations need to be merged at the
+end to get the desired match lengths.
+#+end_export
+#+begin_src go <<Calculate match lengths, Pr. \ref{pr:mfd}>>=
+  neighborNameSets := make([][]string, 0)
+  //<<Construct neighbor name sets, Pr. \ref{pr:mfd}>>
+  matchLengths := make(chan []int)
+  var wg sync.WaitGroup
+  for _, neighborNames := range neighborNameSets {
+	  wg.Add(1)
+	  //<<Goroutine for streaming, Pr. \ref{pr:mfd}>>
+  }
+  //<<Streaming closer, Pr. \ref{pr:mfd}>>
+  //<<Streaming iterator, Pr. \ref{pr:mfd}>>
+  //<<Merge match lengths, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We import \ty{sync}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
+  "sync"
+#+end_src
+#+begin_export latex
+Given $n$ neighbor files and $T$ threads, we construct a slice of file
+names and split it into slices of length $\ell=n/T$.
+#+end_export
+#+begin_src go <<Construct neighbor name sets, Pr. \ref{pr:mfd}>>=
+  n := len(neighbors)
+  length := int(math.Ceil(float64(n)/float64(*optTT)))
+  names := make([]string, n)
+  //<<Construct names slice, Pr. \ref{pr:mfd}>>
+  start := 0
+  end := length
+  //<<Split names, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We import \ty{math}.
+#+end_export
+#+begin_src go <<Import, Pr. \ref{pr:mfd}>>=
+  "math"
+#+end_src
+#+begin_export latex
+We split the names into slices of length $\ell$ and make sure we also
+include the remaining names.
+#+end_export
+#+begin_src go <<Split names, Pr. \ref{pr:mfd}>>=
+  for start < n && end <= n {
+	  neighborNameSets = append(neighborNameSets,
+		  names[start:end])
+	  start = end
+	  end += length
+  }
+  if end < n {
+	  neighborNameSets = append(neighborNameSets,
+		  names[start:])
+  }
+#+end_src
+#+begin_export latex
+We iterate over the names of neighbor files. The order in which we do
+this is random, which is a good thing as files might be initially be
+ordered by size. Such an ordering would unbalance the load of the
+threads for streaming.
+#+end_export
+#+begin_src go <<Construct names slice, Pr. \ref{pr:mfd}>>=
+  k := 0
+  for name, _ := range neighbors {
+	  names[k] = name
+	  k++
+  }
+#+end_src
+#+begin_export latex
+We pass the current set of neighbor names to the goroutine. Inside the
+routine, we make sure its eventual end is signaled to the
+\ty{WaitGroup}. We also allocate space for the match lengths, stream
+the neighbors against $r$, and pass the resulting match lengths along
+the channel.
+#+end_export
+#+begin_src go <<Goroutine for streaming, Pr. \ref{pr:mfd}>>=
+  go func(neighborNames []string) {
+	  defer wg.Done()
+	  ml := make([]int, len(resa.T))
+	  //<<Stream neighbors against $r$, Pr. \ref{pr:mfd}>>
+	  matchLengths <- ml
+  }(neighborNames)
+#+end_src
+#+begin_export latex
+In the streaming step we iterate over the neighbor files. For each
+file, we iterate over the sequences it contains, as shown in line 2 of
+Algorithm~\ref{alg:nml}.
+#+end_export
+#+begin_src go <<Stream neighbors against $r$, Pr. \ref{pr:mfd}>>=
+  for _, neighbor := range neighborNames {
+	  p := *optN + "/" + neighbor
+	  f, err := os.Open(p)
+	  util.Check(err)
+	  defer f.Close()
+	  //<<Interate over neighbor sequences, Pr. \ref{pr:mfd}>>
+  }
+#+end_src
+#+begin_export latex
+For each neighbor sequence, we stream the forward and the reverse
+strand against $r$ by calling the function \ty{streamSeq}.
+#+end_export
+#+begin_src go <<Interate over neighbor sequences, Pr. \ref{pr:mfd}>>=
+  sc := fasta.NewScanner(f)
+  for sc.ScanSequence() {
+	  nei := sc.Sequence()
+	  streamSeq(nei.Data(), resa, ml)
+	  nei.ReverseComplement()
+	  streamSeq(nei.Data(), resa, ml)
+  }
+#+end_src
+#+begin_export latex
+Inside the function \ty{streamSeq} we match successive prefixes of the
+current neighbor sequence, $n_i$, against $r$. As stated in line 5 of
+Algorithm~\ref{alg:nml}, matching is carried out by calls to the
+function \ty{MatchPrefix}, which is a method of the ESA of $r$. This
+method returns an interval of the lcp-interval tree implied by the
+ESA. The interval consists of a triplet of numbers, the length of the
+match, $\ell$, and the start and end of the interval in the suffix
+array. Each element of the interval represents a match position, $p$
+in $r$. If we that match is longer than the previous longest, we store
+it as shown in lines 7--9 of Algorithm~\ref{alg:nml}. Then we move
+forward one position and repeat.
+
+In earlier versions of this algorithm I skipped forward by the length
+of the match. This speeds up the program but drastically reduces the
+accuracy of the first subtraction. Perhaps some compromise like
+skipping half the match can be found in the future.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:mfd}>>=
+  func streamSeq(ni []byte, resa *esa.Esa, ml []int) {
+	  for j := 0; j < len(ni); j++ {
+		  m := resa.MatchPref(ni[j:])
+		  for k := m.I; k <= m.J; k++ {
+			  p := resa.Sa[k]
+			  if ml[p] < m.L {
+				  ml[p] = m.L
+			  }
+		  }
+	  }
+  }
+#+end_src
+#+begin_export latex
+In the closer we wait until all working goroutines have finished and
+then close the channel for passing match
+lengths~\cite[p. 238]{don16:go}.
+#+end_export
+#+begin_src go <<Streaming closer, Pr. \ref{pr:mfd}>>=
+  go func() {
+	  wg.Wait()
+	  close(matchLengths)
+  }()
+#+end_src
+#+begin_export latex
+The iterator that drives the goroutines picks match lengths off the
+channel, which we combine into a master slice of match lengths.
+#+end_export
+#+begin_src go <<Streaming iterator, Pr. \ref{pr:mfd}>>=
+  ml := make([]int, len(resa.T))
+  for mls := range matchLengths {
+	  for i, l := range mls {
+		  if ml[i] < l {
+			  ml[i] = l
+		  }
+	  }
+  }
+#+end_src
+#+begin_export latex
+The match lengths we've now recorded in $\mathrm{ml}$ are lengths of
+matches in $r$ noted at their starting positions. We merge these match
+lengths by also entering the implied lengths, i. e. we make sure that
+\[
+\mbox{ml}[i]\ge\mbox{ml}[i-1]-1
+\]
+We also make sure that the minimum match length is 1, which means we
+always advance when skipping across match factors.
+#+end_export
+#+begin_src go <<Merge match lengths, Pr. \ref{pr:mfd}>>=
+  if ml[0] == 0 {
+	  ml[0] = 1
+  }
+  for i := 1; i < len(ml); i++ {
+	  if ml[i] < ml[i-1] - 1 {
+		  ml[i] = ml[i-1] - 1
+	  }
+	  if ml[i] <= 0 {
+		  ml[i] = 1
+	  }
+  }
+#+end_src
+#+begin_export latex
+We convert the match lengths to match ends by noting the match ends
+implied by the match lengths as \ty{1}, all other positions as \ty{0}.
+#+end_export
+#+begin_src go <<Convert match lengths to match ends, Pr. \ref{pr:mfd}>>=
+  ends := make([]byte, len(resa.T))
+  for i := 0; i < len(resa.T); i++ {
+	  ends[i] = '0'
+  }
+  for i := 0; i < len(resa.T); {
+	  p := i + ml[i] - 1
+	  ends[p] = '1'
+	  i += ml[i]
+  }
+#+end_src
+#+begin_export latex
+We iterate over the sequences that make up $r$ and write the
+corresponding sequences of zeros and ones.
+#+end_export
+#+begin_src go <<Write match ends, Pr. \ref{pr:mfd}>>=
+  f, err = os.Create(*optD + "/e.fasta")
+  util.Check(err)
+  defer f.Close()
+  start = 0
+  for _, repSeq := range repSeqs {
+	  //<<Create end sequence, Pr. \ref{pr:mfd}>>
+	  //<<Write end sequence, Pr. \ref{pr:mfd}>>
+  }
+#+end_src
+#+begin_export latex
+The end sequence has the length of the current sequence from $r$.
+#+end_export
+#+begin_src go <<Create end sequence, Pr. \ref{pr:mfd}>>=
+  end := start + len(repSeq.Data())
+  eseq := fasta.NewSequence(repSeq.Header(), ends[start:end])
+  start = end
+#+end_src
+#+begin_export latex
+We write the new sequence of ends to file.
+#+end_export
+#+begin_src go <<Write end sequence, Pr. \ref{pr:mfd}>>=
+  fmt.Fprintf(f, "%s\n", eseq)
 #+end_src
 #+begin_export latex
 \subsection{Blast Database of Neighbors, \ty{n}}
@@ -687,16 +941,16 @@ representative.
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
-We run a test and compare the result we get, that is, the index file
-\ty{r.idx}, with the results we want, which are stored in the files
-\ty{r1.idx} and \ty{r2.idx}.
+We run a test and compare the result we get, that is, the ends file
+\ty{e.fasta}, with the results we want, which are stored in the files
+\ty{r1.txt} and \ty{r2.txt}.
 #+end_export
 #+begin_src go <<Run test, Pr. \ref{pr:mfd}>>=
   _, err := test.Output()
   if err != nil { t.Error(err) }
-  get, err := os.ReadFile(d + "/r.idx")
+  get, err := os.ReadFile(d + "/e.fasta")
   if err != nil { t.Error(err) }
-  f := "r" + strconv.Itoa(i+1) + ".idx"
+  f := "r" + strconv.Itoa(i+1) + ".txt"
   want, err := os.ReadFile(f)
   if err != nil { t.Error(err) }
   if !bytes.Equal(get, want) {
