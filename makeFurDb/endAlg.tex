@@ -1,0 +1,17 @@
+\REQUIRE $\mbox{ml}$ \COMMENT{array of match lengths along $r$}
+\ENSURE  $\mbox{en}$ \COMMENT{array of match ends along $r$}
+\FOR{$i\leftarrow 2$ to $|r|$}
+   \STATE{$\ell\leftarrow\mbox{ml}[i-1]-1$}
+   \IF{$\mbox{ml}[i] < \ell$}
+      \STATE{$\mbox{ml}[i]\leftarrow\ell$}
+   \ENDIF
+\ENDFOR
+\STATE{$i\leftarrow 1$}
+\WHILE{$i\le |r|$}
+   \STATE{$\ell\leftarrow\mbox{ml}[i]$}
+   \FOR{$j\leftarrow i$ to $j+\ell-2$}
+      \STATE{$\mbox{en}[j]\leftarrow 0$}
+   \ENDFOR
+   \STATE{$\mbox{en}[j+\ell-1]\leftarrow 1$}
+   \STATE{$i\leftarrow i + \ell$}
+\ENDWHILE

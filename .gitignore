@@ -40,5 +40,8 @@ madis/madis
 makeFurDb/makeFurDb
 prim2fasta/prim2fasta
 
-
-
+# Data files and figures
+makeFurDb/memory.dat
+makeFurDb/memory.ps
+makeFurDb/time.dat
+makeFurDb/time.ps

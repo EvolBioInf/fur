@@ -25,15 +25,15 @@ against $n_1$ to get the match factor
 \[
 r[1..4]=n_1[6..9]=\ty{AAAT}.
 \]
-Then we delete the matched prefix from $r$ to get $r=\ty{AATATT}$ and
-repeat to find the two remaining match factors \ty{AAT} and
-\ty{ATT}. When analyzing real data, $r$ and the elements of $N$ can
-have any size and we include the reverse complement of $N$.
+Then we delete the match from $r$ to get $r=\ty{AATATT}$, and repeat
+to find the two remaining match factors \ty{AAT} and \ty{ATT}. When
+analyzing real data, $r$ and the elements of $N$ can have any size and
+we also match the reverse complement of $r$.
 
-Real genome assemblies may also be scattered across many short
-contigs. To prevent the computation of a suffix array for each of
-them, we aggregate nucleotides from multiple contigs into pseudo
-contigs of some minimal length, say 10 Mb.
+Real genome assemblies may be scattered across many short contigs. To
+prevent the computation of a suffix array for each of them, we
+aggregate nucleotides from multiple contigs into pseudo contigs of
+some minimal length, say 10 Mb.
 
 The rationale of our matching step is that regions in $r$ with short
 matches are absent from $N$. For neighborhoods with more than one
@@ -47,40 +47,60 @@ where
 n_2=\ty{TAATAATATT}.
 \]
 Again, we match $r$ against $n_1$ as described, only this time we also
-save the match lengths at their start positions in the array $l$,
+save the match lengths at their start positions in the array $\mbox{ml}$,
 which is initialized to zero. So after the first round of matching we
 have
 \begin{center}
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $l$ & 4 & 0 & 0 & 0 & 3 & 0 & 0 & 3 & 0 & 0
+    $\mbox{ml}$ & 4 & 0 & 0 & 0 & 3 & 0 & 0 & 3 & 0 & 0
   \end{tabular}
 \end{center}
 
 When we match $r$ against $n_2$, we find the match factors \ty{AA} and
 \ty{ATAATATT} of lengths 2 and 8. We consider the length of each
-factor. If it is larger than the corresponding entry in $l$, we update
-$l$. So in our example we don't update $l[1]=4$, because $4>2$, but we
-do update $l[3]\leftarrow 8$ to get
+factor. If it is larger than the corresponding entry in $\mbox{ml}$,
+we update the entry. So in our example we don't update
+$\mbox{ml}[1]=4$, because $4>2$, but we do update
+$\mbox{ml}[3]\leftarrow 8$ to get
 \begin{center}
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $l$ & 4 & 0 & 8 & 0 & 3 & 0 & 0 & 3 & 0 & 0
+    $\mbox{ml}$ & 4 & 0 & 8 & 0 & 3 & 0 & 0 & 3 & 0 & 0
   \end{tabular}
 \end{center}
 
-For each comparison between $r$ and $n_i$, a new suffix array is
-constructed for $n_i$ and discarded after the comparison. Once we've
-compared $r$ to each neighbor sequence, we merge the results from the
-separate scans by traversing $l$ and entering at each position the
-implied maximal match length.
+For each comparison between $r$ and $n_i$, a new enhanced suffix array
+is constructed for $n_i$. Algorithm~\ref{alg:ml} summarizes the
+computation of match lengths.
+\begin{algorithm}
+  \caption{Computing match lengths between $r$ and
+    neighborhood.}\label{alg:ml}
+  \begin{algorithmic}[1]
+    \input{../makeFurDb/mlAlg}
+  \end{algorithmic}
+\end{algorithm}
+
+Once we've compared $r$ to each neighbor
+sequence, we merge the results from the separate scans by traversing
+$\mbox{ml}$ and entering at each position the implied maximal match
+length. The implied match length is one less than the entry to its
+left, unless the current entry is greater. Lines 1--4 of
+Algorithm~\ref{alg:en} summarize the computation of the implied match
+lengths. For our example we get,
+\begin{algorithm}
+  \caption{Converting match lengths to end positions.}\label{alg:en}
+  \begin{algorithmic}[1]
+    \input{../makeFurDb/endAlg}
+  \end{algorithmic}
+\end{algorithm}
 \begin{center}
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $l$ & 4 & 3 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1
+    $\mbox{ml}$ & 4 & 3 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1
   \end{tabular}
 \end{center}
 
@@ -92,23 +112,24 @@ have two match factors when comparing $r$ to $N$.
 Instead of the total number of match factors, we are usually more
 interested in the local density of match factors. This is quantified
 in \ty{fur} through a sliding window analysis. To simplify the sliding
-window analysis, we construct an array of end positions, $e[i]=1$ if a
-match ends at $i$, $e[i]=0$ otherwise. So we have,
+window analysis, we construct an array of end positions, $\mbox{en}[i]=1$ if a
+match ends at $i$, $\mbox{en}[i]=0$ otherwise, as summarized in lines
+6--11 of Algorithm~\ref{alg:en}. So in our example we have,
 \begin{center}
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $l$ & 4 & 3 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1\\
-    $e$ & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 1
+    $\mbox{ml}$ & 4 & 3 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1\\
+    $\mbox{en}$ & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 1
   \end{tabular}
 \end{center}
 
-The array $e$ is now ready to being subjected to a sliding window
-analysis with \ty{fur} to discover the regions with a high density of
-match factors, which are the regions in $r$ absent from $N$. The
-strategy for this is described in the Introduction and summarized
-there in steps~(\ref{eq:fur1}) to (\ref{eq:fur3}). To enable \ty{fur}
-to carry out these steps, \ty{makeFurDb} constructs a directory, or
+The array $\mbox{en}$ is now ready for the sliding window analysis
+with \ty{fur} to discover the regions with a high density of match
+factors, which are the regions in $r$ absent from $N$. The strategy
+for this is described in the Introduction and summarized there in
+steps~(\ref{eq:fur1}) to (\ref{eq:fur3}). To enable \ty{fur} to carry
+out these steps, \ty{makeFurDb} constructs a directory, or
 ``database'', that contains six elements,
 \begin{enumerate}
 \item a file containing the program version, \ty{v.txt}
@@ -130,9 +151,8 @@ processed by the first thread, the other half by the second. Once the
 threads are finished, the match lengths from each thread are merged.
 
 \section{Implementation}
-Our outline of \ty{makeFurDb} contains hooks for imports, variables,
-functions, and the logic of the main function.
-\bpr{makeFurDb}{pr:mfd}
+Our outline of \ty{makeFurDb} contains hooks for imports, functions,
+and the logic of the main function.  \bpr{makeFurDb}{pr:mfd}
 #+end_export
 #+begin_src go <<makeFurDb.go>>=
   package main
@@ -140,7 +160,6 @@ functions, and the logic of the main function.
   import (
 	  //<<Imports, Pr. \ref{pr:mfd}>>
   )
-  //<<Variables, Pr. \ref{pr:mfd}>>
   //<<Functions, Pr. \ref{pr:mfd}>>
   func main() {
 	  //<<Main function, Pr. \ref{pr:mfd}>>
@@ -169,14 +188,13 @@ We prepare error handling by calling the utility function
   We declare options for printing the version, for picking the
   directories holding the targets, the neighbors, and the database, for
   picking the target representative, for allowing an existing database
-  to be overwritten, for analyzing only the forward strand, and for
-  setting the number of threads. By default, the number of threads is
-  set to the number of logical CPUs available on the system, which
-  should make \ty{makeFurDb} as fast as possible. However, the memory
-  consumption of \ty{makeFurDb} also grows with the number of threads,
-  and there might not be enough memory to run on all logical CPUs. So
-  the user can trade speed for memory and opt for a smaller number of
-  threads.
+  to be overwritten, and for setting the number of threads. By default,
+  the number of threads is set to the number of logical CPUs available
+  on the system, which should make \ty{makeFurDb} as fast as
+  possible. However, the memory consumption of \ty{makeFurDb} also grows
+  with the number of threads, and there might not be enough memory to
+  run on all logical CPUs. So the user can trade speed for memory and
+  opt for a smaller number of threads.
 #+end_src
 #+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
   optV := flag.Bool("v", false, "version")
@@ -186,7 +204,6 @@ We prepare error handling by calling the utility function
   optR := flag.String("r", "", "target representative " +
 	  "(default shortest)")
   optO := flag.Bool("o", false, "overwrite existing database")
-  optF := flag.Bool("f", false, "forward strand only")
   optTT := flag.Int("T", 0, "threads (default all processors)")
 #+end_src
 #+begin_src latex
@@ -194,6 +211,21 @@ We prepare error handling by calling the utility function
 #+end_src
 #+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
   "flag"
+#+end_src
+#+begin_export latex
+By default \ty{makeFurDb} sets sequence data to upper case and then
+removes any character that isn't \ty{A}, \ty{C}, \ty{G}, or \ty{T}. In
+most cases these non-canonical nucleotides are stretches of \ty{N}s,
+which cannot be used in primer design, the original purpose of Fur.
+
+The disadvantage of removing non-canonical nucleotides is that this
+leads to differences between the coordinates in \ty{r.fasta} and its
+original. Annotations like genes are given with respect to this
+original. To preserve their correctness, we also add an option of
+keeping non-canonical nucleotides.
+#+end_export
+#+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
+  optK := flag.Bool("k", false, "keep non-canonical nucleotides")
 #+end_src
 #+begin_export latex
 The usage consists of three parts, the actual usage message, an
@@ -482,8 +514,7 @@ write the version to it, and close it again.
 \subsection{Target Representative, \ty{r.fasta}}
 If the user didn't set a target representative, we need to pick
 one. In any case, we report which target is used as
-representative. Then we copy the target representative to \ty{r.fasta}
-inside the database and close the files again.
+representative. Then we read the target representative and write it.'
 #+end_export
 #+begin_src go <<Write target representative to \ty{r.fasta}, Pr. \ref{pr:mfd}>>=
   if *optR == "" {
@@ -491,11 +522,8 @@ inside the database and close the files again.
   }
   fmt.Fprintf(os.Stderr, "using %s as target representative\n",
 	  (*optR))
-  source := *optT + "/" + *optR
-  dest := *optD + "/r.fasta"
-  //<<Open source and destination files, Pr. \ref{pr:mfd}>>
-  //<<Copy source to destination, Pr. \ref{pr:mfd}>>
-  //<<Close source and destination files, Pr. \ref{pr:mfd}>>
+  //<<Read target representative, Pr. \ref{pr:mfd}>>
+  //<<Write target representative, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
 By default, the target representative is the shortest target
@@ -531,6 +559,7 @@ lengths.
   p := *optT + "/" + target
   f, err := os.Open(p)
   util.Check(err)
+  defer f.Close()
   sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  l += len(sc.Sequence().Data())
@@ -543,32 +572,37 @@ We import \ty{fasta}.
   "github.com/evolbioinf/fasta"
 #+end_src
 #+begin_export latex
-We open the source file for reading and create the destination file
-for writing.
+We reserve space for the forward and reverse strands of the sequences
+that make up the target representative. Then we iterate over the
+sequences, clean, and store them.
 #+end_export
-#+begin_src go <<Open source and destination files, Pr. \ref{pr:mfd}>>=
-  r, err := os.Open(source)
+#+begin_src go <<Read target representative, Pr. \ref{pr:mfd}>>=
+  var repSeqs, revRepSeqs []*fasta.Sequence
+  p = *optT + "/" + *optR
+  f , err = os.Open(p)
   util.Check(err)
-  w, err := os.Create(dest)
-  util.Check(err)
-#+end_src
-#+begin_export latex
-We scan the sequences of the target representative. Each sequence is
-converted to upper case, purged of characters other than the four
-canonical nucleotides, \ty{A}, \ty{C}, \ty{G}, or \ty{T}, and the
-header is reduced to the first token, usually the accession. Then the
-sequence is added to the destination file.
-#+end_export
-#+begin_src go <<Copy source to destination, Pr. \ref{pr:mfd}>>=
-  sc := fasta.NewScanner(r)
+  defer f.Close()
+  sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  seq := sc.Sequence()
-	  d := bytes.ToUpper(seq.Data())
-	  //<<Remove non-canonical residues, Pr. \ref{pr:mfd}>>
-	  header := strings.Fields(seq.Header())[0]
-	  seq = fasta.NewSequence(header, d)
-	  fmt.Fprintf(w, "%s\n", seq)
+	  //<<Clean sequence, Pr. \ref{pr:mfd}>>
+	  //<<Store sequence, Pr. \ref{pr:mfd}>>
   }
+#+end_src
+#+begin_export latex
+Cleaning consists of setting the sequence data to upper case. We also
+remove non-canonical nucleotides, unless the user opted to keep
+them. In the last cleaning step we reduce the header to the first
+token, usually the accession. This ensures that there are no blanks in
+the names of the sequences later passed to Blast.
+#+end_export
+#+begin_src go <<Clean sequence, Pr. \ref{pr:mfd}>>=
+  d := bytes.ToUpper(seq.Data())
+  if !*optK {
+	  //<<Remove non-canonical nucleotides, Pr. \ref{pr:mfd}>>
+  }
+  h := strings.Fields(seq.Header())[0]
+  seq = fasta.NewSequence(h, d)
 #+end_src
 #+begin_export latex
 We import \ty{bytes} and \ty{strings}.
@@ -578,16 +612,9 @@ We import \ty{bytes} and \ty{strings}.
   "strings"
 #+end_src
 #+begin_export latex
-We close the source and destination files again.
-#+end_export
-#+begin_src go <<Close source and destination files, Pr. \ref{pr:mfd}>>=
-  r.Close()
-  w.Close()
-#+end_src
-#+begin_export latex
 We remove the non-canonical bases using reslicing.
 #+end_export
-#+begin_src go <<Remove non-canonical residues, Pr. \ref{pr:mfd}>>=
+#+begin_src go <<Remove non-canonical nucleotides, Pr. \ref{pr:mfd}>>=
   i := 0
   for _, c := range d {
 	  if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
@@ -596,6 +623,27 @@ We remove the non-canonical bases using reslicing.
 	  }
   }
   d = d[:i]
+#+end_src
+#+begin_export latex
+We store the forward strand, construct the reverse strand from it, and
+store that, too.
+#+end_export
+#+begin_src go <<Store sequence, Pr. \ref{pr:mfd}>>=
+  repSeqs = append(repSeqs, seq)
+  seq = fasta.NewSequence(seq.Header(), seq.Data())
+  seq.ReverseComplement()
+  revRepSeqs = append(revRepSeqs, seq)
+#+end_src
+#+begin_export latex
+We write the target representative to \ty{r.fasta}.
+#+end_export
+#+begin_src go <<Write target representative, Pr. \ref{pr:mfd}>>=
+  f, err = os.Create(*optD + "/r.fasta")
+  util.Check(err)
+  defer f.Close()
+  for _, repSeq := range repSeqs {
+	  fmt.Fprintf(f, "%s\n", repSeq)
+  }
 #+end_src
 #+begin_export latex
 \subsection{Target Directory, \ty{t/}}
@@ -644,17 +692,20 @@ are converted to match ends and written to file.
   //<<Write match ends, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
-We open the target rep file inside the database, store the sequences
-it contains, and close the file again.
+We open the target rep file inside the database, store the forward and
+reverse strands of sequences it contains, and close the file again.
 #+end_export
 #+begin_src go <<Read sequences of target rep, Pr. \ref{pr:mfd}>>=
   f, err = os.Open(*optD + "/r.fasta")
   util.Check(err)
+  var targetSeqs, revTargetSeqs []*fasta.Sequence
   sc = fasta.NewScanner(f)
-  var targetSeqs []*fasta.Sequence
   for sc.ScanSequence() {
 	  s := sc.Sequence()
 	  targetSeqs = append(targetSeqs, s)
+	  s = fasta.NewSequence(s.Header(), s.Data())
+	  s.ReverseComplement()
+	  revTargetSeqs = append(revTargetSeqs, s)
   }
   f.Close()
 #+end_src
@@ -813,16 +864,42 @@ nucleotides. Inside the loop we scan a sequence and append it.
   }
 #+end_src
 #+begin_export latex
-The forward strand, which we convert to upper case, is always included
-in the analysis. And unless the user opted for forward only, we also
-include the reverse strand, which we construct with the new function
-\ty{revComp}.
+We convert the current neighbor sequence do upper case and convert it
+to the corresponding enhanced suffix array. We have a choice here
+between calculating the ESA from the forward and reverse strand, in
+which case we stream only the forward strand of the target rep, or
+calculating the ESA just from the forward strand, in which case we
+stream both the forward and the reverse strand of the target rep.
+
+To chose between these two scenarios, I wrote the program
+\ty{testStream} that reads an input sequence of arbitrary length. It
+then computes the ESA from that sequence and streams a random sequence
+of identical length against that ESA, moving in steps of matching
+prefixes. The ESA is either computed from the forward strand only, in
+which case the forward and reverse strand of the second sequence is
+streamed against it, or from the forward and reverse strand, in which
+case only the forward strand of the second sequence is streamed
+against the ESA.
+
+Figure~\ref{fig:ts}A shows that the ESA from forward only is
+approximately 50\% faster with sequence length 100 Mb. Even more
+significantly, the memory requirement of forward only is approximately
+80\% smaller with sequence length 100 Mb. So we calculate the ESA only
+from the forward strand, which we convert to upper case beforehand.
+
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{cc}
+      \textbf{A} & \textbf{B}\\
+      \includegraphics{../makeFurDb/time} &
+      \includegraphics{../makeFurDb/memory}
+    \end{tabular}
+  \end{center}
+  \caption{}\label{fig:ts}
+\end{figure}
 #+end_export
 #+begin_src go <<Construct enhanced suffix array, Pr. \ref{pr:mfd}>>=
   d = bytes.ToUpper(d)
-  if !*optF {
-	  d = append(d, revComp(d)...)
-  }
   e := esa.MakeEsa(d)
 #+end_src
 #+begin_export latex
@@ -832,89 +909,57 @@ We import \ty{esa}.
   "github.com/evolbioinf/esa"
 #+end_src
 #+begin_export latex
-In the function \ty{revComp} we first reverse the sequence, then
-complement it.
-#+end_export
-#+begin_src go <<Functions, Pr. \ref{pr:mfd}>>=
-  func revComp(s []byte) []byte {
-	  d := make([]byte, len(s))
-	  //<<Reverse sequence, Pr. \ref{pr:mfd}>>
-	  //<<Complement sequence, Pr. \ref{pr:mfd}>>
-	  return d
-  }
-#+end_src
-#+begin_export latex
-We reverse the sequence working from both ends adapting code from
-\cite[p. 86]{don16:go}.
-#+end_export
-#+begin_src go <<Reverse sequence, Pr. \ref{pr:mfd}>>=
-  for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-	  d[i], d[j] = s[j], s[i]
-  }
-#+end_src
-#+begin_export latex
-To complement the sequence, we use a dictionary, which we still need
-to construct.
-#+end_export
-#+begin_src go <<Complement sequence, Pr. \ref{pr:mfd}>>=
-  for i, v := range d {
-	  d[i] = dic[v]
-  }
-#+end_src
-#+begin_export latex
-The dictionary is constructed in an \ty{init} function, which is
-called at the start of the program and complements the four canonical
-nucleotides while leaving all other bytes unchanged.
-#+end_export
-#+begin_src go <<Functions, Pr. \ref{pr:mfd}>>=
-  func init() {
-	  f := []byte("ACGT")
-	  r := []byte("TGCA")
-	  dic = make([]byte, 256)
-	  for i, _ := range dic {
-		  dic[i] = byte(i)
-	  }
-	  for i , v := range f {
-		  dic[v] = r[i]
-	  }
-  }
-#+end_src
-#+begin_export latex
-We declare the dictionary as a global variable.
-#+end_export
-#+begin_src go <<Variables, Pr. \ref{pr:mfd}>>=
-  var dic []byte
-#+end_src
-#+begin_export latex
-We iterate over the sequences of the target rep. For each sequence, we
-create a new reference to its data and initialize the position to the
-beginning. Then we iterate over the sequence.
+We iterate over the sequences of the target rep. For each sequence we
+match the forward and the reverse strands by calling the function
+\ty{matchSeq}, which we still need to write.
 #+end_export
 #+begin_src go <<Stream target rep against enhanced suffix array, Pr. \ref{pr:mfd}>>=
   for i, targetSeq := range targetSeqs {
 	  d := targetSeq.Data()
-	  j := 0
-	  //<<Iterate over target sequence, Pr. \ref{pr:mfd}>>
+	  rev := false
+	  matchSeq(d, e, matchLengths[i], rev)
+	  d = revTargetSeqs[i].Data()
+	  rev = true
+	  matchSeq(d, e, matchLengths[i], rev)
   }
 #+end_src
 #+begin_export latex
-We match the prefixes of the target suffixes until we've traversed the
-entire target. The lengths of these matching prefixes are the data on
-which our method for finding unique regions rests. We store them at
-their starting positions, if that position is currently occupied by a
-smaller value. In that way, we end up with a record of the overall
-longest matches. It is possible that our current target suffix has no
-matching prefix. Then we still advance by one position, otherwise we'd
-we caught in an infinite loop.
+Inside \ty{matchSeq}, we traverse the sequence in steps of matching
+prefixes. Each match is analyzed and stored before we advance by its
+length.
 #+end_export
-#+begin_src go <<Iterate over target sequence, Pr. \ref{pr:mfd}>>=
-  for j < len(d) {
-	  iv := e.MatchPref(d[j:])
-	  if iv.L == 0 { iv.L = 1 }
-	  if matchLengths[i][j] < iv.L {
-		  matchLengths[i][j] = iv.L
+#+begin_src go <<Functions, Pr. \ref{pr:mfd}>>=
+  func matchSeq(d []byte, e *esa.Esa, ml []int, rev bool) {
+	  for i := 0; i < len(d); {
+		  match := e.MatchPref(d[i:])
+		  //<<Analyze match, Pr. \ref{pr:mfd}>>
+		  //<<Store match, Pr. \ref{pr:mfd}>>
+		  i += match.L
 	  }
-	  j += iv.L
+  }
+#+end_src
+#+begin_export latex
+It is possible that our current target suffix has no matching
+prefix. Then we still advance by one position, otherwise we'd we
+caught in an infinite loop.
+#+end_export
+#+begin_src go <<Analyze match, Pr. \ref{pr:mfd}>>=
+  if match.L == 0 {
+	  match.L = 1
+  }
+#+end_src
+#+begin_export latex
+All matches are stored by their starting positions with respect to the
+forward strand. If that position is currently occupied by a shorter
+match, we record the longer one.
+#+end_export
+#+begin_src go <<Store match, Pr. \ref{pr:mfd}>>=
+  p := i
+  if rev {
+	  p = len(d) - i - match.L
+  }
+  if ml[p] < match.L {
+	  ml[p] = match.L
   }
 #+end_src
 #+begin_export latex
@@ -979,7 +1024,7 @@ else.
 #+end_export
 #+begin_src go <<Convert match lengths to match ends, Pr. \ref{pr:mfd}>>=
   for _, ml := range matchLengths {
-	  for i := 0; i < len(ml); i++{
+	  for i := 0; i < len(ml); {
 		  m := ml[i]
 		  for j := 0; j < m-1; j++ {
 			  ml[i+j] = 0
@@ -1108,7 +1153,7 @@ We scan across the sequence data to count the residues.
 We write the number of nucleotides and the GC content to file.
 #+end_export
 #+begin_src go <<Write statistics of neighbors to \ty{n.txt}, Pr. \ref{pr:mfd}>>=
-  w, err = os.Create(*optD + "/n.txt")
+  w, err := os.Create(*optD + "/n.txt")
   util.Check(err)
   gc := float64(g) / float64(l)
   fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gc)
@@ -1172,19 +1217,11 @@ representative.
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
-In our third test we also restrict the analysis to the forward strand.
+In our third test and last test we also set the number of threads to 1.
 #+end_export
 #+begin_src go <<Construct tests, Pr. \ref{pr:mfd}>>=
   test = exec.Command(p, "-t", a, "-n", n, "-d", d, "-o",
-	  "-r", r, "-f")
-  tests = append(tests, test)
-#+end_src
-#+begin_export latex
-In our fourth and last test we also set the number of threads to 1.
-#+end_export
-#+begin_src go <<Construct tests, Pr. \ref{pr:mfd}>>=
-  test = exec.Command(p, "-t", a, "-n", n, "-d", d, "-o",
-	  "-r", r, "-f", "-T", "1")
+	  "-r", r, "-T", "1")
   tests = append(tests, test)
 #+end_src
 #+begin_export latex

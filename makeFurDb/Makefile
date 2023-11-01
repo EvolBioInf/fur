@@ -2,16 +2,26 @@ date = $(shell git log | grep Date | head -n 1 | sed -r 's/Date: +[A-Z][a-z]+ ([
 version = $(shell git describe)
 
 exe = makeFurDb
-all : $(exe)
+all: $(exe) time.ps memory.ps
 
 $(exe): $(exe).go
 	go build -ldflags "-X github.com/evolbioinf/fur/util.version=$(version) -X github.com/evolbioinf/fur/util.date=$(date)" $(exe).go
 $(exe).go: $(exe).org
 	awk -f ../scripts/preTangle.awk $(exe).org | bash ../scripts/org2nw | notangle -R$(exe).go | gofmt > $(exe).go
+time.ps: time.dat
+	plotLine -L -x "Sequence Length (Mb)" -y "Time (s)" -d "6cm,5cm" -p time.ps time.dat
+memory.ps: memory.dat
+	plotLine -L -x "Sequence Length (Mb)" -y "Memory (GB)" -d "6cm,5cm" -p memory.ps memory.dat
+time.dat: sim.dat
+	grep fr sim.dat    | awk '{print $$1, $$2, $$5}' >  time.dat
+	grep -v fr sim.dat | awk '{print $$1, $$2, $$5}' >> time.dat
+memory.dat: sim.dat
+	grep fr sim.dat    | awk '{print $$1, $$4/1e6, $$5}' >  memory.dat
+	grep -v fr sim.dat | awk '{print $$1, $$4/1e6, $$5}' >> memory.dat
 test: $(exe)_test.go
 	@go test
 $(exe)_test.go: $(exe).org
 	awk -f ../scripts/preTangle.awk $(exe).org | bash ../scripts/org2nw | notangle -R$(exe)_test.go | gofmt > $(exe)_test.go	
 clean:
-	rm -f *.go
+	rm -f *.go time.dat memory.dat
 

@@ -1,0 +1,14 @@
+\REQUIRE $r$ \COMMENT{target representative}
+\REQUIRE $N=\{n_1,n_2,...,n_m\}$ \COMMENT{set of $m$ neighbor sequences}
+\ENSURE $\mbox{ml}$ \COMMENT{array of match lengths along $r$}
+\FOR{$i\leftarrow 1$ to $m$}
+   \STATE{$\mbox{esa}\leftarrow\mbox{getEsa}(n_i)$}
+   \STATE{$j\leftarrow 1$}
+   \WHILE{$j\le|r|$}
+      \STATE{$\ell\leftarrow\mbox{esa.MatchPrefix}(r[j...])$}
+      \IF{$\mbox{ml}[j]<\ell$}
+            \STATE{$\mbox{ml}[j]\leftarrow\ell$}
+      \ENDIF
+      \STATE{$j\leftarrow j+\ell$}
+   \ENDWHILE
+\ENDFOR
