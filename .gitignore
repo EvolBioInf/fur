@@ -20,6 +20,7 @@ doc/*.toc
 doc/madis.tex
 doc/makeFurDb.tex
 doc/prim2fasta.tex
+doc/stream.tex
 doc/tutorial.tex
 doc/util.tex
 doc/version.txt
@@ -39,9 +40,11 @@ fur/fur
 madis/madis
 makeFurDb/makeFurDb
 prim2fasta/prim2fasta
+stream/stream
+stream/sim.sh
 
 # Data files and figures
-makeFurDb/memory.dat
-makeFurDb/memory.ps
-makeFurDb/time.dat
-makeFurDb/time.ps
+stream/memory.dat
+stream/memory.ps
+stream/time_*.dat
+stream/time_*.ps

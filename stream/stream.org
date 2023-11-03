@@ -1,0 +1,416 @@
+#+begin_export latex
+\section{Introduction}
+In \ty{makeFurDb} we compare pairs of sequences, $s_1$ and $s_2$, by
+calculating an ESA of, say, $s_1$ and streaming $s_2$ against
+it. Calculating an ESA of some sequence $s$ is also often called
+\emph{indexing} $s$.
+
+Since DNA is double-stranded, we have a choice between two scenarios:
+In the first scenario, we index the forward and the reverse strand of
+$s_1$, and stream the forward strand of $s_2$ against it. If $s_1$ and
+$s_2$ have the same length, this scenario implies that twice as many
+nucleotides are indexed than streamed and we call this the
+\emph{indexing} scenario.
+
+In the second scenario, we calculate the ESA of only the forward
+strand of $s_1$ and stream the forward and reverse strand of $s_2$
+against it. For equally long sequences this means that twice as many
+nucleotides are streamed than indexed, so we call this the
+\emph{streaming} scenario.
+
+The question is, what's more efficient, indexing or streaming? The
+purpose of the program \ty{stream} is to facilitate the investigation
+of this question. The program reads $s_1$ and mutates it into
+$s_2$. Then it performs either the indexing or the streaming scenario.
+
+By default, streaming proceeds in steps expressed as a fraction of the
+matching prefix. By default the fraction skipped is zero, which means
+that at every matching step the algorithm moves one base into the
+sequence being streamed. The user can set this to a higher value, for
+example 1, which means the full match is skipped.
+
+Figure~\ref{fig:strTime}A shows time and memory consumption for the
+two scenarios when the full match is skipped. Under that skipping
+regime, the streaming scenario is slightly faster. If we reduce the
+distance skipped during streaming, the total run time grows and
+indexing becomes faster than the streaming
+(Figures~\ref{fig:strTime}B--D).
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{cc}
+      \textbf{A} & \textbf{B}\\
+      \includegraphics{../stream/time_1} &
+      \includegraphics{../stream/time_0.5}\\
+      \textbf{C} & \textbf{D}\\
+      \includegraphics{../stream/time_0.25} &
+      \includegraphics{../stream/time_0}
+    \end{tabular}
+  \end{center}
+  \caption{Time (\textbf{A}) and memory \textbf{B} consumption as a
+    function of sequence length under the indexing scenario (\emph{i})
+  and the streaming scenario (\emph{s}).}\label{fig:strTime}
+\end{figure}
+
+Memory consumption is not affected by the amount of skipping done
+during streaming. As Figure~\ref{fig:strMemory} shows, and as expected
+from first principles, the streaming scenario always uses less memory
+than indexing scenario.
+
+\begin{figure}
+\begin{center}
+\includegraphics{../stream/memory}
+\end{center}
+\caption{Memory consumption as a function of sequence length.}\label{fig:strMemory}
+\end{figure}
+
+\section{Implementation}
+The outline of \ty{stream} contains hooks for imports, functions, and
+the logic of the main function.  \bpr{stream}{pr:str}
+#+end_export
+#+begin_src go <<stream.go>>=
+  package main
+
+  import (
+	  //<<Imports, Pr. \ref{pr:str}>>
+  )
+  //<<Functions, Pr. \ref{pr:str}>>
+  func main() {
+	  //<<Main function, Pr. \ref{pr:str}>>
+  }
+#+end_src
+#+begin_export latex
+\epr In the main function we prepare the error messages, set the
+usage, declare the options, parse the options, and scan the input
+files.
+#+end_export
+#+begin_src go <<Main function, Pr. \ref{pr:str}>>=
+  util.PrepareErrorMessages("stream")
+  //<<Set usage, Pr. \ref{pr:str}>>
+  //<<Declare options, Pr. \ref{pr:str}>>
+  //<<Parse options, Pr. \ref{pr:str}>>
+  //<<Scan input files, Pr. \ref{pr:str}>>
+#+end_src
+#+begin_export latex
+We import \ty{util}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "github.com/evolbioinf/fur/util"
+#+end_src
+#+begin_export latex
+The usage consists of three parts, the actual usage message, a
+description of the purpose of \ty{stream} and an example command.
+#+end_export
+#+begin_src go <<Set usage, Pr. \ref{pr:str}>>=
+  u := "stream [option]..."
+  p := "Investigate streaming vs. indexing."
+  e := "ranseq | stream"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_export latex
+We import \ty{clio}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_export latex
+We declare five options:
+\begin{enumerate}
+\item \ty{-v}: print version
+\item \ty{-i}: use indexing scenario rather than the default streaming
+\item \ty{-s}: set skipping fraction
+\item \ty{-m}: set the mutation rate
+\item \ty{-S}: seed for random number generator
+\end{enumerate}
+#+end_export
+#+begin_src go <<Declare options, Pr. \ref{pr:str}>>=
+  optV := flag.Bool("v", false, "version")
+  optI := flag.Bool("i", false, "indexing scenario " +
+	  "(default streaming)")
+  optS := flag.Float64("s", 0, "skipping fraction " +
+	  "(default advance one base)")
+  optM := flag.Float64("m", 0.01, "mutation rate")
+  optSS := flag.Int64("S", 0, "seed for random number generator " +
+	  "(default internal)")
+#+end_src
+#+begin_export latex
+We import \ty{flag}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "flag"
+#+end_src
+#+begin_export latex
+We parse the options and respond to four of them, version, skipping
+fraction, mutation rate, and random number seed.
+#+end_export
+#+begin_src go <<Parse options, Pr. \ref{pr:str}>>=
+  flag.Parse()
+  //<<Respond to \ty{-v}, Pr. \ref{pr:str}>>
+  //<<Respond to \ty{-s}, Pr. \ref{pr:str}>>
+  //<<Respond to \ty{-m}, Pr. \ref{pr:str}>>
+  //<<Respond to \ty{-S}, Pr. \ref{pr:str}>>
+#+end_src
+#+begin_export latex
+In response to \ty{-v} we print the version.
+#+end_export
+#+begin_src go <<Respond to \ty{-v}, Pr. \ref{pr:str}>>=
+  if *optV {
+	  util.Version()
+  }
+#+end_src
+#+begin_export latex
+We check that the skipping fraction is not negative and throw an error
+otherwise.
+#+end_export
+#+begin_src go <<Respond to \ty{-s}, Pr. \ref{pr:str}>>=
+  if *optS < 0 {
+	  log.Fatal("plase use skipping fraction >= 0")
+  }
+#+end_src
+#+begin_export latex
+We import \ty{log}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "log"
+#+end_src
+#+begin_export latex
+Similarly, we check the mutation rate is not negative and throw an
+error otherwise.
+#+end_export
+#+begin_src go <<Respond to \ty{-m}, Pr. \ref{pr:str}>>=
+  if *optM < 0 {
+	  log.Fatal("please use mutation rate >= 0")
+  }
+#+end_src
+#+begin_export latex
+If the user did not set a seed for the random number generator, we use
+the current time. Then we seed the random number generator.
+#+end_export
+#+begin_src go <<Respond to \ty{-S}, Pr. \ref{pr:str}>>=
+  if *optSS == 0 {
+	  (*optSS) = time.Now().UnixNano()
+  }
+  ra := rand.New(rand.NewSource(*optSS))
+#+end_src
+#+begin_export latex
+We import \ty{time} and \ty{rand}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "time"
+  "math/rand"
+#+end_src
+#+begin_export latex
+We interpret the remaining tokens on the command line as file
+names. Each of these files is scanned with the function \ty{scan},
+which in turn takes as arguments the random number generator, the
+indexing scenario, the mutation rate, and the skipping fraction.
+#+end_export
+#+begin_src go <<Scan input files, Pr. \ref{pr:str}>>=
+  files := flag.Args()
+  clio.ParseFiles(files, scan, ra, optI, optM, optS)
+#+end_src
+#+begin_export latex
+Inside \ty{scan}, we retrieve the arguments and iterate over the
+sequences in the current file. For each sequence we construct the
+missing sequences before we run the streaming.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:str}>>=
+  func scan(r io.Reader, args ...interface{}) {
+	  //<<Retrieve arguments, Pr. \ref{pr:str}>>
+	  sc := fasta.NewScanner(r)
+	  for sc.ScanSequence() {
+		  s1 := sc.Sequence()
+		  //<<Construct missing sequences, Pr. \ref{pr:str}>>
+		  //<<Run streaming, Pr. \ref{pr:str}>>
+	  }
+  }
+#+end_src
+#+begin_export latex
+We import \ty{io} and \ty{fasta}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "io"
+  "github.com/evolbioinf/fasta"
+#+end_src
+#+begin_export latex
+We retrieve the random number generator and the three options \ty{-i},
+\ty{-m}, and \ty{-s}.
+#+end_export
+#+begin_src go <<Retrieve arguments, Pr. \ref{pr:str}>>=
+  ra := args[0].(*rand.Rand)
+  optI := args[1].(*bool)
+  optM := args[2].(*float64)
+  optS := args[3].(*float64)
+#+end_src
+#+begin_export latex
+We have the forward strand of the first sequence in hand and call it
+\ty{s1f}. What is still missing is the concatenated forward and
+reverse strand of the first sequence, \ty{s1fr}. In addition, we need
+the corresponding second sequences, \ty{s2f} and \ty{s2fr}.
+#+end_export
+#+begin_src go <<Construct missing sequences, Pr. \ref{pr:str}>>=
+  s1f := s1.Data()
+  //<<Generate \ty{s1fr}, Pr. \ref{pr:str}>>
+  //<<Generate \ty{s2f}, Pr. \ref{pr:str}>>
+  //<<Generate \ty{s2fr}, Pr. \ref{pr:str}>>
+#+end_src
+#+begin_export latex
+We reverse-complement the first sequence and append that to the
+forward strand to generate \ty{s1fr}.
+#+end_export
+#+begin_src go <<Generate \ty{s1fr}, Pr. \ref{pr:str}>>=
+  rev := fasta.NewSequence(s1.Header(), s1f)
+  rev.ReverseComplement()
+  s1fr := append(s1f, rev.Data()...)
+#+end_src
+#+begin_export latex
+We generate the forward strand of the second sequence by mutating the
+forward strand of the first.
+#+end_export
+#+begin_src go <<Generate \ty{s2f}, Pr. \ref{pr:str}>>=
+  s2f := make([]byte, len(s1f))
+  dic := []byte("ACGT")
+  for i, c := range s1f {
+	  if ra.Float64() <= *optM {
+		  c = dic[ra.Intn(4)]
+	  }
+	  s2f[i] = c
+  }
+#+end_src
+#+begin_export latex
+We reverse-complement the second sequence and append that to its
+forward strand to generate \ty{s2fr}.
+#+end_export
+#+begin_src go <<Generate \ty{s2fr}, Pr. \ref{pr:str}>>=
+  rev = fasta.NewSequence(s1.Header(), s2f)
+  rev.ReverseComplement()
+  s2fr := append(s2f, rev.Data()...)
+#+end_src
+#+begin_export latex
+The streaming is done either under the indexing or the streaming
+scenario. Under the indexing scenario we compare \ty{s2f} against an
+index of \ty{s1rf}, under the streaming scenario we compare \ty{s2fr}
+against an index of \ty{s1f}. We delegate the scenarios to calls to
+the function \ty{compare}, which we still need to write.
+#+end_export
+#+begin_src go <<Run streaming, Pr. \ref{pr:str}>>=
+  if *optI {
+	  compare(s1fr, s2f, *optS)
+  } else {
+	  compare(s1f, s2fr, *optS)
+  }
+#+end_src
+#+begin_export latex
+Inside \ty{compare} we calculate the ESA of \ty{s1} and stream \ty{s2}
+against it in steps determined by the skipping fraction.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:str}>>=
+  func compare(s1, s2 []byte, skip float64) {
+	  e := esa.MakeEsa(s1)
+	  i := 0
+	  for i < len(s2) {
+		  m := e.MatchPref(s2[i:])
+		  s := int(float64(m.L) * skip)
+		  if s == 0 {
+			  s = 1
+		  }
+		  i += s
+	  }
+  }
+#+end_src
+#+begin_export latex
+We import \ty{esa}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:str}>>=
+  "github.com/evolbioinf/esa"
+#+end_src
+#+begin_export latex
+We have finished writing \ty{stream}, so we test it next.
+\section{Testing}
+Our testing code for \ty{stream} has hooks for imports and the testing
+logic.
+#+end_export
+#+begin_src go <<stream_test.go>>=
+  package main
+
+  import (
+	  "testing"
+	  //<<Testing imports, Pr. \ref{pr:str}>>
+  )
+
+  func TestStream(t *testing.T) {
+	  //<<Testing, Pr. \ref{pr:str}>>
+  }
+#+end_src
+#+begin_export latex
+We construct a set of tests and then iterate over them.
+#+end_export
+#+begin_src go <<Testing, Pr. \ref{pr:str}>>=
+  var tests []*exec.Cmd
+  //<<Construct tests, Pr. \ref{pr:str}>>
+  for _, test := range tests {
+	  //<<Run test, Pr. \ref{pr:str}>>
+  }
+#+end_src
+#+begin_export latex
+We import \ty{exec}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:str}>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+Our first test runs without options.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:str}>>=
+  f := "test.fasta"
+  test := exec.Command("./stream", f)
+  fmt.Println(test)
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+We import \ty{fmt}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:str}>>=
+  "fmt"
+#+end_src
+#+begin_export latex
+The second test sets the seed for the random number generator.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:str}>>=
+  test = exec.Command("./stream", "-S", "3", f)
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+The third test uses the indexing scenario.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:str}>>=
+  test = exec.Command("./stream", "-i", f)
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+The fourth test doubles the default mutation rate from 1\% to 2\%.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:str}>>=
+  test = exec.Command("./stream", "-m", "0.02", f)
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+The fourth test changes the skipping fraction from default zero to
+0.5.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:str}>>=
+  test = exec.Command("./stream", "-s", "0.5", f)
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+None of the tests produce a result so when we run them we just check
+that they don't return an error message.
+#+end_export
+#+begin_src go <<Run test, Pr. \ref{pr:str}>>=
+  get, err := test.CombinedOutput()
+  if err != nil {
+	  t.Error(err)
+  }
+  if len(get) > 0 {
+	  t.Errorf("want:\nnothing\nget:\n%s\n", get)
+  }
+#+end_src

@@ -871,32 +871,11 @@ which case we stream only the forward strand of the target rep, or
 calculating the ESA just from the forward strand, in which case we
 stream both the forward and the reverse strand of the target rep.
 
-To chose between these two scenarios, I wrote the program
-\ty{testStream} that reads an input sequence of arbitrary length. It
-then computes the ESA from that sequence and streams a random sequence
-of identical length against that ESA, moving in steps of matching
-prefixes. The ESA is either computed from the forward strand only, in
-which case the forward and reverse strand of the second sequence is
-streamed against it, or from the forward and reverse strand, in which
-case only the forward strand of the second sequence is streamed
-against the ESA.
-
-Figure~\ref{fig:ts}A shows that the ESA from forward only is
-approximately 50\% faster with sequence length 100 Mb. Even more
-significantly, the memory requirement of forward only is approximately
-80\% smaller with sequence length 100 Mb. So we calculate the ESA only
-from the forward strand, which we convert to upper case beforehand.
-
-\begin{figure}
-  \begin{center}
-    \begin{tabular}{cc}
-      \textbf{A} & \textbf{B}\\
-      \includegraphics{../makeFurDb/time} &
-      \includegraphics{../makeFurDb/memory}
-    \end{tabular}
-  \end{center}
-  \caption{}\label{fig:ts}
-\end{figure}
+It turns out that calculating the ESA only from the forward strand
+saves both time and memory. For detailed measurements on this, please
+take a look at the program \ty{stream}, which is also part of this
+package. Before we calculate the ESA from the forward strand, we
+convert it to upper case.
 #+end_export
 #+begin_src go <<Construct enhanced suffix array, Pr. \ref{pr:mfd}>>=
   d = bytes.ToUpper(d)

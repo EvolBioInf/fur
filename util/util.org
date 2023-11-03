@@ -1,6 +1,6 @@
 #+begin_export latex
 \section{Introduction}
-!The package \ty{util} provides utility functions for the \ty{ifur}
+!The package \ty{util} provides utility functions for the \ty{fur}
 !package.
 \section{Implementation}
 The outline of \ty{util} contains hooks for imports, variables, and

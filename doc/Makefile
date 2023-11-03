@@ -1,11 +1,11 @@
-SRC1 =   checkPrim.tex cleanSeq.tex fur.tex fur2prim.tex madis.tex makeFurDb.tex prim2fasta.tex tutorial.tex util.tex
+SRC1 =   checkPrim.tex cleanSeq.tex fur.tex fur2prim.tex madis.tex makeFurDb.tex prim2fasta.tex stream.tex tutorial.tex util.tex
 SRC2 =   header.tex intro.tex furDoc.tex
 
 date = $(shell git log | grep Date | head -n 1 | sed -r 's/Date: +[A-Z][a-z]+ ([A-Z][a-z]+) ([0-9]+) [^ ]+ ([0-9]+) .+/\2_\1_\3/')
 version = $(shell git describe)
 
 all: furDoc.pdf 
-furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) version.txt date.txt ../makeFurDb/time.ps ../makeFurDb/memory.ps ../makeFurDb/mlAlg.tex
+furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) version.txt date.txt ../stream/time_*.ps ../stream/memory.ps ../makeFurDb/mlAlg.tex
 	latex furDoc.tex
 	bibtex furDoc
 	latex furDoc.tex
