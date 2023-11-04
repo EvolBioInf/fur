@@ -1,5 +1,5 @@
 packs = util
-progs = checkPrim cleanSeq fur fur2prim madis makeFurDb prim2fasta
+progs = checkPrim cleanSeq fur fur2prim madis makeFurDb prim2fasta stream
 all:
 	test -d bin || mkdir bin
 	for pack in $(packs); do \

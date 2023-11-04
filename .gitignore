@@ -41,7 +41,7 @@ madis/madis
 makeFurDb/makeFurDb
 prim2fasta/prim2fasta
 stream/stream
-stream/sim.sh
+stream/makeRes.sh
 
 # Data files and figures
 stream/memory.dat
