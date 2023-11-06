@@ -872,10 +872,10 @@ calculating the ESA just from the forward strand, in which case we
 stream both the forward and the reverse strand of the target rep.
 
 It turns out that calculating the ESA only from the forward strand
-saves both time and memory. For detailed measurements on this, please
-take a look at the program \ty{stream}, which is also part of this
-package. Before we calculate the ESA from the forward strand, we
-convert it to upper case.
+saves a bit of time and a lot of and memory. For detailed measurements
+on this, please take a look at the program \ty{stream}, which is also
+part of this package. Before we calculate the ESA from the forward
+strand, we convert it to upper case.
 #+end_export
 #+begin_src go <<Construct enhanced suffix array, Pr. \ref{pr:mfd}>>=
   d = bytes.ToUpper(d)
