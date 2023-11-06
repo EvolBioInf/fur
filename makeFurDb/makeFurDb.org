@@ -100,6 +100,13 @@ nucleotides.
   optK := flag.Bool("k", false, "keep non-canonical nucleotides")
 #+end_src
 #+begin_export latex
+By default streaming skips the length of the matching prefix. However,
+the user can set a different skipping fraction.
+#+end_export
+#+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
+  optS := flag.Float64("s", 1, "skip by fraction of match")
+#+end_src
+#+begin_export latex
 The usage consists of three parts, the actual usage message, an
 explanation of the purpose of \ty{makeFurDb}, and an example command.
 #+end_export
@@ -715,27 +722,15 @@ advance the match position and repeat.
   }
 #+end_src
 #+begin_export latex
-The default behavior is to skip forward by the length of the
-match. This speeds up the program but reduces the accuracy of the
-first subtraction. So the user can opt to skip a fraction of the match
-by setting \ty{-s} to a floating point number greater than zero, or by
-a single nucleotide by setting \ty{-s} to a negative number.
+We advance by the skip fraction of the match and make sure we advance
+by at least one nucleotide.
 #+end_export
 #+begin_src go <<Advance match position, Pr. \ref{pr:mfd}>>=
-  if *optS == 0 {
-	  j += m.L
-  } else if *optS > 0 {
-	  j += int(float64(m.L) * *optS) + 1
-  } else {
-	  j++
+  a := int(float64(m.L) * *optS)
+  if a <= 0 {
+	  a = 1
   }
-#+end_src
-#+begin_export latex
-We declare \ty{-s}.
-#+end_export
-#+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
-  optS := flag.Float64("s", 0, "skip by fraction of match " +
-	  "(default all, < 0 for single base)")
+  j += a
 #+end_src
 #+begin_export latex
 In the closer we wait until all working goroutines have finished and
