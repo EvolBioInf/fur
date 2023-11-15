@@ -559,11 +559,11 @@ lengths.
   p := *optT + "/" + target
   f, err := os.Open(p)
   util.Check(err)
-  defer f.Close()
   sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  l += len(sc.Sequence().Data())
   }
+  f.Close()
 #+end_src
 #+begin_export latex
 We import \ty{fasta}.
