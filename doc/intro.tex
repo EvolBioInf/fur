@@ -91,19 +91,22 @@ while \ty{fur} is normally quick and may be run repeatedly, with
 various parameter combinations.
 
 \begin{table}
-\caption{The eight programs in the package \ty{fur}.}\label{tab:pro}
+\caption{The ten programs in the package \ty{fur}.}\label{tab:pro}
 \begin{center}
-\begin{tabular}{cll}
+\begin{tabular}{rll}
 \hline
 \# & Name & Purpose\\\hline
 1 & \ty{checkPrim} & check primers through \emph{in silico} PCR\\
 2 & \ty{cleanSeq} & remove runs of \ty{N} from \ty{fur} output\\
-3 & \ty{fur2prim} & convert \ty{fur} output to primers\\
+3 & \ty{fur2prim} & convert \ty{fur} output to \ty{primer3} input\\
 4 & \ty{fur} & find unique regions\\
 5 & \ty{madis} & match length distribution\\
 6 & \ty{makeFurDb} & construct \ty{fur} database\\
-7 & \ty{prim2fasta} & extract primers from \ty{primer3} output\\
-8 & \ty{senSpec} & compute the sensitivity an specificity of \ty{fur} output\\
+7 & \ty{prim2fasta} & convert primers from \ty{primer3} output to FASTA\\
+8 & \ty{prim2tab} & convert primers from \ty{primer3} output to table\\
+9 & \ty{senSpec} & compute the sensitivity an specificity of \ty{fur}
+output\\
+10 & \ty{stream} & compare streaming strategies for \ty{makeFurDb}\\
 \hline
 \end{tabular}
 \end{center}
