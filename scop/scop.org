@@ -36,7 +36,10 @@ $ cd ../
 \end{verbatim}
 Then change into the \ty{scop} directory and analyze the sample
 primers in the file \ty{prim.fasta}, which should amplify all database
-entries of the taxa listed in \ty{tarTax.txt}.
+entries of the taxa listed by taxon IDs in \ty{tarTax.txt}. These
+target taxon IDs might have been generated, for example, using the
+program \ty{neighbors} from the Neighbors
+package\footnote{\ty{github.com/evolbioinf/neighbors}}.
 \begin{verbatim}
 $ cd scop
 $ ./scop -d ../data/sample -t tarTax.txt prim.fasta
