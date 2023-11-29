@@ -4,6 +4,7 @@ bin
 checklist.txt
 data/eco2*
 data/covid
+data/sample.*
 doc/*.aux
 doc/*.bbl
 doc/*.blg
@@ -21,6 +22,7 @@ doc/madis.tex
 doc/makeFurDb.tex
 doc/prim2fasta.tex
 doc/prim2tab.tex
+doc/scop.tex
 doc/stream.tex
 doc/tutorial.tex
 doc/util.tex
@@ -42,6 +44,7 @@ madis/madis
 makeFurDb/makeFurDb
 prim2fasta/prim2fasta
 prim2tab/prim2tab
+scop/scop
 stream/stream
 stream/makeRes.sh
 
