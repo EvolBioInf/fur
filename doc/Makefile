@@ -1,4 +1,4 @@
-SRC1 =   checkPrim.tex cleanSeq.tex fur.tex fur2prim.tex madis.tex makeFurDb.tex prim2fasta.tex prim2tab.tex scop.tex stream.tex tutorial.tex util.tex
+SRC1 =   checkPrim.tex cops.tex cleanSeq.tex fur.tex fur2prim.tex madis.tex makeFurDb.tex prim2fasta.tex prim2tab.tex scop.tex stream.tex tutorial.tex util.tex
 SRC2 =   header.tex intro.tex furDoc.tex
 
 date = $(shell git log | grep Date | head -n 1 | sed -r 's/Date: +[A-Z][a-z]+ ([A-Z][a-z]+) ([0-9]+) [^ ]+ ([0-9]+) .+/\2_\1_\3/')

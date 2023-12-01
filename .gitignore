@@ -12,6 +12,7 @@ doc/*.dvi
 doc/*.log
 doc/checkPrim.tex
 doc/cleanSeq.tex
+doc/cops.tex
 doc/date.txt
 doc/fur.tex
 doc/fur2prim.tex
@@ -38,6 +39,7 @@ fur/*.db
 # Programs
 checkPrim/checkPrim
 cleanSeq/cleanSeq
+cops/cops
 fur2prim/fur2prim
 fur/fur
 madis/madis
