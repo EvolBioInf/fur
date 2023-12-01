@@ -44,7 +44,7 @@ package\footnote{\ty{github.com/evolbioinf/neighbors}}.
 $ cd scop
 $ ./scop -d ../data/sample -t tarTax.txt prim.fasta
 \end{verbatim}
-In this setup, the sensitivity of the tested primers is maxima, so
+In this setup, the sensitivity of the tested primers is maximal, so
 there are no false negatives, but there appear to be a large number of
 false positives, leading to a specificity score of only 0.47.
 \begin{verbatim}
