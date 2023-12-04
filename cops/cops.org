@@ -20,7 +20,7 @@ negative should have $d_i \le d_{\rm t}$, otherwise it is reclassified
 as a true negative. These classifications are summarized in
 Table~\ref{tab:cla}.
 \begin{table}
-  \caption{Reclassification of a taxon $i$ based on teh relationship
+  \caption{Reclassification of a taxon $i$ based on the relationship
     between its distance to the reference strain, $d_i$, and the
     threshold distance, $d_{\rm t}$.}\label{tab:cla}
   \begin{center}
@@ -33,12 +33,20 @@ Table~\ref{tab:cla}.
     \end{tabular}
   \end{center}
 \end{table}
-Figure~\ref{fig:sco} shows some example output from \ty{scop}; note
-the rather low specificity score of 0.47.
+
+Figure~\ref{fig:sco} shows example output from \ty{scop} taken from an
+analysis of \emph{E. coli} O157:H7. Two things are remarkable about
+this output. First, accession AE005174, which is listed as a false
+positive, happens to correspond to the type strain on O157:H7,
+EDL933. So it certainly isn't a false positive. The reason for its
+misclassification is that the header of AE005174 only contains the
+term ``genome'', but not ``complete genome'', which is required by
+\ty{scop} for inclusion in the set of target accessions. The second
+thing to note is the low specificity of 0.47.
 \begin{figure}
   \begin{center}
     \fbox{
-    \begin{minipage}{7.35cm}
+    \begin{minipage}{7.45cm}
       \verbatiminput{../cops/example.txt}
     \end{minipage}
     }
@@ -48,20 +56,51 @@ the rather low specificity score of 0.47.
     listed.}\label{fig:sco}
 \end{figure}
 The program \ty{cops} leaves the sensitivity unchanged but corrects
-the specificity to X (Figure~\ref{fig:cop}). It also prints the remaining false positives and
-their distance to the reference strain.
+the specificity to a more respectable 0.97 (Figure~\ref{fig:cops1}).
 \begin{figure}
   \begin{center}
     \fbox{
     \begin{minipage}{7.35cm}
-      \verbatiminput{../cops/cops.txt}
+      \verbatiminput{../cops/cops1.txt}
     \end{minipage}
     }
   \end{center}
 \caption{Corrected primer scores using the data in
-  Figure~\ref{fig:scop} as input.}\label{fig:cop}
+  Figure~\ref{fig:sco} as input.}\label{fig:cops1}
 \end{figure}
 
+The user can also request that the accessions are annotated with
+distances to the reference strain. Figure~\ref{fig:cops2} the distance
+to the reference, zero, and the distance to the true positive that is
+alphabetically next, $7\times 10^{-4}$. In contrast, the two distance
+to the false positives shown are greater than 1\%.
+\begin{figure}
+  \begin{center}
+    \fbox{
+    \begin{minipage}{9.9cm}
+      \verbatiminput{../cops/cops2.txt}
+    \end{minipage}
+    }
+  \end{center}
+\caption{Corrected primer scores with distances to the reference using
+  the data in Figure~\ref{fig:sco} as input.}\label{fig:cops2}
+\end{figure}
+
+In this example analysis \ty{cops} returns distances for 334 true
+positives and 11 false positives. Figure~\ref{fig:dist} shows the
+distribution of all log-distances, except for the zero distance. Note
+the major mode centered on -3.5 for the true positives and the minor
+mode between -2 and -1.5 for the 11 false positives. Their existence
+is probably due to horizontal transfer of the marker.
+\begin{figure}
+  \begin{center}
+    \includegraphics{../cops/dist}
+  \end{center}
+  \caption{Distribution of 345 log-distances between genomes \emph{in
+    silico} amplified by \ty{scop} and the type strain of
+    \emph{E. coli} O157:H7, EDL933; note the false positives between
+    -2 and -1.5.}\label{fig:dist}
+\end{figure}
 \section{Implementation}
 Our outline of \ty{cops} contains hooks for imports and functions, and
 for the logic of the main function.
@@ -101,9 +140,9 @@ The usage consists of the actual usage message, an explanation of the
 purpose of \ty{cops}, and an example command.
 #+end_export
 #+begin_src go <<Set usage, Pr. \ref{pr:cop}>>=
-  u := "cops -d <db> [option]... [foo.txt]..."
+  u := "cops -d <db> -r <ref> -t <d> [option]... [foo.txt]..."
   p := "Correct primer scores calculated with scop."
-  e := "cops -d nt -r AE005174 -t 5e-4 scop.out"
+  e := "cops -d nt -r AE005174 -t 2e-3 scop.out"
   clio.Usage(u, p, e)
 #+end_src
 #+begin_export latex
@@ -113,39 +152,43 @@ We import \ty{clio}.
   "github.com/evolbioinf/clio"
 #+end_src
 #+begin_export latex
-We declare the obligatory version option, \ty{-v}, and two mandatory
-options, the database, \ty{-d}, and the accession of the reference
-strain. In addition, the user can change the threshold distance from
-its default value, $d_{\rm t}=10^{-3}$, and run \ty{phylonium} in
-single-threaded mode, from default two-threaded.
+We declare the obligatory version option, \ty{-v}, and three mandatory
+options, the database, \ty{-d}, the accession of the reference strain,
+and the threshold distance to the reference. In addition, the user can
+change the threshold distance from its default value, $d_{\rm
+  t}=10^{-3}$, run \ty{phylonium} with a different number of threads
+than the number of CPUs, and print the distances as part of the
+output.
 #+end_export
 #+begin_src go <<Declare options, Pr. \ref{pr:cop}>>=
   optV := flag.Bool("v", false, "version")
   optD := flag.String("d", "", "Blast datbase")
-  optR := flag.String("r", "", "accession of reference target strain")
-  optT := flag.Float64("t", 1e-3, "threshold distance")
-  optS := flag.Bool("s", false, "single-threaded (default two-threaded)")
+  optR := flag.String("r", "",
+	  "accession of reference target strain")
+  optT := flag.Float64("t", 0, "threshold distance to reference")
+  numThreads := runtime.NumCPU()
+  optTT := flag.Int("T", numThreads, "number of threads")
+  optDD := flag.Bool("D", false, "include distances in output")
 #+end_src
 #+begin_export latex
-We import \ty{flag}.
+We import \ty{flag} and \ty{runtime}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:cop}>>=
   "flag"
+  "runtime"
 #+end_src
 #+begin_export latex
 We parse the options and respond to the version option, \ty{-v}, as
-this stops \ty{cops}. Then we respond to the database option, \ty{-d},
-the reference stain, \ty{-r}, and single-strandedness, \ty{-s}.
+this stops \ty{cops}. Then we ensure the mandatory options have been
+set.
 #+end_export
 #+begin_src go <<Parse options, Pr. \ref{pr:cop}>>=
   flag.Parse()
   //<<Respond to \ty{-v}, Pr. \ref{pr:cop}>>
-  //<<Respond to \ty{-d}, Pr. \ref{pr:cop}>>
-  //<<Respond to \ty{-r}, Pr. \ref{pr:cop}>>
-  //<<Respond to \ty{-s}, Pr. \ref{pr:cop}>>
+  //<<Ensure mandatory options, Pr. \ref{pr:cop}>>
 #+end_src
 #+begin_export latex
-We print the version, if requested.
+If the user requested the version, we print it.
 #+end_export
 #+begin_src go <<Respond to \ty{-v}, Pr. \ref{pr:cop}>>=
   if *optV {
@@ -153,12 +196,20 @@ We print the version, if requested.
   }
 #+end_src
 #+begin_export latex
-If the user didn't supply a Blast database, we bail with a friendly
-message.
+We make sure the user supplied a database, a reference strain, and a
+threshold distance. We quit with a friendly message if that's not the
+case.
 #+end_export
-#+begin_src go <<Respond to \ty{-d}, Pr. \ref{pr:cop}>>=
+#+begin_src go <<Ensure mandatory options, Pr. \ref{pr:cop}>>=
   if *optD == "" {
 	  log.Fatal("please supply a Blast database")
+  }
+  if *optR == "" {
+	  log.Fatal("please supply a reference strain")
+  }
+  if *optT == 0 {
+	  log.Fatal("please supply the threshold " +
+		  "distance to the reference")
   }
 #+end_src
 #+begin_export latex
@@ -168,40 +219,22 @@ We import \ty{log}.
   "log"
 #+end_src
 #+begin_export latex
-Similarly, if the user didn't supply a reference strain, we bail and
-send a friendly message.
-#+end_export
-#+begin_src go <<Respond to \ty{-r}, Pr. \ref{pr:cop}>>=
-  if *optR == "" {
-	  log.Fatal("please supply a reference strain")
-  }
-#+end_src
-#+begin_export latex
-The number of threads is two, unless the user opted for
-single-threaded.
-#+end_export
-#+begin_src go <<Respond to \ty{-s}, Pr. \ref{pr:cop}>>=
-  nt := 2
-  if *optS {
-	  nt = 1
-  }
-#+end_src
-#+begin_export latex
 The remaining tokens on the command line are interpreted as file
 names. We parse these files using the function \ty{ParseFiles}, which
 applies the function \ty{parse} to each one of them. The function
 \ty{parse} in turn takes as arguments the name of the Blast database,
-the reference strain, the threshold distance, and the number of
-threads.
+the reference strain, the threshold distance, the number of threads,
+and whether or not to include the distances in the output.
 #+end_export
 #+begin_src go <<Parse input, Pr. \ref{pr:cop}>>=
   files := flag.Args()
-  clio.ParseFiles(files, parse, *optD, *optR, *optT, nt)
+  clio.ParseFiles(files, parse, *optD, *optR,
+	  (*optT), *optTT, *optDD)
 #+end_src
 #+begin_export latex
 Inside \ty{parse}, we retrieve the arguments we just passed. Then we
 split the file into reports generated by \ty{scop}
-(Figure~\ref{fig:scop}). We analyze each report, correct it, and print
+(Figure~\ref{fig:sco}). We analyze each report, correct it, and print
 a corrected version.
 #+end_export
 #+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
@@ -226,14 +259,15 @@ We import \ty{io} and \ty{bytes}.
   "bytes"
 #+end_src
 #+begin_export latex
-We retrieve the database, the reference, the threshold, and the number
-of threads.
+We retrieve the database, the reference, the threshold, the number of
+threads, and the distance switch.
 #+end_export
 #+begin_src go <<Retrieve arguments, Pr. \ref{pr:cop}>>=
   db := args[0].(string)
   re := args[1].(string)
   dt := args[2].(float64)
   nt := args[3].(int)
+  pd := args[4].(bool)
 #+end_src
 #+begin_export latex
 We split the report into its constituent lines and check we have at
@@ -241,7 +275,7 @@ least three lines and no more than six. If not, we bail with a
 friendly message. If we're still going, we store the name of the
 primer set. Then we skip the lines containing the sensitivity and
 specificity and store the accessions of true positives, false
-positives, and false negatives in a map
+positives, and false negatives in a map.
 #+end_export
 #+begin_src go <<Analyze report, Pr. \ref{pr:cop}>>=
   lines := bytes.Split(report, []byte("\n"))
@@ -266,38 +300,78 @@ accession type, the remaining fields are the actual accessions.
 		  k := string(fields[0][:len(fields[0])-1])
 		  for i := 1; i < len(fields); i++ {
 			  v := string(fields[i])
-			  accessions[k] = append(accessions[k], v)
+			  accessions[k] = append(accessions[k],
+				  v)
 		  }
 	  }
   }
 #+end_src
 #+begin_export latex
-We get the reference sequence and correct the true positives, the
+Correcting the report essentially means, running \ty{phyonium} on all
+input accessions. We do this by first constructing a directory for
+holing the sequence files on which we run \ty{phylonium}. Then we
+place the reference sequence and the query sequences into that
+directory, run \ty{phylonium}, and read the distance matrix it
+produces. These distances allow us to correct the true positives, the
 false positives, and the false negatives.
 #+end_export
 #+begin_src go <<Correct report, Pr. \ref{pr:cop}>>=
+  //<<Create directory for sequence files, Pr. \ref{pr:cop}>>
   //<<Get reference sequence, Pr. \ref{pr:cop}>>
+  //<<Get query sequences, Pr. \ref{pr:cop}>>
+  //<<Run \ty{phylonium}, Pr. \ref{pr:cop}>>
+  //<<Read distance matrix, Pr. \ref{pr:cop}>>
   //<<Correct true positives, Pr. \ref{pr:cop}>>
   //<<Correct false positives, Pr. \ref{pr:cop}>>
   //<<Correct false negatives, Pr. \ref{pr:cop}>>
 #+end_src
 #+begin_export latex
-We retrieve the reference sequence from the Blast database using the
-program \ty{blastdbcmd} and store it in a unique file. This file is
-deleted when the function \ty{parse} returns.
+We create a temporary directory, which is deleted when \ty{parse}
+returns.
+#+end_export
+#+begin_src go <<Create directory for sequence files, Pr. \ref{pr:cop}>>=
+  td, err := os.MkdirTemp("", "temp*")
+  util.Check(err)
+  defer os.RemoveAll(td)
+#+end_src
+#+begin_export latex
+We first need the exact accession of the reference sequence,
+i. e. with the correct version suffix. We get this by one call to
+\ty{blastdbcmd}. The resulting accession contains a trailing newline,
+which we remove.
+
+With the precise accession in hand we get the actual reference
+sequence. This is very similar to later getting the query sequences,
+so we delegate this to call to the function \ty{writeSeq}, which we
+write next.
 #+end_export
 #+begin_src go <<Get reference sequence, Pr. \ref{pr:cop}>>=
-  cmd := exec.Command("blastdbcmd", "-db", db, "-entry", re)
+  cmd := exec.Command("blastdbcmd", "-db",
+	  db, "-entry", re, "-outfmt", "%a")
   out, err := cmd.CombinedOutput()
   if err != nil {
 	  log.Fatalf("%s\n", out)
   }
-  f, err := os.CreateTemp("", "ref*.fasta")
-  rf := f.Name()
-  util.Check(err)
-  err = os.WriteFile(rf, out, 0644)
-  util.Check(err)
-  defer os.Remove(rf)
+  re = string(out[:len(out)-1])
+  writeSeq(re, td, db)
+#+end_src
+#+begin_export latex
+Inside \ty{writeSeq}, we retrieve the reference sequence from the
+Blast database using the program \ty{blastdbcmd} and store it in the
+temporary directory.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
+  func writeSeq(acc, dir, db string) {
+	  cmd := exec.Command("blastdbcmd", "-db",
+		  db, "-entry", acc)
+	  out, err := cmd.CombinedOutput()
+	  if err != nil {
+		  log.Fatalf("%s\n", out)
+	  }
+	  f := dir + "/" + acc + ".fasta"
+	  err = os.WriteFile(f, out, 0644)
+	  util.Check(err)
+  }
 #+end_src
 #+begin_export latex
 We import \ty{exec} and \ty{os}.
@@ -307,12 +381,73 @@ We import \ty{exec} and \ty{os}.
   "os"
 #+end_src
 #+begin_export latex
-We iterate over the true positive accessions and analyze each one. The
+We iterate over all query accessions and get each corresponding
+sequence.
+#+end_export
+#+begin_src go <<Get query sequences, Pr. \ref{pr:cop}>>=
+  for _, accs := range accessions {
+	  for _, acc := range accs {
+		  writeSeq(acc, td, db)
+	  }
+  }
+#+end_src
+#+begin_export latex
+We run \ty{phylonium} with the given number of threads and store its
+output. Note that we construct the paths of the input files using the
+\ty{Glob} function of \ty{filepath}, because direct submission of an
+expandable name doesn't work---we are in Go, not in Unix.
+#+end_export
+#+begin_src go <<Run \ty{phylonium}, Pr. \ref{pr:cop}>>=
+  cmd = exec.Command("phylonium")
+  nts := strconv.Itoa(nt)
+  args := []string{"phylonium", "-t", nts, "-r",
+	  td + "/"+ re + ".fasta"}
+  p, err := filepath.Glob(td + "/*")
+  util.Check(err)
+  args = append(args, p...)
+  cmd.Args = args
+  out, err = cmd.Output()
+  util.Check(err)
+#+end_src
+#+begin_export latex
+We import \ty{strconv} and \ty{filepath}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:cop}>>=
+  "strconv"
+  "path/filepath"
+#+end_src
+#+begin_export latex
+We read the distance matrix or, failing that, give up.
+#+end_export
+#+begin_src go <<Read distance matrix, Pr. \ref{pr:cop}>>=
+  var mat *dist.DistMat
+  r := bytes.NewReader(out)
+  sc := dist.NewScanner(r)
+  if sc.Scan() {
+	  mat = sc.DistanceMatrix()
+  } else {
+	  log.Fatal("couldn't read distance matrix")
+  }
+#+end_src
+#+begin_export latex
+We import \ty{dist}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:cop}>>=
+  "github.com/evolbioinf/dist"
+#+end_src
+#+begin_export latex
+In order to correct the given classification, we first need a map
+between accessions and positions in the distance matrix. Then we
+iterate over the true positive accessions and analyze each one. The
 analysis might turn up new false positives, which we store. We also
 store and count the old true positives and after the loop reslice
 their storage accordingly.
 #+end_export
 #+begin_src go <<Correct true positives, Pr. \ref{pr:cop}>>=
+  accMap := make(map[string]int)
+  for i, name := range mat.Names {
+	  accMap[name] = i
+  }
   nfp := make([]string, 0)
   n := 0
   accs := accessions["TruePositives"]
@@ -322,13 +457,15 @@ their storage accordingly.
   accessions["TruePositives"] = accs[:n]
 #+end_src
 #+begin_export latex
-We calculate the distance between the reference and the current
-accession by calling the function \ty{dist}, which we still need to
-write. Then we classify the accession as either a true positive or a
-new false positive.
+We look up the distance between the reference and the current
+accession, $d_i$. Comparison of $d_i$ to the threshold distance,
+$d_{\rm t}$, allows us to classify the accession as either a true
+positive or a new false positive.
 #+end_export
 #+begin_src go <<Analyze true positive, Pr. \ref{pr:cop}>>=
-  di := dist(rf, acc, db, nt)
+  i := accMap[re]
+  j := accMap[acc]
+  di := mat.Matrix[i][j]
   if di <= dt {
 	  accs[n] = acc
 	  n++
@@ -337,77 +474,9 @@ new false positive.
   }
 #+end_src
 #+begin_export latex
-Inside the function \ty{dist}, we get the query sequence, run
-\ty{phylonium}, and extract the desired $d_i$ from its output.
-#+end_export
-#+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
-  func dist(rf, query, db string, nt int) float64 {
-	  di := 0.0
-	  //<<Get query sequence, Pr. \ref{pr:cop}>>
-	  //<<Run \ty{phylonium}, Pr. \ref{pr:cop}>>
-	  //<<Extract $d_i$, Pr. \ref{pr:cop}>>
-	  return di
-  }
-#+end_src
-#+begin_export latex
-Like the reference sequence, we get the query sequence from the Blast
-database and store it in a file with a unique name. This file is
-deleted again when \ty{dist} returns.
-#+end_export
-#+begin_src go <<Get query sequence, Pr. \ref{pr:cop}>>=
-  cmd := exec.Command("blastdbcmd", "-db", db, "-entry", query)
-  out, err := cmd.CombinedOutput()
-  if err != nil {
-	  log.Fatalf("%s\n", out)
-  }
-  f, err := os.CreateTemp("", "query*.fasta")
-  util.Check(err)
-  qf := f.Name()
-  err = os.WriteFile(qf, out, 0644)
-  util.Check(err)
-  defer os.Remove(qf)
-#+end_src
-#+begin_export latex
-We run \ty{phylonium} with the given number of threads and store its
-output.
-#+end_export
-#+begin_src go <<Run \ty{phylonium}, Pr. \ref{pr:cop}>>=
-  nts := strconv.Itoa(nt)
-  cmd = exec.Command("phylonium", "-t", nts, rf, qf)
-  out, err = cmd.Output()
-  util.Check(err)
-#+end_src
-#+begin_export latex
-We import \ty{strconv}.
-#+end_export
-#+begin_src go <<Imports, Pr. \ref{pr:cop}>>=
-  "strconv"
-#+end_src
-#+begin_export latex
-The output from \ty{phylonium} looks like this:
-\begin{verbatim}
-2
-s1  0.0000e+00  1.5175e-03
-s2  1.5175e-03  0.0000e+00
-\end{verbatim}
-So $d_i$ is either the third token in the second row or the second
-token in the third row. We'll go for the third token in the second
-row.
-#+end_export
-#+begin_src go <<Extract $d_i$, Pr. \ref{pr:cop}>>=
-  lines := bytes.Split(out, []byte("\n"))
-  if len(lines) < 3 {
-	  m := "mal-formed output from phylonium: %s\n"
-	  log.Fatalf(m, out)
-  }
-  fields := bytes.Fields(lines[1])
-  di, err = strconv.ParseFloat(string(fields[2]), 64)
-  util.Check(err)
-#+end_src
-#+begin_export latex
-Having finished correcting the true positives, we now turn to the
-false positives. We iterate over their accessions and analyze each
-one. The analysis might uncover new true positives, which we store.
+Having corrected the true positives, we now analyze the false
+positives. This analysis might uncover new true positives, which we
+store.
 #+end_export
 #+begin_src go <<Correct false positives, Pr. \ref{pr:cop}>>=
   ntp := make([]string, 0)
@@ -424,7 +493,9 @@ accession, we are dealing either with a ``true'' false positive, or a
 new true positive.
 #+end_export
 #+begin_src go <<Analyze false positive, Pr. \ref{pr:cop}>>=
-  di := dist(rf, acc, db, nt)
+  i := accMap[re]
+  j := accMap[acc]
+  di := mat.Matrix[i][j]
   if di > dt {
 	  accs[n] = acc
 	  n++
@@ -451,7 +522,9 @@ The distance between the reference and the current accession allows us
 to distinguish between ``true'' false negatives and true negatives.
 #+end_export
 #+begin_src go <<Analyze false negative, Pr. \ref{pr:cop}>>=
-  di := dist(rf, acc, db, nt)
+  i := accMap[re]
+  j := accMap[acc]
+  di := mat.Matrix[i][j]
   if di <= dt {
 	  accs[n] = acc
 	  n++
@@ -462,7 +535,7 @@ We construct slices of true positives, false positives, and false
 negative accessions. From the lengths of these slices we calculate the
 sensitivity and the specificity of our primer set. That suffices for
 printing the first three lines of our report, as shown in
-Figure~\ref{fig:cops}. Then we print the corrected accession lists.
+Figure~\ref{fig:cops1}. Then we print the corrected accessions.
 #+end_export
 #+begin_src go <<Print corrected report, Pr. \ref{pr:cop}>>=
   //<<Construct slices of accessions, Pr. \ref{pr:cop}>>
@@ -546,36 +619,175 @@ and the false negatives, in that order.
   }
 #+end_src
 #+begin_export latex
-We print the true positive as one blank-delimited row.
+We print the true positives either with distances or without. Both
+cases are reused for the false positives and the false negatives, so
+we delegate them to the functions \ty{printAcc} and \ty{printAccDist},
+which we still need to write.
 #+end_export
 #+begin_src go <<Print true positives, Pr. \ref{pr:cop}>>=
-  fmt.Printf("TruePositives:\t%s", tps[0])
-  for i := 1; i < len(tps); i++ {
-	  fmt.Printf(" %s", tps[i])
+  fmt.Print("TruePositives:\t")
+  if pd {
+	  printAccDist(tps, re, mat, accMap)
+  } else {
+	  printAcc(tps)
+  }
+#+end_src
+#+begin_export latex
+Inside \ty{printAccDist} we take some time to prepare the printing,
+then print the first accession, followed by the rest.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
+  func printAccDist(accs []string, re string,
+	  mat *dist.DistMat,
+	  accMap map[string]int) {
+	  //<<Prepare printing, Pr. \ref{pr:cop}>>
+	  //<<Print first accession, Pr. \ref{pr:cop}>>
+	  //<<Print remaining accessions, Pr. \ref{pr:cop}>>
+  }
+#+end_src
+#+begin_export latex
+By way of preparation, we isolate the distance matrix and the index of
+the reference strain in that matrix.
+#+end_export
+#+begin_src go <<Prepare printing, Pr. \ref{pr:cop}>>=
+  dists := mat.Matrix
+  i := accMap[re]
+#+end_src
+#+begin_export latex
+We print the first accession and distance delimited by a blank.
+#+end_export
+#+begin_src go <<Print first accession, Pr. \ref{pr:cop}>>=
+  acc := accs[0]
+  j := accMap[acc]
+  d := dists[i][j]
+  fmt.Printf("%s %.3g", acc, d)
+#+end_src
+#+begin_export latex
+We iterate over the remaining accessions and print them together with
+the distances, keeping to the blank-delimited format. We end the line
+with a carriage return.
+#+end_export
+#+begin_src go <<Print remaining accessions, Pr. \ref{pr:cop}>>=
+  accs = accs[1:]
+  for _, acc := range accs {
+	  j := accMap[acc]
+	  d := dists[i][j]
+	  fmt.Printf(" %s %.3g", acc, d)
   }
   fmt.Printf("\n")
 #+end_src
 #+begin_export latex
-We also print the false positives as a blank-delimited row.
+Printing just accessions is simpler, so inside \ty{printAcc} we just
+print the first accession without a leading blank and then the rest
+with.
+#+end_export
+#+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
+  func printAcc(accs []string) {
+	  fmt.Printf("%s", accs[0])
+	  accs = accs[1:]
+	  for _, acc := range accs {
+		  fmt.Printf(" %s", acc)
+	  }
+	  fmt.Printf("\n")
+  }
+#+end_src
+#+begin_export latex
+Using the functions \ty{printAcc} and \ty{printAccDist} we also print
+the false positives.
 #+end_export
 #+begin_src go <<Print false positives, Pr. \ref{pr:cop}>>=
-  fmt.Printf("FalsePositives:\t%s", fps[0])
-  for i := 1; i < len(fps); i++ {
-	  fmt.Printf(" %s", fps[i])
+  fmt.Print("FalsePositives:\t")
+  if pd {
+	  printAccDist(fps, re, mat, accMap)
+  } else {
+	  printAcc(fps)
   }
-  fmt.Printf("\n")
 #+end_src
 #+begin_export latex
-Finally, we print the false negatives as a blank-delimited row.
+Finally, we print the false negatives.
 #+end_export
 #+begin_src go <<Print false negatives, Pr. \ref{pr:cop}>>=
-  fmt.Printf("FalseNegatives:\t%s", fns[0])
-  for i := 1; i < len(fns); i++ {
-	  fmt.Printf(" %s", fns[i])
+  fmt.Print("FalseNegatives:\t")
+  if pd {
+	  printAccDist(fns, re, mat, accMap)
+  } else {
+	  printAcc(fns)
   }
-  fmt.Printf("\n")
 #+end_src
 #+begin_export latex
 We have finished \ty{cops}, let's test it.
 \section{Testing}
+Our code for testing \ty{cops} contains hooks for imports and the
+testing logic.
 #+end_export
+#+begin_src go <<cops_test.go>>=
+  package main
+
+  import (
+	  "testing"
+	  //<<Testing imports, Pr. \ref{pr:cop}>>
+  )
+
+  func TestCops(t *testing.T) {
+	  //<<Testing, Pr. \ref{pr:cop}>>
+  }
+#+end_src
+#+begin_export latex
+We construct a set of test and iterate over them.
+#+end_export
+#+begin_src go <<Testing, Pr. \ref{pr:cop}>>=
+  var tests []*exec.Cmd
+  //<<Construct tests, Pr. \ref{pr:cop}>>
+  for i, test := range tests {
+	  //<<Run test, Pr. \ref{pr:cop}>>
+  }
+#+end_src
+#+begin_export latex
+We import \ty{exec}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:cop}>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+Our tests run on the sample database, with reference strain EDL933,
+which has accession AE005174, threshold distance 0.002, and input
+\ty{scop.out}. The first test takes only default parameters. The
+second and last test also returns the distances.
+#+end_export
+#+begin_src go <<Construct tests, Pr. \ref{pr:cop}>>=
+  d := "../data/sample"
+  r := "AE005174"
+  x := "2e-3"
+  i := "scop.out"
+  test := exec.Command("./cops", "-d", d, "-r", r, "-t", x, i)
+  tests = append(tests, test)
+  test = exec.Command("./cops", "-d", d, "-r", r, "-t", x,
+	  "-D", i)
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+When running a test, we compare the result we get with the result we
+want, which is contained in files \ty{r1.txt} and \ty{r2.txt}.
+#+end_export
+#+begin_src go <<Run test, Pr. \ref{pr:cop}>>=
+  get, err := test.Output()
+  if err != nil {
+	  t.Error(err)
+  }
+  f := "r" + strconv.Itoa(i+1) + ".txt"
+  want, err := os.ReadFile(f)
+  if err != nil {
+	  t.Error(err)
+  }
+  if !bytes.Equal(get, want) {
+	  t.Errorf("get:\n%s\nwant:\n%s\n", get, want)
+  }
+#+end_src
+#+begin_export latex
+We import \ty{strconv}, \ty{os}, and \ty{bytes}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:cop}>>=
+  "strconv"
+  "os"
+  "bytes"
+#+end_src

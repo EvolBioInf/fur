@@ -9,4 +9,6 @@ require (
 	github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965
 )
 
+require github.com/evolbioinf/dist v0.0.0-20230320162102-c887c99309e3 // indirect
+
 replace github.com/evolbioinf/fur/util => ../util
