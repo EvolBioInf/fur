@@ -51,8 +51,8 @@ false positives, leading to a specificity score of only 0.47.
 PrimerSet:      prim.fasta
 Sensitivity:    1
 Specificity:    0.47
-TruePositives:  CP051792.1 CP051830.1...
-FalsePositives: CP032803.1 CP022050.2...
+TruePositives:  AP018488.1 BA000007.3...
+FalsePositives: AE005174.2 AP026080.1...
 \end{verbatim}
 
 \section{Implementation}
@@ -113,7 +113,8 @@ program to run, so we shall make them mandatory,
 \item \ty{-i}: maximum number of mismatches
 \item \ty{-l}: maximum length of amplicon
 \item \ty{-e}: E-value
-\item \ty{-T}: number of threads
+\item \ty{-T}: number of threads, which we initailize to the number of
+  CPUs
 \item \ty{-v}: version
 \end{enumerate}
 #+end_export
@@ -123,7 +124,8 @@ program to run, so we shall make them mandatory,
   optI := flag.Int("i", 5, "maximum number of mismatches")
   optL := flag.Int("l", 4000, "maximum length of amplicon")
   optE := flag.Float64("e", 10.0, "E-value")
-  optTT := flag.Int("T", 0, "number of threads (default CPUs)")
+  nt := runtime.NumCPU()
+  optTT := flag.Int("T", nt, "number of threads (default CPUs)")
   optV := flag.Bool("v", false, "version")
 #+end_src
 #+begin_export latex
