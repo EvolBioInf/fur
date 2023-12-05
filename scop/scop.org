@@ -486,12 +486,13 @@ subjects by start position.
   }
 #+end_src
 #+begin_export latex
-Reverse primers are located on the reverse strand within the range of
-permissible amplicon lengths.
+Reverse primers are located on the reverse strand of the same subject
+within the range of permissible amplicon lengths.
 #+end_export
 #+begin_src go <<Look for reverse primer, Pr. \ref{pr:sco}>>=
   for j := i+1; j < len(hits); j++ {
-	  if hits[j].sstart > hits[j].send {
+	  if hits[j].sstart > hits[j].send &&
+		  fp.saccver == hits[j].saccver {
 		  rp := hits[j]
 		  if rp.send - fp.sstart + 1 <= *optL {
 			  otacc[fp.saccver] = true
