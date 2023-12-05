@@ -270,15 +270,20 @@ threads, and the distance switch.
   pd := args[4].(bool)
 #+end_src
 #+begin_export latex
-We split the report into its constituent lines and check we have at
-least three lines and no more than six. If not, we bail with a
-friendly message. If we're still going, we store the name of the
-primer set. Then we skip the lines containing the sensitivity and
-specificity and store the accessions of true positives, false
-positives, and false negatives in a map.
+We split the report into its constituent lines and check whether a
+terminal carriage return created an empty line, which we cut. Then we
+check we have at least three lines and no more than six. Note at this
+point that the terminal If not, we bail with a friendly message. If
+we're still going, we store the name of the primer set. Then we skip
+the lines containing the sensitivity and specificity and store the
+accessions of true positives, false positives, and false negatives in
+a map.
 #+end_export
 #+begin_src go <<Analyze report, Pr. \ref{pr:cop}>>=
   lines := bytes.Split(report, []byte("\n"))
+  if len(lines[len(lines)-1]) == 0 {
+	  lines = lines[:len(lines)-1]
+  }
   l := len(lines)
   if l < 3 || l > 6 {
 	  log.Fatalf("mal-formed report:\n%s\n", string(report))
