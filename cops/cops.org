@@ -155,10 +155,14 @@ We import \ty{clio}.
 We declare the obligatory version option, \ty{-v}, and three mandatory
 options, the database, \ty{-d}, the accession of the reference strain,
 and the threshold distance to the reference. In addition, the user can
-change the threshold distance from its default value, $d_{\rm
-  t}=10^{-3}$, run \ty{phylonium} with a different number of threads
-than the number of CPUs, and print the distances as part of the
-output.
+run \ty{phylonium} with a different number of threads than the number
+of CPUs, print the distances as part of the output, and include the
+true positives in the checking. You might wander why anyone would want
+to also double-check the true positives. However, it is possible to
+find the marker in the wrong genome that has been misclassified as
+target. This is highly unlikely, but not impossible, which is why we
+don't routinely include the true positives in the checking, but at the
+same time don't deny the user the possibility to do so.
 #+end_export
 #+begin_src go <<Declare options, Pr. \ref{pr:cop}>>=
   optV := flag.Bool("v", false, "version")
@@ -169,6 +173,8 @@ output.
   numThreads := runtime.NumCPU()
   optTT := flag.Int("T", numThreads, "number of threads")
   optDD := flag.Bool("D", false, "include distances in output")
+  optP := flag.Bool("p", false, "also check true positives " +
+	  "(default only check false positives and false negatives)")
 #+end_src
 #+begin_export latex
 We import \ty{flag} and \ty{runtime}.
@@ -224,12 +230,13 @@ names. We parse these files using the function \ty{ParseFiles}, which
 applies the function \ty{parse} to each one of them. The function
 \ty{parse} in turn takes as arguments the name of the Blast database,
 the reference strain, the threshold distance, the number of threads,
-and whether or not to include the distances in the output.
+whether or not to include the distances in the output, and whether or
+not to include the true positives.
 #+end_export
 #+begin_src go <<Parse input, Pr. \ref{pr:cop}>>=
   files := flag.Args()
   clio.ParseFiles(files, parse, *optD, *optR,
-	  (*optT), *optTT, *optDD)
+	  (*optT), *optTT, *optDD, *optP)
 #+end_src
 #+begin_export latex
 Inside \ty{parse}, we retrieve the arguments we just passed. Then we
@@ -260,7 +267,7 @@ We import \ty{io} and \ty{bytes}.
 #+end_src
 #+begin_export latex
 We retrieve the database, the reference, the threshold, the number of
-threads, and the distance switch.
+threads, the distance switch, and the true positives switch.
 #+end_export
 #+begin_src go <<Retrieve arguments, Pr. \ref{pr:cop}>>=
   db := args[0].(string)
@@ -268,6 +275,7 @@ threads, and the distance switch.
   dt := args[2].(float64)
   nt := args[3].(int)
   pd := args[4].(bool)
+  truePos := args[5].(bool)
 #+end_src
 #+begin_export latex
 We split the report into its constituent lines and check whether a
@@ -315,20 +323,23 @@ accession type, the remaining fields are the actual accessions.
 Correcting the report essentially means, running \ty{phyonium} on all
 input accessions. We do this by first constructing a directory for
 holing the sequence files on which we run \ty{phylonium}. Then we
-place the reference sequence and the query sequences into that
-directory, run \ty{phylonium}, and read the distance matrix it
-produces. These distances allow us to correct the true positives, the
-false positives, and the false negatives.
+place the sequences into that directory, run \ty{phylonium}, and read
+the distance matrix it produces. These distances allow us to correct
+the false positives, the false negatives, and, if desired, the true
+positives. True positives might turn out to be new false positives,
+for which we reserve a slice.
 #+end_export
 #+begin_src go <<Correct report, Pr. \ref{pr:cop}>>=
   //<<Create directory for sequence files, Pr. \ref{pr:cop}>>
-  //<<Get reference sequence, Pr. \ref{pr:cop}>>
-  //<<Get query sequences, Pr. \ref{pr:cop}>>
+  //<<Get sequences, Pr. \ref{pr:cop}>>
   //<<Run \ty{phylonium}, Pr. \ref{pr:cop}>>
   //<<Read distance matrix, Pr. \ref{pr:cop}>>
-  //<<Correct true positives, Pr. \ref{pr:cop}>>
   //<<Correct false positives, Pr. \ref{pr:cop}>>
   //<<Correct false negatives, Pr. \ref{pr:cop}>>
+  nfp := make([]string, 0)
+  if truePos {
+	  //<<Correct true positives, Pr. \ref{pr:cop}>>
+  }
 #+end_src
 #+begin_export latex
 We create a temporary directory, which is deleted when \ty{parse}
@@ -340,79 +351,136 @@ returns.
   defer os.RemoveAll(td)
 #+end_src
 #+begin_export latex
-We first need the exact accession of the reference sequence,
-i. e. with the correct version suffix. We get this by one call to
-\ty{blastdbcmd}. The resulting accession contains a trailing newline,
-which we remove.
-
-With the precise accession in hand we get the actual reference
-sequence. This is very similar to later getting the query sequences,
-so we delegate this to call to the function \ty{writeSeq}, which we
-write next.
+To get the sequences, we write the accessions to a, query the blast
+database with \ty{blastdbcmd}, and write the sequences returned by
+\ty{blastdbcmd} to separate files.
 #+end_export
-#+begin_src go <<Get reference sequence, Pr. \ref{pr:cop}>>=
-  cmd := exec.Command("blastdbcmd", "-db",
-	  db, "-entry", re, "-outfmt", "%a")
+#+begin_src go <<Get sequences, Pr. \ref{pr:cop}>>=
+  //<<Write accessions to file, Pr. \ref{pr:cop}>>
+  //<<Run \ty{blastdbcmd}, Pr. \ref{pr:cop}>>
+  //<<Write sequences to files, Pr. \ref{pr:cop}>>
+#+end_src
+#+begin_export latex
+We open a file for the accessions and write the reference accession,
+followed by the query accessions.
+#+end_export
+#+begin_src go <<Write accessions to file, Pr. \ref{pr:cop}>>=
+  //<<Open accessions file, Pr. \ref{pr:cop}>>
+  //<<Write reference accession, Pr. \ref{pr:cop}>>
+  //<<Write query accessions, Pr. \ref{pr:cop}>>
+#+end_src
+#+begin_export latex
+The accessions file is inside the temporary directory, which means it
+is also removed at the end of the run.
+#+end_export
+#+begin_src go <<Open accessions file, Pr. \ref{pr:cop}>>=
+  f, err := os.CreateTemp(td, "acc*.txt")
+  util.Check(err)
+  defer f.Close()
+#+end_src
+#+begin_export latex
+When dealing with the reference accession, we first need its exact
+version, that is, including the suffix for the sequence version. We
+get this by a call to \ty{blastdbcmd}. The resulting accession is
+terminated by a newline, which we remove, before we print it.
+#+end_export
+#+begin_src go <<Write reference accession, Pr. \ref{pr:cop}>>=
+  cmd := exec.Command("blastdbcmd", "-db", db, "-entry", re,
+	  "-outfmt", "%a")
   out, err := cmd.CombinedOutput()
   if err != nil {
 	  log.Fatalf("%s\n", out)
   }
   re = string(out[:len(out)-1])
-  writeSeq(re, td, db)
+  fmt.Fprintf(f, "%s\n", re)
 #+end_src
 #+begin_export latex
-Inside \ty{writeSeq}, we retrieve the reference sequence from the
-Blast database using the program \ty{blastdbcmd} and store it in the
-temporary directory.
-#+end_export
-#+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
-  func writeSeq(acc, dir, db string) {
-	  cmd := exec.Command("blastdbcmd", "-db",
-		  db, "-entry", acc)
-	  out, err := cmd.CombinedOutput()
-	  if err != nil {
-		  log.Fatalf("%s\n", out)
-	  }
-	  f := dir + "/" + acc + ".fasta"
-	  err = os.WriteFile(f, out, 0644)
-	  util.Check(err)
-  }
-#+end_src
-#+begin_export latex
-We import \ty{exec} and \ty{os}.
+We import \ty{exec} and \ty{fmt}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:cop}>>=
   "os/exec"
-  "os"
+  "fmt"
 #+end_src
 #+begin_export latex
-We iterate over all query accessions and get each corresponding
-sequence.
+We write the accessions of the false positives, the false negatives,
+and, if desired, the true positives.
 #+end_export
-#+begin_src go <<Get query sequences, Pr. \ref{pr:cop}>>=
-  for _, accs := range accessions {
-	  for _, acc := range accs {
-		  writeSeq(acc, td, db)
+#+begin_src go <<Write query accessions, Pr. \ref{pr:cop}>>=
+  keys := []string{"FalsePositives", "FalseNegatives"}
+  if truePos {
+	  keys = append(keys, "TruePositives")
+  }
+  for _, key := range keys {
+	  accs := accessions[key]
+	  if accs != nil {
+		  //<<Write accessions, Pr. \ref{pr:cop}>>
 	  }
   }
+#+end_src
+#+begin_export latex
+We iterate over the current set of accessions and print each one.
+#+end_export
+#+begin_src go <<Write accessions, Pr. \ref{pr:cop}>>=
+  for _, acc := range accs {
+	  fmt.Fprintf(f, "%s\n", acc)
+  }
+#+end_src
+#+begin_export latex
+We run \ty{blastdbccmd} in batch mode to retrieve the sequences
+corresponding to the accessions we just wrote to file.
+#+end_export
+#+begin_src go <<Run \ty{blastdbcmd}, Pr. \ref{pr:cop}>>=
+  cmd = exec.Command("blastdbcmd", "-db", db, "-entry_batch", f.Name())
+  out, err = cmd.CombinedOutput()
+  if err != nil {
+	  log.Fatalf("%s\n", out)
+  }
+#+end_src
+#+begin_export latex
+We iterate over the sequences returned by \ty{blastdbcmd} and write
+each one in a separate file inside the temporary directory. The file
+names are the sequence accessions with suffix \ty{.fasta}.
+#+end_export
+#+begin_src go <<Write sequences to files, Pr. \ref{pr:cop}>>=
+  sc := fasta.NewScanner(bytes.NewReader(out))
+  for sc.ScanSequence() {
+	  seq := sc.Sequence()
+	  fn := strings.Fields(seq.Header())[0]
+	  f, err := os.Create(td + "/" + fn + ".fasta")
+	  util.Check(err)
+	  fmt.Fprintf(f, "%s\n", seq)
+	  f.Close()
+  }
+#+end_src
+#+begin_export latex
+We import \ty{fasta}, \ty{strings}, \ty{bytes}, and \ty{os}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:cop}>>=
+  "github.com/evolbioinf/fasta"
+  "strings"
+  "bytes"
+  "os"
 #+end_src
 #+begin_export latex
 We run \ty{phylonium} with the given number of threads and store its
 output. Note that we construct the paths of the input files using the
 \ty{Glob} function of \ty{filepath}, because direct submission of an
-expandable name doesn't work---we are in Go, not in Unix.
+expandable name doesn't work---we are in Go, not in Unix. Also, in the
+actual run of \ty{phylonium} we ignore the error returned as this may
+be non-zero if the homology is low, but a distance was still
+returned. This is a bit risky, but still better than obscurely failing
+whenever a mildly divergent sequence is included in the analysis.
 #+end_export
 #+begin_src go <<Run \ty{phylonium}, Pr. \ref{pr:cop}>>=
   cmd = exec.Command("phylonium")
   nts := strconv.Itoa(nt)
   args := []string{"phylonium", "-t", nts, "-r",
 	  td + "/"+ re + ".fasta"}
-  p, err := filepath.Glob(td + "/*")
+  p, err := filepath.Glob(td + "/*.fasta")
   util.Check(err)
   args = append(args, p...)
   cmd.Args = args
-  out, err = cmd.Output()
-  util.Check(err)
+  out, _ = cmd.Output()
 #+end_src
 #+begin_export latex
 We import \ty{strconv} and \ty{filepath}.
@@ -427,9 +495,9 @@ We read the distance matrix or, failing that, give up.
 #+begin_src go <<Read distance matrix, Pr. \ref{pr:cop}>>=
   var mat *dist.DistMat
   r := bytes.NewReader(out)
-  sc := dist.NewScanner(r)
-  if sc.Scan() {
-	  mat = sc.DistanceMatrix()
+  scanner := dist.NewScanner(r)
+  if scanner.Scan() {
+	  mat = scanner.DistanceMatrix()
   } else {
 	  log.Fatal("couldn't read distance matrix")
   }
@@ -442,65 +510,34 @@ We import \ty{dist}.
 #+end_src
 #+begin_export latex
 In order to correct the given classification, we first need a map
-between accessions and positions in the distance matrix. Then we
-iterate over the true positive accessions and analyze each one. The
-analysis might turn up new false positives, which we store. We also
-store and count the old true positives and after the loop reslice
-their storage accordingly.
+between accessions and positions in the distance matrix. Using this
+map, we look up the index of the reference sequence, \ty{ri}. Then we
+iterate over the false positive accessions and analyze each one. This
+analysis might uncover new true positives, which we store.
 #+end_export
-#+begin_src go <<Correct true positives, Pr. \ref{pr:cop}>>=
+#+begin_src go <<Correct false positives, Pr. \ref{pr:cop}>>=
   accMap := make(map[string]int)
   for i, name := range mat.Names {
 	  accMap[name] = i
   }
-  nfp := make([]string, 0)
-  n := 0
-  accs := accessions["TruePositives"]
-  for _, acc := range accs {
-	  //<<Analyze true positive, Pr. \ref{pr:cop}>>
-  }
-  accessions["TruePositives"] = accs[:n]
-#+end_src
-#+begin_export latex
-We look up the distance between the reference and the current
-accession, $d_i$. Comparison of $d_i$ to the threshold distance,
-$d_{\rm t}$, allows us to classify the accession as either a true
-positive or a new false positive.
-#+end_export
-#+begin_src go <<Analyze true positive, Pr. \ref{pr:cop}>>=
-  i := accMap[re]
-  j := accMap[acc]
-  di := mat.Matrix[i][j]
-  if di <= dt {
-	  accs[n] = acc
-	  n++
-  } else {
-	  nfp = append(nfp, acc)
-  }
-#+end_src
-#+begin_export latex
-Having corrected the true positives, we now analyze the false
-positives. This analysis might uncover new true positives, which we
-store.
-#+end_export
-#+begin_src go <<Correct false positives, Pr. \ref{pr:cop}>>=
+  ri := accMap[re]
   ntp := make([]string, 0)
-  n = 0
-  accs = accessions["FalsePositives"]
+  n := 0
+  accs := accessions["FalsePositives"]
   for _, acc := range accs {
 	  //<<Analyze false positive, Pr. \ref{pr:cop}>>
   }
   accessions["FalsePositives"] = accs[:n]
 #+end_src
 #+begin_export latex
-Depending on the distance between the reference and the currenct
-accession, we are dealing either with a ``true'' false positive, or a
-new true positive.
+We look up the distance between the reference and the current
+accession, $d_i$. Comparison of $d_i$ to the threshold distance,
+$d_{\rm t}$, allows us to determine whether we are dealing with a
+``true'' false positive, or a new true positive.
 #+end_export
 #+begin_src go <<Analyze false positive, Pr. \ref{pr:cop}>>=
-  i := accMap[re]
   j := accMap[acc]
-  di := mat.Matrix[i][j]
+  di := mat.Matrix[ri][j]
   if di > dt {
 	  accs[n] = acc
 	  n++
@@ -509,7 +546,7 @@ new true positive.
   }
 #+end_src
 #+begin_export latex
-In our final correction step we analyze the accessions of the false
+Having correcte the false positives, we now analyze the false
 negatives, which may in fact be true negatives. But since we do not
 count true negatives, we don't store the reclassified accessions
 either.
@@ -533,6 +570,34 @@ to distinguish between ``true'' false negatives and true negatives.
   if di <= dt {
 	  accs[n] = acc
 	  n++
+  }
+#+end_src
+#+begin_export latex
+In our final correction step we analyze the accessions of the true
+positives, which may in fact be false positives, which we store. We
+also store and count the old true positives and after the loop reslice
+their storage accordingly.
+#+end_export
+#+begin_src go <<Correct true positives, Pr. \ref{pr:cop}>>=
+  n = 0
+  accs = accessions["TruePositives"]
+  for _, acc := range accs {
+	  //<<Analyze true positive, Pr. \ref{pr:cop}>>
+  }
+  accessions["TruePositives"] = accs[:n]
+#+end_src
+#+begin_export latex
+Depending on the distance to the reference, we classify the current
+accession as either a true positive or a new false positive.
+#+end_export
+#+begin_src go <<Analyze true positive, Pr. \ref{pr:cop}>>=
+  j := accMap[acc]
+  di := mat.Matrix[ri][j]
+  if di <= dt {
+	  accs[n] = acc
+	  n++
+  } else {
+	  nfp = append(nfp, acc)
   }
 #+end_src
 #+begin_export latex
@@ -599,8 +664,8 @@ sensitivity, and the specificity.
 #+end_export
 #+begin_src go <<Print first three lines of report, Pr. \ref{pr:cop}>>=
   fmt.Printf("PrimerSet:\t%s\n", primerSet)
-  fmt.Printf("Sensitivity:\t%.2g\n", sn)
-  fmt.Printf("Specificity:\t%.2g\n", sp)
+  fmt.Printf("Sensitivity:\t%.3g\n", sn)
+  fmt.Printf("Specificity:\t%.3g\n", sp)
 #+end_src
 #+begin_export latex
 We import \ty{fmt}.
@@ -631,7 +696,7 @@ which we still need to write.
 #+end_export
 #+begin_src go <<Print true positives, Pr. \ref{pr:cop}>>=
   fmt.Print("TruePositives:\t")
-  if pd {
+  if pd && truePos {
 	  printAccDist(tps, re, mat, accMap)
   } else {
 	  printAcc(tps)
@@ -682,9 +747,8 @@ with a carriage return.
   fmt.Printf("\n")
 #+end_src
 #+begin_export latex
-Printing just accessions is simpler, so inside \ty{printAcc} we just
-print the first accession without a leading blank and then the rest
-with.
+Printing just accessions is simpler, so inside \ty{printAcc} we print
+the first accession without a leading blank and then the rest with.
 #+end_export
 #+begin_src go <<Functions, Pr. \ref{pr:cop}>>=
   func printAcc(accs []string) {
@@ -738,7 +802,7 @@ testing logic.
   }
 #+end_src
 #+begin_export latex
-We construct a set of test and iterate over them.
+We construct a set of tests and iterate over them.
 #+end_export
 #+begin_src go <<Testing, Pr. \ref{pr:cop}>>=
   var tests []*exec.Cmd
@@ -757,7 +821,8 @@ We import \ty{exec}.
 Our tests run on the sample database, with reference strain EDL933,
 which has accession AE005174, threshold distance 0.002, and input
 \ty{scop.out}. The first test takes only default parameters. The
-second and last test also returns the distances.
+second test also returns the distances. The third and last test
+returns distances and includes the true positives.
 #+end_export
 #+begin_src go <<Construct tests, Pr. \ref{pr:cop}>>=
   d := "../data/sample"
@@ -769,10 +834,14 @@ second and last test also returns the distances.
   test = exec.Command("./cops", "-d", d, "-r", r, "-t", x,
 	  "-D", i)
   tests = append(tests, test)
+  test = exec.Command("./cops", "-d", d, "-r", r, "-t", x,
+	  "-D", "-p", i)
+  tests = append(tests, test)
 #+end_src
 #+begin_export latex
 When running a test, we compare the result we get with the result we
-want, which is contained in files \ty{r1.txt} and \ty{r2.txt}.
+want, which is contained in files \ty{r1.txt}, \ty{r2.txt}, and
+\ty{r3.txt}.
 #+end_export
 #+begin_src go <<Run test, Pr. \ref{pr:cop}>>=
   get, err := test.Output()
