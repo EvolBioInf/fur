@@ -260,18 +260,41 @@ We import \ty{runtime}.
 #+end_src
 #+begin_export latex
 The remaining tokens on the command line are taken as the names of
-input files containing sets of primers. If there are none, we append
-the file name ``-'', which is interpreted by Blast as the standard
-input steam. We iterate over the files and analyze each one.
+input files containing sets of primers. If there are none, we expect
+that the primer set is supplied via the standard input and copy it
+from there.  Then we iterate over the files and analyze each one.
 #+end_export
 #+begin_src go <<Parse input, Pr. \ref{pr:sco}>>=
   primerSets := flag.Args()
   if len(primerSets) == 0 {
-	  primerSets = append(primerSets, "-")
+	  //<<Copy primer set from standard input, Pr. \ref{pr:sco}>>
   }
   for _, primerSet := range primerSets {
 	  //<<Analyze primer set, Pr. \ref{pr:sco}>>
   }
+#+end_src
+#+begin_export latex
+We create a temporary file, write the primer set that we read from the
+standard input stream to it, and store its name.
+#+end_export
+#+begin_src go <<Copy primer set from standard input, Pr. \ref{pr:sco}>>=
+  ps, err := os.CreateTemp("", "prim*.fasta")
+  util.Check(err)
+  defer ps.Close()
+  defer os.Remove(ps.Name())
+  sc := fasta.NewScanner(os.Stdin)
+  for sc.ScanSequence() {
+	  seq := sc.Sequence()
+	  fmt.Fprintf(ps, "%s\n", seq)
+  }
+  primerSets = append(primerSets, ps.Name())
+#+end_src
+#+begin_export latex
+We import \ty{os} and \ty{fasta}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:sco}>>=
+  "os"
+  "github.com/evolbioinf/fasta"
 #+end_src
 #+begin_export latex
 To analyze a primer set, we run Blast, get the observed target
@@ -574,8 +597,8 @@ and false negatives.
 #+end_export
 #+begin_src go <<Report sensitivity and specificity, Pr. \ref{pr:sco}>>=
   fmt.Printf("PrimerSet:\t%s\n", primerSet)
-  fmt.Printf("Sensitivity:\t%.2g\n", sn)
-  fmt.Printf("Specificity:\t%.2g\n", sp)
+  fmt.Printf("Sensitivity:\t%.3g\n", sn)
+  fmt.Printf("Specificity:\t%.3g\n", sp)
   //<<Print true positives, Pr. \ref{pr:sco}>>
   //<<Print false positives, Pr. \ref{pr:sco}>>
   //<<Print false negatives, Pr. \ref{pr:sco}>>
