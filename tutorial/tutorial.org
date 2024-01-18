@@ -94,14 +94,14 @@ GTATACATGGACAAGGATCCCAACTGAATCTGAAAGCAAGGTAATTCTAGGACGTAGA
 \end{verbatim}
 #+end_export
 #+begin_export latex
-As expected, the marker is approximately 1 kb long. Its header consist
-of the accession, followed by the interval, followed by the number of
-mutations among the target sequences, followed by the positions of the
-mutations. The coordinates of the fragment interval are given with
-respect to the target representative, which is saved as \ty{r.fasta}
-in the database. So we can double-check a fragment by cutting it from
-the target representative using the program \ty{cutSeq} form the
-biobox.
+As expected, the marker is approximately 1 kb long and centered on
+position 5000. Its header consist of the accession, followed by the
+interval, followed by the number of mutations among the target
+sequences, followed by the positions of the mutations. The coordinates
+of the fragment interval are given with respect to the target
+representative, which is saved as \ty{r.fasta} in the database. So we
+can double-check a fragment by cutting it from the target
+representative using the program \ty{cutSeq} form the biobox.
 #+end_export
 #+begin_src sh <<tut>>=
   cutSeq -r 4485-5522 test.db/r.fasta
@@ -140,15 +140,11 @@ Let's now explore the resource consumption of \ty{makeFurDb}. Its
 expected run time is simply proportional to the number of neighbor
 sequences---given constant target size. However, its expected memory
 consumption is proportional to the length of the longest neighbor
-sequence.
-
-In theory, the memory consumption of \ty{makeFurDb} is proportional to
-the length of the longest neighbor sequence. Since the sequences
-simulated by \ty{stan} all have the same length, the memory
-consumption of \ty{makeFurDb} should be independent of the number of
-neighbor sequences. To show this is actually the case, we start with
-simulated neighbors and targets of 5 Mb, the length of an
-\emph{E. coli} genome.
+sequence. Since the sequences simulated by \ty{stan} all have the same
+length, the memory consumption of \ty{makeFurDb} should be independent
+of the number of neighbor sequences. To show this is actually the
+case, we start with simulated neighbors and targets of 5 Mb, the
+length of an \emph{E. coli} genome.
 #+end_export
 #+begin_src sh <<tut>>=
   stan -o -l 5000000
@@ -222,7 +218,7 @@ We finish the simulation part of the tutorial by deleting the database
   the algorithm and the number of sequences and nucleotides contained in
   the template set after each step. So the initial subtraction step
   uncovers 465 sequences totaling 291.0 kb and containing no unknown
-  nucleotide, \texttt{N}. After intersecting the remaining targets with
+  nucleotides, \texttt{N}. After intersecting the remaining targets with
   the output from the first subtraction, 239 sequences with 70.1 kb
   remain. These sequences contain 574 \ty{N}s. The second and last
   subtraction step yields 233 regions with 69.3 kb and 508 \ty{N}s.
@@ -264,7 +260,7 @@ of the match length distribution, which turns out to be 11.
 #+end_src
 #+begin_export latex
 To find out the quantiles that correspond to other match lengths, we
-run \ty{maid} without the switch for a specific quantile.
+run \ty{madis} without the switch for a specific quantile.
 #+end_export
 #+begin_src sh <<tut>>=
   madis -l 35524975 -g 0.505901 | head
@@ -363,181 +359,10 @@ We time this \ty{fur} run to find that it takes 2.7 s.
   is by default $10^{-5}$. Setting it to some other value again makes no
   difference in this case, but may well do so in other analyses.
 
-  \section{Making Primers, \texttt{fur2prim} \& \texttt{prim2fasta}}
-  We design primers with the program \ty{primer3}~\cite{unt12:pri}. So
-  we convert the output of \ty{fur} into input to \ty{primer3}.
-#+end_src
-#+begin_src sh <<tut>>=
-  fur2prim eco105.fasta > prim.txt
-#+end_src
-#+begin_src latex
-  Running \texttt{primer3} on \ty{prim.txt} takes approximately half a
-  minute.
-#+end_src
-#+begin_src sh <<tut>>=
-  primer3_core prim.txt > prim.out
-#+end_src
-#+begin_src latex
-  Each entry in \ty{prim.out} is terminated by \ty{=}, so we can count
-  the 233 entries.
-#+end_src
-#+begin_src sh <<tut>>=
-  grep '^=' prim.out | wc -l
-#+end_src
-#+begin_src latex
-  Each of these entries contains up to 5 primers. The parameter
-  \begin{verbatim}
-  PRIMER_PAIR_NUM_RETURNED
-  \end{verbatim}
-  gives us the number of primers per entry, so we can count the total
-  number of primers returned, 1040.
-#+end_src
-#+begin_src sh <<tut>>=
-  grep PRIMER_PAIR_NUM_RETURNED prim.out |
-      tr '=' '\t' |
-      awk '{s+=$2}END{print s}'
-#+end_src
-#+begin_src latex
-  We rank our 1040 primers by quality. Each primer pair has a penalty
-  denoted as
-  \begin{verbatim}
-  PRIMER_PAIR_X_PENALTY
-  \end{verbatim}
-  where X is 0 for the best pair of a particular template, 1 for the
-  second best, and so on. We can extract and sort these values to
-  discover the overall best primer pair, which has penalty 0.008130.
-#+end_src
-#+begin_src sh <<tut>>=
-  grep PRIMER_PAIR_0_PENALTY prim.out |
-      tr '=' '\t' |
-      sort -k 2 -n |
-      head -n 1
-#+end_src
-#+begin_src latex
-  We can now load \ty{prim.out} into a text editor and search for the
-  primers with penalty 0.008130.
-
-  \section{Checking Primers, \texttt{checkPrim}}\label{sec:checkTut}
-  We download an example primer pair for SARS-CoV-2 from the \ty{fur}
-  web site.
-#+end_src
-#+begin_src sh <<tut>>=
-  wget guanine.evolbio.mpg.de/fur/p1.fa
-#+end_src
-#+begin_src latex
-  Our aim is to calculate the specificity and sensitivity of the two
-  primers contained in \ty{p1.fa}. For this we first download a BLAST
-  database containing targets and non-targets.
-#+end_src
-#+begin_src sh <<tut>>=
-  <<Download BLAST database, Ch. \ref{ch:tut}>>
-  <<Calculate sensitivity, Ch. \ref{ch:tut}>>
-  <<Calculate specificity, Ch. \ref{ch:tut}>>
-#+end_src
-#+begin_src latex
-  Since we are investigating a pair of SARS-CoV-2 primers, we could use
-  the current version of the Betacoronavirus BLAST database for testing.
-  We would download this and the taxonomy database, which we need to
-  distinguish between targets and non-targets, using two calls to the
-  program \ty{update\_blastdb.pl} from the BLAST package.
-
-  \begin{verbatim}
-  update_blastdb.pl --decompress Betacoronavirus
-  update_blastdb.pl --decompress taxdb
-  \end{verbatim}
-
-  However, the current Betacoronavirus database is rather large (and
-  growing rapidly), so we use a much smaller version from 2020, which we
-  download from the \ty{fur} website and unpack into the directory
-  \ty{betacor}, together with the corresponding taxonomy database.
-#+end_src
-#+begin_src sh <<Download BLAST database, Ch. \ref{ch:tut}>>=
-  wget http://guanine.evolbio.mpg.de/fur/betacor.tgz
-  tar -xvzf betacor.tgz
-  ls betacor/
-#+end_src
-#+begin_src latex
-  The database \ty{Betacoronavirus} contains 8271 entries.
-#+end_src
-#+begin_src sh <<Download BLAST database, Ch. \ref{ch:tut}>>=
-  blastdbcmd -db betacor/Betacoronavirus -entry all |
-      grep '^>' |
-      wc -l
-#+end_src
-#+begin_src latex
-  The sensitivity of a set of primers is the fraction of amplified
-  target sequences. To calculate this fraction, we need to identify the
-  SARS-CoV-2 virus by its taxon-ID, which we look up using the using the
-  ENTREZ programs \ty{esearch} and \ty{efetch}. We find that the
-  taxon-ID of SARS-CoV-2 is 2697049.
-#+end_src
-#+begin_src sh <<Calculate sensitivity, Ch. \ref{ch:tut}>>=
-  esearch -db taxonomy -query "SARS-CoV-2" |
-      efetch -format docsum
-#+end_src
-#+begin_src latex
-  There are 567 SARS-CoV-2 entries in the database.
-#+end_src
-#+begin_src sh <<Calculate sensitivity, Ch. \ref{ch:tut}>>=
-  blastdbcmd -db betacor/Betacoronavirus -taxids 2697049 |
-      grep '^>' |
-      wc -l
-#+end_src
-#+begin_src latex
-  We find 487 hits with our primers and save their accessions as a
-  sorted list.
-#+end_src
-#+begin_src sh <<Calculate sensitivity, Ch. \ref{ch:tut}>>=
-  checkPrim -v query=p1.fa \
-	    -v db=betacor/Betacoronavirus \
-	    -v taxids=2697049 |
-      cut -f 3 |
-      tail -n +2 |
-      sort > obs.txt
-#+end_src
-#+begin_export latex
-487 hits is much less than the 567 SARS-CoV-2 entries in the
-database. However, we don't know how many of the 567 entries contain
-the marker. What we do know, is that every complete genome sequence
-should contain the marker. To determine the fraction of target genomes
-we found, we determine the accessions of the 438 complete genome
-sequences we expect to find, remove their version information, and
-store them as a sorted list. This is the list of accessions we expect
-to find.
-#+end_export
-#+begin_src sh <<Calculate sensitivity, Ch. \ref{ch:tut}>>=
-  blastdbcmd -db betacor/Betacoronavirus -taxids 2697049 |
-      grep '^>' |
-      grep 'complete genome' |
-      awk '{print $1}' |
-      sed 's/>//;s/\.[0-9]*//' |
-      sort > exp.txt
-#+end_src
-#+begin_src latex
-  The sensitivity is the size of the join between observed and expected
-  accessions divided by 438, which is 1. So the primers in \ty{p1.fa}
-  are maximally sensitive.
-#+end_src
-#+begin_src sh <<Calculate sensitivity, Ch. \ref{ch:tut}>>=
-  join exp.txt obs.txt |
-      wc -l
-#+end_src
-#+begin_src latex
-  The specificity is one minus the fraction of off-target
-  amplifications. So we print all hits to sequences not classified as
-  SARS-CoV-2. There are none, which means the specificity is also 1.
-#+end_src
-#+begin_src sh <<Calculate specificity, Ch. \ref{ch:tut}>>=
-  checkPrim -v query=p1.fa \
-	    -v db=betacor/Betacoronavirus \
-	    -v negativeTaxids=2697049
-#+end_src
-#+begin_src latex
-  This investigation of sensitivity and specificity should be repeated
-  with a larger database, ideally the complete collection of known
-  nucleotide sequences, \texttt{nt}. The full list of available
-  databases is show by
-  \begin{verbatim}
-  update_blastdb.pl --showall
-  \end{verbatim}
+  The output of \ty{fur} can serve as template for primer
+  design. Software for creating and testing primers is contained in the
+  \ty{prim} repo at
+  \begin{center}
+    \ty{github.com/evolbioinf/prim}
+  \end{center}
 #+end_src
