@@ -905,7 +905,7 @@ match the forward and the reverse strands by calling the function
 #+begin_export latex
 Inside \ty{matchSeq}, we traverse the sequence in steps of matching
 prefixes. Each match is analyzed and stored before we advance by its
-length.
+length past the mismatching nucleotide.
 #+end_export
 #+begin_src go <<Functions, Pr. \ref{pr:mfd}>>=
   func matchSeq(d []byte, e *esa.Esa, ml []int, rev bool) {
@@ -913,7 +913,7 @@ length.
 		  match := e.MatchPref(d[i:])
 		  //<<Analyze match, Pr. \ref{pr:mfd}>>
 		  //<<Store match, Pr. \ref{pr:mfd}>>
-		  i += match.L
+		  i += match.L + 1
 	  }
   }
 #+end_src
