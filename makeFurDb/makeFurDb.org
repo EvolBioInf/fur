@@ -726,11 +726,7 @@ We advance by the skip fraction of the match and make sure we advance
 by at least one nucleotide.
 #+end_export
 #+begin_src go <<Advance match position, Pr. \ref{pr:mfd}>>=
-  a := int(float64(m.L) * *optS)
-  if a <= 0 {
-	  a = 1
-  }
-  j += a
+  j += m.L + 1
 #+end_src
 #+begin_export latex
 In the closer we wait until all working goroutines have finished and
@@ -792,7 +788,7 @@ implied by the match lengths as \ty{1}, all other positions as \ty{0}.
   for i := 0; i < len(resa.T); {
 	  p := i + ml[i] - 1
 	  ends[p] = '1'
-	  i += ml[i]
+	  i += ml[i] + 1
   }
 #+end_src
 #+begin_export latex
