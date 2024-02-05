@@ -82,7 +82,7 @@ We import \ty{flag}.
 Step~(\ref{eq:fur1}) is implemented as a sliding window analysis. So
 we declare an option for setting the window length. We also declare
 the quantile of the match length distribution. By default we set
-the quantile to 0.01, which means we are looking for regions with
+the quantile to 0.1, which means we are looking for regions with
 \emph{short} matches to minimize the false-positives that are passed
 on from this step. At the end of this step, the user can print the
 result and exit.
@@ -90,7 +90,7 @@ result and exit.
 #+begin_src go <<Options for step (\ref{eq:fur1}), Pr. \ref{pr:fur}>>=
   optW := flag.Int("w", 80, "window length")
   m := "quantile of match length distribution"
-  optQ := flag.Float64("q", 0.01, m)
+  optQ := flag.Float64("q", 0.1, m)
   m = "print unique regions after sliding window analysis " +
 	  "and exit"
   optU := flag.Bool("u", false, m)
