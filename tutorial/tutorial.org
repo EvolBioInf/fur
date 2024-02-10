@@ -85,12 +85,12 @@ summary of the run and the marker fragment.
 \begin{verbatim}
   Step           Sequences  Length  Ns
   -------------  ---------  ------  --
-  Subtraction 1          1    1040   0
-  Intersection           1    1038   5
-  Subtraction 2          1    1038   5
->t4 (4485..5522)   5  126  165  363  620  762
-GCAATCCTGCATCGACTGTGGCTCTGGGAGGTCCGACCAAGTGCTACTGCGGCATTAG...
-GTATACATGGACAAGGATCCCAACTGAATCTGAAAGCAAGGTAATTCTAGGACGTAGA
+  Subtraction_1          1    1044   0
+  Intersection           1    1033  38
+  Subtraction_2          1    1009  38
+>t5_(4492..5500)   38  40  107  126  141  149  151...
+CGGGGTATTTGAGATAATCACACCTGGGCTCTAGTGGCTNTCAGCAAAATCGG...
+...CCATCGNCTGGCGCTTGACGATGCTTTTGAATATCGAGGAAGCATATCCTACC
 \end{verbatim}
 #+end_export
 #+begin_export latex
@@ -104,7 +104,7 @@ can double-check a fragment by cutting it from the target
 representative using the program \ty{cutSeq} form the biobox.
 #+end_export
 #+begin_src sh <<tut>>=
-  cutSeq -r 4485-5522 test.db/r.fasta
+  cutSeq -r 4492-5500 test.db/r.fasta
 #+end_src
 #+begin_src latex
   To make the process of marker selection more transparent, the \ty{-u}
@@ -115,7 +115,7 @@ representative using the program \ty{cutSeq} form the biobox.
   fur -d test.db -u > unique1.fasta
 #+end_src
 #+begin_export latex
-The file \ty{unique1.fasta} now contains the 1040 bp isolated in the
+The file \ty{unique1.fasta} now contains the 1044 bp isolated in the
 first subtraction step.
 #+end_export
 #+begin_src sh <<tut>>=
@@ -129,7 +129,7 @@ first subtraction step.
   fur -d test.db -U > unique2.fasta
 #+end_src
 #+begin_src latex
-  The file \texttt{unique2.fasta} now contains the 1038 bp returned by
+  The file \texttt{unique2.fasta} now contains the 1033 bp returned by
   the intersection step.
 #+end_src
 #+begin_src sh <<tut>>=
@@ -154,20 +154,37 @@ We now need to measure the run time and the memory consumption of
 \ty{makeFurDb}. Time measurements are routinely carried out using the
 \ty{time} command built into the shell. However, it cannot measure
 memory, while the \ty{time} command of the system can. So we run that
-by giving its explicit path, and ask it to print the user time and the
-peak memory. We find that \ty{makeFurDb} runs in 15 s and occupies 827
-MB memory.
+by giving its explicit path, and ask it to print the user time, the
+elapsed time, and the peak memory. We find on our test system that
+\ty{makeFurDb} uses 26.6 s user time, but through parallelization runs
+in only 4.4 s and occupies 3.5 GB of RAM.
 #+end_export
 #+begin_src sh <<tut>>=
-  /usr/bin/time -f "%Us\t%Mkb" makeFurDb -t targets/ \
-		-n neighbors/ -d test.db/ -o
+  /usr/bin/time -f "user: %Us; elapsed: %es; memory: %Mkb" \
+		makeFurDb -t targets/ -n neighbors/ \
+		-d test.db -o
 #+end_src
 #+begin_export latex
-By comparison, the resource requirement of \ty{fur} is neglegible with
-0.1 s and 149 MB.
+If we'd rather use less RAM, we can run \ty{makeFurDb} with fewer
+threads, let's run it with just one.
 #+end_export
 #+begin_src sh <<tut>>=
-  /usr/bin/time -f "%Us\t%Mkb" fur -d test.db/
+  /usr/bin/time -f "user: %Us; elapsed: %es; memory: %Mkb" \
+		makeFurDb -t targets/ -n neighbors/ \
+		-d test.db -o -T 1
+#+end_src
+#+begin_export latex
+Now \ty{makeFurDb} only uses 11.8 s user time, which is close to the
+12.0 s that elapsed. Its memory requirement is now just 623.0 MB, six
+times less than in the parallel run.
+#+end_export
+#+begin_export latex
+By comparison, the resource requirement of \ty{fur} is neglegible with
+0.2 s elapsed and 135.4 MB RAM.
+#+end_export
+#+begin_src sh <<tut>>=
+  /usr/bin/time -f "user: %Us; elapsed: %es; memory: %Mkb" \
+		fur -d test.db/
 #+end_src
 #+begin_export latex
 Let's double the size of the neighborhood.
@@ -176,12 +193,14 @@ Let's double the size of the neighborhood.
   stan -o -l 5000000 -n 20
 #+end_src
 #+begin_export latex
-As expected, \ty{makeFurDb} now takes approximately twice the run
-time, 28 s, but still only occupies 833 MB of memory.
+As expected, the user time has now doubled to 50.2 s, and the elapsed
+time has almost doubled to 7.7 s. However, the important point is that
+the memory requirement has risen only slightly to 4.0 GB.
 #+end_export
 #+begin_src sh <<tut>>=
-  /usr/bin/time -f "%Us\t%Mkb" makeFurDb -t targets/ \
-		-n neighbors/ -d test.db/ -o
+  /usr/bin/time -f "user: %Us; elapsed: %es; memory: %Mkb" \
+		makeFurDb -t targets/ -n neighbors/ \
+		-d test.db/ -o
 #+end_src
 #+begin_export latex
 We finish the simulation part of the tutorial by deleting the database
@@ -217,119 +236,33 @@ We finish the simulation part of the tutorial by deleting the database
   The progress information printed by \ty{fur} lists the three steps of
   the algorithm and the number of sequences and nucleotides contained in
   the template set after each step. So the initial subtraction step
-  uncovers 465 sequences totaling 291.0 kb and containing no unknown
+  uncovers 291 sequences totaling 258.0 kb and containing no unknown
   nucleotides, \texttt{N}. After intersecting the remaining targets with
-  the output from the first subtraction, 239 sequences with 70.1 kb
-  remain. These sequences contain 574 \ty{N}s. The second and last
-  subtraction step yields 233 regions with 69.3 kb and 508 \ty{N}s.
+  the output from the first subtraction, 164 sequences with 56.0 kb
+  remain. These sequences contain 442 \ty{N}s. The second and last
+  subtraction step yields 34 regions with 25.5 kb and 1195 \ty{N}s.
 #+end_src
 #+begin_src sh <<tut>>=
   fur -d eco105.db/ > eco105.fasta
 #+end_src
 #+begin_src latex
   \begin{verbatim}
-    Step           Sequences  Length   Ns
-    -------------  ---------  ------   --
-    Subtraction 1        465  291003    0
-    Intersection         239   70063  574
-    Subtraction 2        233   69310  508
+    Step           Sequences  Length    Ns
+    -------------  ---------  ------    --
+    Subtraction_1        291  257947     0
+    Intersection         164   56020   442
+    Subtraction_2         34   25509  1195
   \end{verbatim}
 
   The program \ty{fur} has a number of parameters that can affect its
-  output. We begin our investigation of these parameters with the
-  quantile of the match length distribution. This is calculated from the
-  combined length and GC content of the neighbor sequences, two
-  quantities stored in the database file \ty{n.txt}.
-#+end_src
-#+begin_src sh <<tut>>=
-  cat eco105.db/n.txt
-#+end_src
-#+begin_export latex
-\begin{verbatim}
-length: 35524975
-GC-content: 0.505901
-\end{verbatim}
-#+end_export
-#+begin_export latex
-We use the program \ty{madis} to convert the length and GC content of
-the neighbors into the match length corresponding to the 0.01 quantile
-of the match length distribution, which turns out to be 11.
-#+end_export
-#+begin_src sh <<tut>>=
-  madis -l 35524975 -g 0.505901 -q 0.01
-#+end_src
-#+begin_export latex
-To find out the quantiles that correspond to other match lengths, we
-run \ty{madis} without the switch for a specific quantile.
-#+end_export
-#+begin_src sh <<tut>>=
-  madis -l 35524975 -g 0.505901 | head
-#+end_src
-#+begin_export latex
-\begin{verbatim}
-#x  PDF(x)     CDF(x)
- 8  2.99e-109  2.99e-109
- 9  5.32e-29   5.32e-29
-10  5.31e-08   5.31e-08
-11  0.0146     0.0146
-12  0.332      0.347
-13  0.421      0.767
-14  0.169      0.936
-15  0.0477     0.984
-16  0.0123     0.996
-\end{verbatim}
-The cumulative density function, CDF, tells us that match length 12
-corresponds to quantiles $0.0146 < q < 0.347$. However, when we run
-\ty{fur} with a quantile out of this interval, say 0.1, nothing
-changes. So we try a quantile for the 13-interval, $0.347 < q <
-0.767$, say 0.4. Now our \ty{fur} output increases by over 50\% to 110
-kb. We throw this output away in our example analysis, but in a real
-analysis we'd of course keep it.
-#+end_export
-#+begin_src sh <<tut>>=
-  fur -q 0.4 -d eco105.db/ > /dev/null
-#+end_src
-#+begin_export latex
-\begin{verbatim}
-  Step           Sequences  Length    Ns
-  -------------  ---------  ------    --
-  Subtraction 1        953  385684     0
-  Intersection         527  112063  1235
-  Subtraction 2        511  110205   906
-\end{verbatim}
-
-So it might be useful to experiment with various match lengths via the
-\ty{-q} parameter. Another parameter that can affect the yield is the
-length of the sliding window, \ty{-w}. For example, if we set it from
-default 80 to 70, the output again grows, this time to 152.8 kb.
-#+end_export
-#+begin_src sh <<tut>>=
-  fur -q 0.4 -w 70 -d eco105.db/ > /dev/null
-#+end_src
-#+begin_export latex
-\begin{verbatim}
-  Step           Sequences  Length    Ns
-  -------------  ---------  ------    --
-  Subtraction 1       1412  464155     0
-  Intersection         786  155005  1547
-  Subtraction 2        765  152839  1412
-\end{verbatim}
-
-We time this \ty{fur} run to find that it takes 2.7 s.
-#+end_export
-#+begin_src sh <<tut>>=
-  /usr/bin/time -f "%Us\t%Mkb" fur -q 0.4 -w 70 \
-		-d eco105.db/ > /dev/null
-#+end_src
-#+begin_src latex
-  Since in our example a \ty{fur} run takes under three seconds, we can
-  iterate over a range of window sizes using a \ty{do} loop, for example
-  the 61 window sizes 60--120. This should take no more than three
-  minutes.
+  output. One of them is the length of the sliding window.  Since in our
+  example a \ty{fur} run takes under three seconds, we can iterate over
+  a range of window sizes using a \ty{do} loop, for example the 61
+  window sizes 60--120. This should take no more than three minutes.
 
   The result of the \ty{do} loop is plotted with \ty{plotLine} from the
-  biobox. Figure~\ref{fig:yie} shows that for short window lengths the
-  yield fluctuates strongly, but this dampens out for longer windows.
+  biobox. Figure~\ref{fig:yie} shows the yield fluctuates with window
+  size, so it might be worthwhile exploring a range of window lengths.
 
   \begin{figure}
     \begin{center}
@@ -344,9 +277,10 @@ We time this \ty{fur} run to find that it takes 2.7 s.
   do
       echo -n $a " "
       fur -w $a -q 0.4 -d eco105.db/ 2>&1 |
-	  grep "Subtraction 2" |
-	  awk '{print $4}'
-  done | plotLine
+	  grep "Subtraction_2" |
+	  awk '{print $3}'
+  done > yield.dat
+  plotLine yield.dat
 #+end_src
 #+begin_src latex
   The last two parameters to mention affect the sensitivity of the
@@ -354,15 +288,59 @@ We time this \ty{fur} run to find that it takes 2.7 s.
   can be modulated via its mode (algorithm) and $E$-value. The mode of
   the BLAST-search among the neighborhood sequences is by default the
   sensitive ``blastn'' mode. Option \texttt{-m} switches it to the
-  faster and less sensitive ``megablast'' mode. However, in the case of
-  the 105 \emph{E. coli} genomes this makes no difference. The $E$-value
-  is by default $10^{-5}$. Setting it to some other value again makes no
-  difference in this case, but may well do so in other analyses.
-
-  The output of \ty{fur} can serve as template for primer
-  design. Software for creating and testing primers is contained in the
-  \ty{prim} repo at
-  \begin{center}
-    \ty{github.com/evolbioinf/prim}
-  \end{center}
+  faster and less sensitive ``megablast'' mode. This increases the yield
+  to 46.7 kb. By increasing the risk of false positives, we can increase
+  the marker yield.
 #+end_src
+#+begin_src sh <<tut>>=
+  fur -m -d eco105.db/ > eco105_2.fasta
+#+end_src
+#+begin_export latex
+\begin{verbatim}
+  Step           Sequences  Length   Ns
+  -------------  ---------  ------   --
+  Subtraction_1        291  257947    0
+  Intersection         164   56020  442
+  Subtraction_2        125   46719  329
+\end{verbatim}
+#+end_export
+#+begin_export latex
+The $E$-value is by default $10^{-5}$. Setting it to greater values
+tends to decrease the yield as the condition for subtraction in the
+second subtraction is relaxed. For example, if we set $E=10^{-2}$, the
+yield decreases from 25.5 kb to 25.2 kb. Not much of a change.
+#+end_export
+#+begin_src sh <<tut>>=
+  fur -e 1e-2 -d eco105.db/ > eco105_3.fasta
+#+end_src
+#+begin_export latex
+\begin{verbatim}
+  Step           Sequences  Length    Ns
+  -------------  ---------  ------    --
+  Subtraction_1        291  257947     0
+  Intersection         164   56020   442
+  Subtraction_2         32   25156  1284
+\end{verbatim}
+#+end_export
+#+begin_export latex
+Conversely, if we decrease the $E$-value, we relax the stringency of
+the second subtraction step, which increases the yield. For example,
+if we set $E=10{-2}$, the yield increases to 38.7 kb.
+#+end_export
+#+begin_export latex
+\begin{verbatim}
+  Step           Sequences  Length   Ns
+  -------------  ---------  ------   --
+  Subtraction_1        291  257947    0
+  Intersection         164   56020  442
+  Subtraction_2        113   38734  125
+\end{verbatim}
+#+end_export
+#+begin_export latex
+The output of \ty{fur} can serve as template for primer
+design. Software for creating and testing primers is contained in the
+\ty{prim} repo at
+\begin{center}
+  \ty{github.com/evolbioinf/prim}
+\end{center}
+#+end_export

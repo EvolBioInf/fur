@@ -5,7 +5,7 @@ date = $(shell git log | grep Date | head -n 1 | sed -r 's/Date: +[A-Z][a-z]+ ([
 version = $(shell git describe)
 
 all: furDoc.pdf 
-furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) ../stream/time_*.ps ../stream/memory.ps ../makeFurDb/mlAlg.tex
+furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) ../stream/time_*.ps ../stream/memory.ps ../makeFurDb/mlAlg.tex ../tutorial/yield.ps
 	latex furDoc.tex
 	bibtex furDoc
 	latex furDoc.tex
@@ -18,5 +18,7 @@ furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) ../stream/time_*.ps ../stream/memory.ps .
 	make -C makeFurDb
 ../makeFurDb/memory.ps:
 	make -C makeFurDb
+../tutorial/yield.ps: ../tutorial/yield.dat
+	cd ../tutorial && plotLine -p yield.ps -d "9cm,6cm" -x "Window Length (bp)" -y "Yield (kb)" yield.dat
 clean:
-	rm -f furDoc.pdf furDoc.ps furDoc.dvi furDoc.aux furDoc.bbl  furDoc.blg  furDoc.dvi  furDoc.log $(SRC1) version.txt date.txt
+	rm -f furDoc.pdf furDoc.ps furDoc.dvi furDoc.aux furDoc.bbl  furDoc.blg  furDoc.dvi  furDoc.log $(SRC1) tutorial/yield.ps
