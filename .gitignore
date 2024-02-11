@@ -28,9 +28,16 @@ doc/stream.tex
 doc/tutorial.tex
 doc/util.tex
 doc/version.txt
+
+# docker
 docker/furDoc.pdf
 docker/startFox.sh
+docker/biobox
+docker/fur
+docker/stan
+
 experiments
+
 # Databases
 makeFurDb/*.db
 fur/*.db
