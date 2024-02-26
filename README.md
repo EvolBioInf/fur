@@ -7,8 +7,11 @@ neighbors. Such regions can be used as candidate genetic markers.
 ## Author
 [Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
 ## Make the Programs
-Make sure you've installed the packages [`biobox`](https://github.com/evolbioinf/biobox) `git`, `gnuplot`, `golang`,
-`libdivsufsort-dev`, `make`, `ncbi-blast+`, `phylonium`, `primer3`, and `noweb`. Then make the programs.  
+Make sure you've installed the packages `git`, `gnuplot`, `golang`,
+`libdivsufsort-dev`, `make`, `ncbi-blast+`, `phylonium`, `primer3`,
+and `noweb`. In addition, the programs from the 
+[`biobox`](https://github.com/evolbioinf/biobox) repository need to be
+installed. Then make the programs.  
   `$ make`  
   The directory `bin` now contains the binaries, scripts are in
   `scripts`.
