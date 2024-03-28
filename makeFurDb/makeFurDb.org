@@ -100,13 +100,6 @@ nucleotides.
   optK := flag.Bool("k", false, "keep non-canonical nucleotides")
 #+end_src
 #+begin_export latex
-By default streaming skips the length of the matching prefix. However,
-the user can set a different skipping fraction.
-#+end_export
-#+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
-  optS := flag.Float64("s", 1, "skip by fraction of match")
-#+end_src
-#+begin_export latex
 The usage consists of three parts, the actual usage message, an
 explanation of the purpose of \ty{makeFurDb}, and an example command.
 #+end_export
@@ -689,9 +682,9 @@ strand against $r$ by calling the function \ty{streamSeq}.
   sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  nei := sc.Sequence()
-	  streamSeq(nei.Data(), resa, ml, optS)
+	  streamSeq(nei.Data(), resa, ml)
 	  nei.ReverseComplement()
-	  streamSeq(nei.Data(), resa, ml, optS)
+	  streamSeq(nei.Data(), resa, ml)
   }
 #+end_src
 #+begin_export latex
@@ -708,7 +701,7 @@ it as shown in lines 7--9 of Algorithm~\ref{alg:nml}. Then we move
 advance the match position and repeat.
 #+end_export
 #+begin_src go <<Functions, Pr. \ref{pr:mfd}>>=
-  func streamSeq(ni []byte, resa *esa.Esa, ml []int, optS *float64) {
+  func streamSeq(ni []byte, resa *esa.Esa, ml []int) {
 	  for j := 0; j < len(ni); {
 		  m := resa.MatchPref(ni[j:])
 		  for k := m.I; k <= m.J; k++ {
@@ -722,8 +715,7 @@ advance the match position and repeat.
   }
 #+end_src
 #+begin_export latex
-We advance by the skip fraction of the match and make sure we advance
-by at least one nucleotide.
+We advance one position beyond the mismatch that terminates the match.
 #+end_export
 #+begin_src go <<Advance match position, Pr. \ref{pr:mfd}>>=
   j += m.L + 1
@@ -948,24 +940,6 @@ representative.
   r := "t2.fasta"
   test = exec.Command(p, "-t", a, "-n", n, "-d", d, "-o",
 	  "-r", r)
-  tests = append(tests, test)
-#+end_src
-#+begin_export latex
-In our third test we also set the skipping fraction to half the match
-length.
-#+end_export
-#+begin_src go <<Construct tests, Pr. \ref{pr:mfd}>>=
-  test = exec.Command(p, "-t", a, "-n", n, "-d", d, "-o",
-	  "-r", r, "-s", "0.5")
-  tests = append(tests, test)
-#+end_src
-#+begin_export latex
-In our fourth and final test we set the skipping to single
-nucleotides.
-#+end_export
-#+begin_src go <<Construct tests, Pr. \ref{pr:mfd}>>=
-  test = exec.Command(p, "-t", a, "-n", n, "-d", d, "-o",
-	  "-r", r, "-s", "-1")
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
