@@ -12,6 +12,9 @@ furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) ../stream/time_*.ps ../stream/memory.ps .
 	latex furDoc.tex
 	dvips furDoc -o -q
 	ps2pdf -dALLOWPSTRANSPARENCY furDoc.ps
+	if [ -d /mnt/c/Users/haubold/ownCloud\ -\ haubold@evolbio.mpg.de@owncloud.gwdg.de/docs/ ]; then \
+		cp furDoc.pdf /mnt/c/Users/haubold/ownCloud\ -\ haubold@evolbio.mpg.de@owncloud.gwdg.de/docs/; \
+	fi
 %.tex: ../*/%.org furDoc.tex
 	bash ../scripts/org2nw $< | awk -f ../scripts/preWeave.awk | noweave -n -x | sed 's/_test/\\_test/g' > $@
 ../makeFurDb/time.ps:
