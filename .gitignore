@@ -59,7 +59,6 @@ stream/makeRes.sh
 
 # Data files and figures
 stream/memory.dat
-stream/memory.ps
 stream/time_*.dat
 stream/makeFigs.sh
 tutorial/yield.ps
