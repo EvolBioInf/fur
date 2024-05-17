@@ -1038,12 +1038,6 @@ which we print and exit.
   }
 #+end_src
 #+begin_export latex
-We import \ty{log}.
-#+end_export
-#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
-  "log"
-#+end_src
-#+begin_export latex
 We split the Blast output into lines of hits, a slice of byte
 slices. Since the Blast output is terminated by a newline, the last
 entry returned by the split is an empty slice, which we discard.

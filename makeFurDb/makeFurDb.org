@@ -785,12 +785,6 @@ slices of length $\ell=n/T$.
   }
 #+end_src
 #+begin_export latex
-We import \ty{math}.
-#+end_export
-#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
-  "math"
-#+end_src
-#+begin_export latex
 We pass the current set of neighbor names to the goroutine. Inside the
 goroutine, we make sure it is eventually closed again. We also declare
 and allocate a variable for holding the match lengths, stream the
