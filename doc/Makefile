@@ -1,11 +1,13 @@
 SRC1 =   cleanSeq.tex fur.tex madis.tex makeFurDb.tex stream.tex tutorial.tex util.tex
 SRC2 =   header.tex intro.tex furDoc.tex
 
-date = $(shell git log | grep Date | head -n 1 | sed -r 's/Date: +[A-Z][a-z]+ ([A-Z][a-z]+) ([0-9]+) [^ ]+ ([0-9]+) .+/\2_\1_\3/')
+date = $(shell git log | grep -m 1 Date | sed -r 's/Date: +[A-Z][a-z]+ ([A-Z][a-z]+) ([0-9]+) [^ ]+ ([0-9]+) .+/\2_\1_\3/')
 version = $(shell git describe)
 
 all: furDoc.pdf 
 furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) ../stream/time_*.ps ../stream/memory.ps ../makeFurDb/mlAlg.tex ../tutorial/yield.ps
+	echo $(date) | tr '_' ' ' > date.txt
+	echo $(version) | tr '-' ' ' | awk '{printf "%s", $$1; if ($$2) printf "-%s", $$2; printf "\n"}' > version.txt
 	latex furDoc.tex
 	bibtex furDoc
 	latex furDoc.tex
