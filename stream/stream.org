@@ -162,7 +162,7 @@ In response to \ty{-v} we print the version.
 #+end_export
 #+begin_src go <<Respond to \ty{-v}, Pr. \ref{pr:str}>>=
   if *optV {
-	  util.Version()
+	  util.PrintInfo("stream")
   }
 #+end_src
 #+begin_export latex
