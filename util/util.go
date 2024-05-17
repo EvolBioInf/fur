@@ -1,4 +1,4 @@
-// The package util provides utility functions for the ifur package.
+// The package util provides utility functions for the fur package.
 package util
 
 import (

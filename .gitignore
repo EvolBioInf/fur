@@ -61,5 +61,5 @@ stream/makeRes.sh
 stream/memory.dat
 stream/memory.ps
 stream/time_*.dat
-stream/time_*.ps
+stream/makeFigs.sh
 tutorial/yield.ps
