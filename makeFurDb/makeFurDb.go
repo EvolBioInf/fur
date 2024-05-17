@@ -1,0 +1,397 @@
+package main
+
+import (
+          "flag"
+          "github.com/evolbioinf/clio"
+          "github.com/evolbioinf/fur/util"
+          "fmt"
+          "os"
+          "log"
+          "runtime"
+          "path/filepath"
+          "sort"
+          "math"
+          "github.com/evolbioinf/fasta"
+          "bytes"
+          "strings"
+          "sync"
+          "github.com/evolbioinf/esa"
+          "bufio"
+          "os/exec"
+)
+func readDir(dir string) map[string]bool {
+          dirEntries, err := os.ReadDir(dir)
+          util.Check(err)
+          names := make(map[string]bool)
+          for _, dirEntry := range dirEntries {
+                  if dirEntry.IsDir() {
+                            p := dir + "/" + dirEntry.Name()
+                            fmt.Fprintf(os.Stderr,
+                                    "skipping subdirectory %s\n", p)
+                            continue
+                  }
+                  ext := filepath.Ext(dirEntry.Name())
+                  if ext != ".fasta" && ext != ".fna" && ext != ".ffn" &&
+                            ext != ".frn" && ext != ".fa" {
+                            m := "%s doesn't have the extension of " +
+                                    "a nucleotide FASTA file; skipping it\n"
+                            p := dir + "/" + dirEntry.Name()
+                            fmt.Fprintf(os.Stderr, m, p)
+                            continue
+                  }
+                  names[dirEntry.Name()] = true
+          }
+          return names
+}
+func matchSeq(d []byte, e *esa.Esa, ml []int, rev bool) {
+          for i := 0; i < len(d); {
+                  match := e.MatchPref(d[i:])
+                  if match.L == 0 {
+                            match.L = 1
+                  }
+                  p := i
+                  if rev {
+                            p = len(d) - i - match.L
+                  }
+                  if ml[p] < match.L {
+                            ml[p] = match.L
+                  }
+                  i += match.L + 1
+          }
+}
+func main() {
+          util.PrepareErrorMessages("makeFurDb")
+          optV := flag.Bool("v", false, "version")
+          optT := flag.String("t", "", "target directory")
+          optN := flag.String("n", "", "neighbor directory")
+          optD := flag.String("d", "", "database directory")
+          optR := flag.String("r", "", "target representative " +
+                    "(default shortest)")
+          optO := flag.Bool("o", false, "overwrite existing database")
+          optTT := flag.Int("T", 0, "threads (default all processors)")
+          optK := flag.Bool("k", false, "keep non-canonical nucleotides")
+          u := "makeFurDb [option]... -t <targetDir> " +
+                    "-n <neighborDir> -d <db>"
+          p := "Construct fur database."
+          e := "makeFurDb -t targets/ -n neighbors/ -d fur.db"
+          clio.Usage(u, p, e)
+          flag.Parse()
+          if *optV {
+                    util.PrintInfo("makeFurDb")
+          }
+          if *optT == "" {
+                    m := "please provide a directory " +
+                            "of target sequences"
+                    fmt.Fprintf(os.Stderr, "%s\n", m)
+                    os.Exit(1)
+          }
+          if *optN == "" {
+                    m := "please provide a directory " +
+                            "of neighbor sequences"
+                    fmt.Fprintf(os.Stderr, "%s\n", m)
+                    os.Exit(1)
+          }
+          if *optD == "" {
+                    m := "please provide a database name"
+                    fmt.Fprintf(os.Stderr, "%s\n", m)
+                    os.Exit(1)
+          } else {
+                    _, err := os.Stat(*optD)
+                    if err == nil {
+                            if *optO {
+                                      err := os.RemoveAll(*optD)
+                                      util.Check(err)
+                            } else {
+                                      m := fmt.Sprintf("database %s already exists", *optD)
+                                      fmt.Fprintf(os.Stderr, "%s\n", m)
+                                      os.Exit(1)
+                            }
+                    }
+                    err = os.Mkdir(*optD, 0750)
+                    util.Check(err)
+          }
+
+          if *optTT < 0 {
+                    log.Fatalf("Can't set %d threads.", *optTT)
+          }
+          if *optTT == 0 {
+                    (*optTT) = runtime.NumCPU()
+          }
+          targets := readDir(*optT)
+          if len(targets) == 0 {
+                    fmt.Fprintf(os.Stderr, "%s is empty\n", *optT)
+                    os.Exit(1)
+          }
+          neighbors := readDir(*optN)
+          if len(neighbors) == 0 {
+                    fmt.Fprintf(os.Stderr, "%s is empty\n", *optN)
+                    os.Exit(1)
+          }
+          var targetNames, neighborNames []string
+          for target := range targets {
+                    targetNames = append(targetNames, target)
+          }
+          sort.Strings(targetNames)
+          for neighbor := range neighbors {
+                    neighborNames = append(neighborNames, neighbor)
+          }
+          sort.Strings(neighborNames)
+          for _, target := range targetNames {
+                    if neighbors[target] {
+                            m := "found %s/%s and %s/%s; please " +
+                                    "make sure the targets and " +
+                                    "neighbors don't overlap"
+                            fmt.Fprintf(os.Stderr, m, *optT,
+                                    target, *optN, target)
+                            os.Exit(1)
+                    }
+          }
+          vf := *optD + "/v.txt"
+          f, err := os.Create(vf)
+          util.Check(err)
+          fmt.Fprintf(f, "%s\n", util.Version())
+          f.Close()
+          if *optR == "" {
+                    minTar := ""
+                    minLen := math.MaxInt
+                    for target, _ := range targets {
+                              l := 0
+                              p := *optT + "/" + target
+                              f, err := os.Open(p)
+                              util.Check(err)
+                              sc := fasta.NewScanner(f)
+                              for sc.ScanSequence() {
+                                        l += len(sc.Sequence().Data())
+                              }
+                              f.Close()
+                              if l < minLen {
+                                      minTar = target
+                                      minLen = l
+                              }
+                    }
+                    (*optR) = minTar
+          }
+          fmt.Fprintf(os.Stderr, "using %s as target representative\n",
+                    (*optR))
+          var repSeqs, revRepSeqs []*fasta.Sequence
+          p = *optT + "/" + *optR
+          f , err = os.Open(p)
+          util.Check(err)
+          defer f.Close()
+          sc := fasta.NewScanner(f)
+          for sc.ScanSequence() {
+                    seq := sc.Sequence()
+                    d := bytes.ToUpper(seq.Data())
+                    if !*optK {
+                              i := 0
+                              for _, c := range d {
+                                        if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
+                                                d[i] = c
+                                                i++
+                                        }
+                              }
+                              d = d[:i]
+                    }
+                    h := strings.Fields(seq.Header())[0]
+                    seq = fasta.NewSequence(h, d)
+                    repSeqs = append(repSeqs, seq)
+                    seq = fasta.NewSequence(seq.Header(), seq.Data())
+                    seq.ReverseComplement()
+                    revRepSeqs = append(revRepSeqs, seq)
+          }
+          f, err = os.Create(*optD + "/r.fasta")
+          util.Check(err)
+          defer f.Close()
+          for _, repSeq := range repSeqs {
+                    fmt.Fprintf(f, "%s\n", repSeq)
+          }
+          p = *optD + "/t/"
+          err = os.Mkdir(p, 0750)
+          util.Check(err)
+          for target, _ := range targets {
+                    if target == *optR { continue }
+                    source := *optT + "/" + target
+                    dest := *optD + "/t/" + target
+                    sd, err := os.ReadFile(source)
+                    util.Check(err)
+                    err = os.WriteFile(dest, sd, 0666)
+          }
+          f, err = os.Open(*optD + "/r.fasta")
+          util.Check(err)
+          var targetSeqs, revTargetSeqs []*fasta.Sequence
+          sc = fasta.NewScanner(f)
+          for sc.ScanSequence() {
+                    s := sc.Sequence()
+                    targetSeqs = append(targetSeqs, s)
+                    s = fasta.NewSequence(s.Header(), s.Data())
+                    s.ReverseComplement()
+                    revTargetSeqs = append(revTargetSeqs, s)
+          }
+          f.Close()
+          mnl := -1
+          for _, neighbor := range neighborNames {
+                    p := *optN + "/" + neighbor
+                    f, err := os.Open(p)
+                    util.Check(err)
+                    sc := fasta.NewScanner(f)
+                    for sc.ScanSequence() {
+                              l := len(sc.Sequence().Data())
+                              if l > mnl {
+                                      mnl = l
+                              }
+                    }
+                    f.Close()
+          }
+          neighborNameSets := make([][]string, 0)
+          n := len(neighborNames)
+          length := int(math.Ceil(float64(n)/float64(*optTT)))
+          start := 0
+          end := length
+          for start < n {
+                    neighborNameSets = append(neighborNameSets,
+                            neighborNames[start:end])
+                    start = end
+                    end += length
+          }
+          lengthSets := make(chan [][]int)
+          var wg sync.WaitGroup
+          for _, neighborNames := range neighborNameSets {
+                    wg.Add(1)
+                    go func(neighborNames []string) {
+                              defer wg.Done()
+                              var matchLengths [][]int
+                              for _, targetSeq := range targetSeqs {
+                                        n := len(targetSeq.Data())
+                                        lengths := make([]int, n)
+                                        matchLengths = append(matchLengths, lengths)
+                              }
+                              li := 0
+                              for _, neighbor := range neighborNames {
+                                        p := *optN + "/" + neighbor
+                                        f, err := os.Open(p)
+                                        util.Check(err)
+                                        sc := fasta.NewScanner(f)
+                                        for sc.ScanSequence() {
+                                                  s := sc.Sequence()
+                                                  d := s.Data()
+                                                  h := []byte(s.Header())
+                                                  for len(d) < mnl  && sc.ScanSequence() {
+                                                            s = sc.Sequence()
+                                                            h = append(h, '|')
+                                                            h = append(h, []byte(s.Header())...)
+                                                            d = append(d, s.Data()...)
+                                                            li++
+                                                  }
+                                                  d = bytes.ToUpper(d)
+                                                  e := esa.MakeEsa(d)
+                                                  for i, targetSeq := range targetSeqs {
+                                                            d := targetSeq.Data()
+                                                            rev := false
+                                                            matchSeq(d, e, matchLengths[i], rev)
+                                                            d = revTargetSeqs[i].Data()
+                                                            rev = true
+                                                            matchSeq(d, e, matchLengths[i], rev)
+                                                  }
+                                        }
+                                        f.Close()
+                              }
+                              lengthSets <- matchLengths
+                    }(neighborNames)
+          }
+          go func() {
+                    wg.Wait()
+                    close(lengthSets)
+          }()
+          matchLengths := make([][]int, 0)
+          for _, ts := range targetSeqs {
+                    ml := make([]int, len(ts.Data()))
+                    matchLengths = append(matchLengths, ml)
+          }
+          for lengthSet := range lengthSets {
+                    for i, lengths := range lengthSet {
+                              for j, length := range lengths {
+                                      if matchLengths[i][j] < length {
+                                              matchLengths[i][j] = length
+                                      }
+                              }
+                    }
+          }
+          for _, ml := range matchLengths {
+                    l := 0
+                    for i := 0; i < len(ml); i++ {
+                            if ml[i] > l {
+                                    l = ml[i]
+                            }
+                            ml[i] = l
+                            l--
+                    }
+          }
+          for _, ml := range matchLengths {
+                    for i := 0; i < len(ml); {
+                            m := ml[i]
+                            for j := 0; j < m-1; j++ {
+                                    ml[i+j] = 0
+                            }
+                            ml[i+m-1] = 1
+                            i += m + 1
+                    }
+          }
+          f, err = os.Create(*optD + "/e.fasta")
+          util.Check(err)
+          wr := bufio.NewWriter(f)
+          for i, seq := range targetSeqs {
+                    ml := matchLengths[i]
+                    fmt.Fprintf(wr, ">%s\n", seq.Header())
+                    for j := 0; j < len(ml); j++ {
+                              c := '0'
+                              if ml[j] == 1 {
+                                      c = '1'
+                              }
+                              fmt.Fprintf(wr, "%c", c)
+                              if (j+1) % fasta.DefaultLineLength == 0 {
+                                      fmt.Fprintf(wr, "\n")
+                              }
+                    }
+                    if len(ml) % fasta.DefaultLineLength != 0 {
+                              fmt.Fprintf(wr, "\n")
+                    }
+          }
+          err = wr.Flush()
+          util.Check(err)
+          f.Close()
+          fmt.Fprintf(os.Stderr, "making Blast database\n")
+          cmd := exec.Command("makeblastdb", "-dbtype", "nucl",
+                    "-out", *optD + "/n", "-title", "t")
+          stdin, err := cmd.StdinPipe()
+          util.Check(err)
+          var l, g int
+          go func() {
+                    defer stdin.Close()
+                    for neighbor, _ := range neighbors {
+                              p := *optN + "/" + neighbor
+                              r, err := os.Open(p)
+                              util.Check(err)
+                              sc := fasta.NewScanner(r)
+                              for sc.ScanSequence() {
+                                      seq := sc.Sequence()
+                                      d := bytes.ToUpper(seq.Data())
+                                      for _, c := range d {
+                                                if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
+                                                        l++
+                                                        if c == 'C' || c == 'G' {
+                                                                g++
+                                                        }
+                                                }
+                                      }
+                                      fmt.Fprintf(stdin, "%s\n", seq)
+                              }
+                    }
+          }()
+          _, err = cmd.Output()
+          util.Check(err)
+          w, err := os.Create(*optD + "/n.txt")
+          util.Check(err)
+          gc := float64(g) / float64(l)
+          fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gc)
+          w.Close()
+}
