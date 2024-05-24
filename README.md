@@ -7,12 +7,15 @@ neighbors. Such regions can be used as candidate genetic markers.
 ## Author
 [Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
 ## Make the Programs
-Make sure you've installed the packages `git`, `gnuplot`, `golang`,
-`libdivsufsort-dev`, `make`, `ncbi-blast+`, `phylonium`, `primer3`,
-and `noweb`. Then make the programs.  
-  `$ make`  
-  The directory `bin` now contains the binaries, scripts are in
-  `scripts`.
+Setup the environment by running the [setup script](scripts/setup.sh).
+
+`$ bash scripts/setup.sh`
+
+Then make the programs.
+
+`$ make`
+
+The directory `bin` now contains the binaries.
 ## Docker Container
 As an alternative to building `fur`, we also post it as a [docker
   container](https://hub.docker.com/r/haubold/fox). The container
@@ -24,10 +27,16 @@ As an alternative to building `fur`, we also post it as a [docker
   in the container's home directory, for sharing files between the two
   environments.
 ## Make the Documentation
-Make sure you've installed the packages `git`, `make`, `noweb`, `texlive-science`,
-`texlive-pstricks`, `texlive-latex-extra`,
-and `texlive-fonts-extra`. Then make the documentation.  
-  `$ make doc`  
-  The documentation is now in `doc/furDoc.pdf`.
+Set up the environment by running another [setup
+script](scripts/weaveSetup.sh).
+
+`$ bash scripts/weaveSetup.sh`
+
+Then [weave](https://en.wikipedia.org/wiki/Literate_programming) the
+documentation.
+
+`$ make weave`
+
+The documentation is now in `doc/furDoc.pdf`.
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)
