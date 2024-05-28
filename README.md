@@ -25,8 +25,5 @@ As an alternative to building `fur`, we also post it as a [docker
 `docker pull haubold/fox`  
 `docker run -it --detach-keys="ctrl-@" fox`
   
-This constructs the directory `fox_share` in your home directory and
-in the container's home directory, for sharing files between the two
-environments.
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)
