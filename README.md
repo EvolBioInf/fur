@@ -6,7 +6,7 @@ sequence regions common to all targets that are absent form the
 neighbors. Such regions can be used as candidate genetic markers.
 ## Author
 [Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
-## Make the Programs
+## Make the Programs on Ubuntu
 Setup the environment by running the [setup script](scripts/setup.sh).
 
 `$ bash scripts/setup.sh`
@@ -26,17 +26,5 @@ As an alternative to building `fur`, we also post it as a [docker
   This constructs the directory `fox_share` in your home directory and
   in the container's home directory, for sharing files between the two
   environments.
-## Make the Documentation
-Set up the environment by running another [setup
-script](scripts/weaveSetup.sh).
-
-`$ bash scripts/weaveSetup.sh`
-
-Then [weave](https://en.wikipedia.org/wiki/Literate_programming) the
-documentation.
-
-`$ make weave`
-
-The documentation is now in `doc/furDoc.pdf`.
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)

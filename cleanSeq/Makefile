@@ -10,10 +10,9 @@ all: $(exe)
 $(exe):
 	go build -ldflags "$(vf) $(df)" $(exe).go
 tangle: $(exe).go
+	go build -ldflags "$(vf) $(df)" $(exe).go
 $(exe).go: $(exe).org
 	bash ../scripts/org2nw $(exe).org | notangle -R$(exe).go > $(exe).go
-build: tangle
-	go build -ldflags "$(vf) $(df)" $(exe).go
 clean:
 	rm $(exe).go $(exe)
 test:
