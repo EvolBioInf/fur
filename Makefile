@@ -16,7 +16,6 @@ tangle:
 	done
 	for prog in $(progs); do \
 		make tangle -C $$prog; \
-		cp $$prog/$$prog bin; \
 	done
 test:
 	test -d bin || mkdir bin
@@ -27,11 +26,10 @@ test:
 		make test -C $$prog; \
 	done
 .PHONY: weave test docker
-weave:
-	make -C doc
 docker:
 	make -C docker
 clean:
 	for prog in $(progs) $(packs) doc; do \
 		make clean -C $$prog; \
 	done
+	rm -f bin/*

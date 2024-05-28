@@ -9,22 +9,24 @@ neighbors. Such regions can be used as candidate genetic markers.
 ## Make the Programs on Ubuntu
 Setup the environment by running the [setup script](scripts/setup.sh).
 
-`$ bash scripts/setup.sh`
+`bash scripts/setup.sh`
 
 Then make the programs.
 
-`$ make`
+`make`
 
 The directory `bin` now contains the binaries.
 ## Docker Container
 As an alternative to building `fur`, we also post it as a [docker
   container](https://hub.docker.com/r/haubold/fox). The container
   includes all programs needed to work through the tutorial at the end
-  of the documentation in `~/furDoc.pdf`.
-  -  `$ docker pull haubold/fox`
-  -  `$ docker run -it --env="DISPLAY" --net=host -v ~/fox_share:/home/jdoe/fox_share --detach-keys="ctrl-@" fox`  
-  This constructs the directory `fox_share` in your home directory and
-  in the container's home directory, for sharing files between the two
-  environments.
+  of the [documentation](https://owncloud.gwdg.de/index.php/s/ZJrSZ10O97fAV2j) in `~/furDoc.pdf`.
+  
+`docker pull haubold/fox`  
+`docker run -it --detach-keys="ctrl-@" fox`
+  
+This constructs the directory `fox_share` in your home directory and
+in the container's home directory, for sharing files between the two
+environments.
 ## License
 [GNU General Public License](https://www.gnu.org/licenses/gpl.html)
