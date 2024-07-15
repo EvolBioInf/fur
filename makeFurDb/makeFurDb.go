@@ -252,6 +252,7 @@ func main() {
                             neighborNames[start:end])
                     start = end
                     end += length
+                    if end > n { end = n }
           }
           lengthSets := make(chan [][]int)
           var wg sync.WaitGroup

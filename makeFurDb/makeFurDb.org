@@ -770,7 +770,9 @@ We import \ty{sync}.
 #+end_src
 #+begin_export latex
 Given $n$ neighbor files and $T$ threads, we split the file names into
-slices of length $\ell=n/T$.
+slices of length $\ell=n/T$. The last of these slices might extend
+beyond the length of the slice of neighbor names. We make sure that
+doesn't occur.
 #+end_export
 #+begin_src go <<Split neighbor file names, Pr. \ref{pr:mfd}>>=
   n := len(neighborNames)
@@ -782,6 +784,7 @@ slices of length $\ell=n/T$.
 		  neighborNames[start:end])
 	  start = end
 	  end += length
+	  if end > n { end = n }
   }
 #+end_src
 #+begin_export latex
