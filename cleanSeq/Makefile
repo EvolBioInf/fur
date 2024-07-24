@@ -12,7 +12,7 @@ $(exe): $(exe).go
 	go build -ldflags "$(vf) $(df)" $(exe).go
 tangle: $(exe).go
 $(exe).go: $(exe).org
-	if [ $(nw) != "" ]; then\
+	if [ "$(nw)" != "" ]; then\
 		bash ../scripts/org2nw $(exe).org | notangle -R$(exe).go > $(exe).go;\
 	fi
 clean:
