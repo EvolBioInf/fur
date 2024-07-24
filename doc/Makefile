@@ -14,6 +14,7 @@ furDoc.pdf: furDoc.tex $(SRC1) $(SRC2) ../stream/time_*.ps ../stream/memory.ps .
 	latex furDoc.tex
 	dvips furDoc -o -q
 	ps2pdf -dALLOWPSTRANSPARENCY furDoc.ps
+publish: furDoc.pdf
 	if [ -d /mnt/c/Users/haubold/ownCloud\ -\ haubold@evolbio.mpg.de@owncloud.gwdg.de/docs/ ]; then \
 		cp furDoc.pdf /mnt/c/Users/haubold/ownCloud\ -\ haubold@evolbio.mpg.de@owncloud.gwdg.de/docs/; \
 	fi
