@@ -40,6 +40,6 @@ As an alternative to building `fur`, we also post it as a [docker
 
 ## References
 
-Haubold, B., Klötzl, F., Hellberg, L., Thompson, D., & Cavalar, M. (2021). [Fur: Find unique genomic regions for diagnostic PCR](https://academic.oup.com/bioinformatics/article/37/15/2081/6124302). Bioinformatics, 37(15), 2081-2087.
+Haubold, B., Klötzl, F., Hellberg, L., Thompson, D., & Cavalar, M. (2021). [Fur: Find unique genomic regions for diagnostic PCR](https://academic.oup.com/bioinformatics/article/37/15/2081/6124302). *Bioinformatics*, 37(15), 2081-2087.
 
-Vieira Mourato, B., Tsers, I., Denker, S., Klötzl, F., & Haubold, B. (2024). [Marker discovery in the large](https://academic.oup.com/bioinformaticsadvances/article/4/1/vbae113/7721998). Bioinformatics, 4(1), vbae113.
+Vieira Mourato, B., Tsers, I., Denker, S., Klötzl, F., & Haubold, B. (2024). [Marker discovery in the large](https://academic.oup.com/bioinformaticsadvances/article/4/1/vbae113/7721998). *Bioinformatics Advances*, 4(1), vbae113.
