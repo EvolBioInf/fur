@@ -559,7 +559,9 @@ We import \ty{fasta}.
 #+begin_export latex
 We reserve space for the forward and reverse strands of the sequences
 that make up the target representative. Then we iterate over the
-sequences, clean, and store them.
+sequences. To ensure there are no blanks in a sequence header that is
+later passed to Blast, we truncate it after the first token, usually
+the accession. Then we store the sequence.
 #+end_export
 #+begin_src go <<Read target representative, Pr. \ref{pr:mfd}>>=
   var repSeqs, revRepSeqs []*fasta.Sequence
@@ -570,17 +572,15 @@ sequences, clean, and store them.
   sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  seq := sc.Sequence()
-	  //<<Clean sequence, Pr. \ref{pr:mfd}>>
+	  //<<Truncate header, Pr. \ref{pr:mfd}>>
 	  //<<Store sequence, Pr. \ref{pr:mfd}>>
   }
 #+end_src
 #+begin_export latex
-Our cleaning step is quite brief, it doesn't even affect the sequence
-data. We just reduce the header to the first token, usually the
-accession. This ensures that there are no blanks in the names of the
-sequences later passed to Blast.
+We truncate the header at the first blank and recreate the sequence
+with the new header.
 #+end_export
-#+begin_src go <<Clean sequence, Pr. \ref{pr:mfd}>>=
+#+begin_src go <<Truncate header, Pr. \ref{pr:mfd}>>=
   h := strings.Fields(seq.Header())[0]
   seq = fasta.NewSequence(h, seq.Data())
 #+end_src
@@ -1049,9 +1049,9 @@ We add a newline to the last line unless this has already been done.
 \subsection{Blast Database of Neighbors, \ty{n}}
 We come to the penultimate element of the \ty{fur} database, the Blast
 database of the neighbors. To construct this, we iterate over the
-neighbor sequences and convert each one to a Blast database. To
-facilitate subsequent handling of the databases, we then link them
-into one entity.
+neighbor sequences and convert each one to a Blast database, which we
+number, hence we also declare a counter, $c$. To facilitate subsequent
+handling of the databases, we then link them into one entity.
 #+end_export
 #+begin_src go <<Write Blast database of neighbors to \ty{n}, Pr. \ref{pr:mfd}>>=
   fmt.Fprintf(os.Stderr, "making Blast database\n")
@@ -1062,24 +1062,54 @@ into one entity.
   //<<Link Blast databases, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
-We make the Blast database from the current sequence file by calling
-the program \ty{makeblastdb}, which is part of the Blast package.
+We need to preserve any masking information contained in the Blast
+database. We do this by first extracting the mask and the applying it
+when constructing the database with \ty{makeblastdb}.
 #+end_export
 #+begin_src go <<Make Blast database, Pr. \ref{pr:mfd}>>=
+  //<<Extract mask, Pr. \ref{pr:mfd}>>
+  //<<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We extract the mask by running the program \ty{convert2blastmask},
+which is part of the Blast package.
+#+end_export
+#+begin_src go <<Extract mask, Pr. \ref{pr:mfd}>>=
   p := *optN + "/" + neighbor
-  c++
-  o := *optD + "/n" + strconv.Itoa(c)
-  cmd := exec.Command("makeblastdb", "-dbtype", "nucl",
-	  "-in", p, "-out", o, "-title", "n")
-  _, err := cmd.Output()
+  o := *optD + "/mask.asnb"
+  cmd := exec.Command("convert2blastmask", "-in", p,
+	  "-masking_algorithm", "repeat",
+	  "-masking_options", "default",
+	  "-outfmt", "maskinfo_asn1_bin",
+	  "-out", o)
+  _, err := cmd.CombinedOutput()
   util.Check(err)
 #+end_src
 #+begin_export latex
-We import \ty{strconv} and \ty{exec}.
+We import \ty{exec}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+We run \ty{makeblastdb}, which is also part of the Blast package. To
+ensure each database has a unique name, we call then \ty{n}$c$, where
+$c$ is iterated in each round.
+#+end_export
+#+begin_src go <<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>=
+  p = *optN + "/" + neighbor
+  c++
+  o = *optD + "/n" + strconv.Itoa(c)
+  cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
+	  "-in", p, "-out", o, "-title", "n")
+  _, err = cmd.Output()
+  util.Check(err)
+#+end_src
+#+begin_export latex
+We import \ty{strconv}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
   "strconv"
-  "os/exec"
 #+end_src
 #+begin_export latex
 To link the databases, we first write the names of the databases to

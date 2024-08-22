@@ -17,8 +17,8 @@ import (
           "sync"
           "github.com/evolbioinf/esa"
           "bufio"
-          "strconv"
           "os/exec"
+          "strconv"
 )
 func readDir(dir string) map[string]bool {
           dirEntries, err := os.ReadDir(dir)
@@ -361,11 +361,20 @@ func main() {
           c := 0
           for neighbor, _ := range neighbors {
                     p := *optN + "/" + neighbor
+                    o := *optD + "/mask.asnb"
+                    cmd := exec.Command("convert2blastmask", "-in", p,
+                              "-masking_algorithm", "repeat",
+                              "-masking_options", "default",
+                              "-outfmt", "maskinfo_asn1_bin",
+                              "-out", o)
+                    _, err := cmd.CombinedOutput()
+                    util.Check(err)
+                    p = *optN + "/" + neighbor
                     c++
-                    o := *optD + "/n" + strconv.Itoa(c)
-                    cmd := exec.Command("makeblastdb", "-dbtype", "nucl",
+                    o = *optD + "/n" + strconv.Itoa(c)
+                    cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
                               "-in", p, "-out", o, "-title", "n")
-                    _, err := cmd.Output()
+                    _, err = cmd.Output()
                     util.Check(err)
           }
           f, err = os.Create(*optD + "/dblist.txt")
