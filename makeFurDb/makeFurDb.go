@@ -373,7 +373,8 @@ func main() {
                     c++
                     o = *optD + "/n" + strconv.Itoa(c)
                     cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
-                              "-in", p, "-out", o, "-title", "n")
+                              "-in", p, "-out", o, "-title","n",
+                              "-mask_data", "mask.asnb")
                     _, err = cmd.Output()
                     util.Check(err)
           }

@@ -1049,9 +1049,10 @@ We add a newline to the last line unless this has already been done.
 \subsection{Blast Database of Neighbors, \ty{n}}
 We come to the penultimate element of the \ty{fur} database, the Blast
 database of the neighbors. To construct this, we iterate over the
-neighbor sequences and convert each one to a Blast database, which we
-number, hence we also declare a counter, $c$. To facilitate subsequent
-handling of the databases, we then link them into one entity.
+neighbor files and convert each one to a Blast database. These
+databases are numbered, hence we also declare a counter, $c$. To
+facilitate subsequent handling of the databases, we link them into one
+entity.
 #+end_export
 #+begin_src go <<Write Blast database of neighbors to \ty{n}, Pr. \ref{pr:mfd}>>=
   fmt.Fprintf(os.Stderr, "making Blast database\n")
@@ -1062,9 +1063,9 @@ handling of the databases, we then link them into one entity.
   //<<Link Blast databases, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
-We need to preserve any masking information contained in the Blast
-database. We do this by first extracting the mask and the applying it
-when constructing the database with \ty{makeblastdb}.
+We need to preserve any masking information contained in the neighbor
+sequences. To do this, we first extract the mask, then apply it when
+constructing the database with \ty{makeblastdb}.
 #+end_export
 #+begin_src go <<Make Blast database, Pr. \ref{pr:mfd}>>=
   //<<Extract mask, Pr. \ref{pr:mfd}>>
@@ -1092,16 +1093,18 @@ We import \ty{exec}.
   "os/exec"
 #+end_src
 #+begin_export latex
-We run \ty{makeblastdb}, which is also part of the Blast package. To
-ensure each database has a unique name, we call then \ty{n}$c$, where
-$c$ is iterated in each round.
+We run \ty{makeblastdb}, which is also part of the Blast package, and
+include the masking information we just created in the new
+database. To ensure each database has a unique name, we call them
+\ty{n}$c$, where $c$ is iterated in each round.
 #+end_export
 #+begin_src go <<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>=
   p = *optN + "/" + neighbor
   c++
   o = *optD + "/n" + strconv.Itoa(c)
   cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
-	  "-in", p, "-out", o, "-title", "n")
+	  "-in", p, "-out", o, "-title","n",
+	  "-mask_data", "mask.asnb")
   _, err = cmd.Output()
   util.Check(err)
 #+end_src
@@ -1114,7 +1117,7 @@ We import \ty{strconv}.
 #+begin_export latex
 To link the databases, we first write the names of the databases to
 the file \ty{dblist.txt}. The actual linking is then done by calling
-the another program from the Blast package, \ty{blastdb\_aliastool}.
+another program from the Blast package, \ty{blastdb\_aliastool}.
 #+end_export
 #+begin_src go <<Link Blast databases, Pr. \ref{pr:mfd}>>=
   f, err = os.Create(*optD + "/dblist.txt")
@@ -1134,7 +1137,7 @@ the another program from the Blast package, \ty{blastdb\_aliastool}.
 \subsection{Neighbor Statistics, \ty{n.txt}}
 The last element of the fur database is a file, \ty{n.txt}, containing
 the number of nucleotides in the database and its GC content. This is
-used by \ty{fur} to calculate the null distribution of match
+later used by \ty{fur} to calculate the null distribution of match
 lengths. So we create \ty{n.txt}, get the entries from the Blast
 database of neighbors we just created, scan these entries, and finally
 print the statistics we are after.
@@ -1205,7 +1208,7 @@ We count the nucleotides that are either \ty{G} or \ty{C}.
 #+end_src
 #+begin_export latex
 We convert $g$ to the GC content, $g_{\rm c}$, and print it together
-with the number of nucleotides, which we call the sequence length.
+with the sequence length.
 #+end_export
 #+begin_src go <<Print neighbors statistics, Pr. \ref{pr:mfd}>>=
   gcc := float64(g) / float64(l)
