@@ -17,6 +17,7 @@ import (
           "sync"
           "github.com/evolbioinf/esa"
           "bufio"
+          "strconv"
           "os/exec"
 )
 func readDir(dir string) map[string]bool {
@@ -69,7 +70,6 @@ func main() {
                     "(default shortest)")
           optO := flag.Bool("o", false, "overwrite existing database")
           optTT := flag.Int("T", 0, "threads (default all processors)")
-          optK := flag.Bool("k", false, "keep non-canonical nucleotides")
           u := "makeFurDb [option]... -t <targetDir> " +
                     "-n <neighborDir> -d <db>"
           p := "Construct fur database."
@@ -181,19 +181,8 @@ func main() {
           sc := fasta.NewScanner(f)
           for sc.ScanSequence() {
                     seq := sc.Sequence()
-                    d := bytes.ToUpper(seq.Data())
-                    if !*optK {
-                              i := 0
-                              for _, c := range d {
-                                        if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
-                                                d[i] = c
-                                                i++
-                                        }
-                              }
-                              d = d[:i]
-                    }
                     h := strings.Fields(seq.Header())[0]
-                    seq = fasta.NewSequence(h, d)
+                    seq = fasta.NewSequence(h, seq.Data())
                     repSeqs = append(repSeqs, seq)
                     seq = fasta.NewSequence(seq.Header(), seq.Data())
                     seq.ReverseComplement()
@@ -228,6 +217,14 @@ func main() {
                     revTargetSeqs = append(revTargetSeqs, s)
           }
           f.Close()
+          for i, targetSeq := range targetSeqs {
+                    h := targetSeq.Header()
+                    d := bytes.ToUpper(targetSeq.Data())
+                    targetSeqs[i] = fasta.NewSequence(h, d)
+                    h = revTargetSeqs[i].Header()
+                    d = bytes.ToUpper(revTargetSeqs[i].Data())
+                    revTargetSeqs[i] = fasta.NewSequence(h, d)
+          }
           mnl := -1
           for _, neighbor := range neighborNames {
                     p := *optN + "/" + neighbor
@@ -361,38 +358,54 @@ func main() {
           util.Check(err)
           f.Close()
           fmt.Fprintf(os.Stderr, "making Blast database\n")
-          cmd := exec.Command("makeblastdb", "-dbtype", "nucl",
-                    "-out", *optD + "/n", "-title", "t")
-          stdin, err := cmd.StdinPipe()
+          c := 0
+          for neighbor, _ := range neighbors {
+                    p := *optN + "/" + neighbor
+                    c++
+                    o := *optD + "/n" + strconv.Itoa(c)
+                    cmd := exec.Command("makeblastdb", "-dbtype", "nucl",
+                              "-in", p, "-out", o, "-title", "n")
+                    _, err := cmd.Output()
+                    util.Check(err)
+          }
+          f, err = os.Create(*optD + "/dblist.txt")
           util.Check(err)
-          var l, g int
-          go func() {
-                    defer stdin.Close()
-                    for neighbor, _ := range neighbors {
-                              p := *optN + "/" + neighbor
-                              r, err := os.Open(p)
-                              util.Check(err)
-                              sc := fasta.NewScanner(r)
-                              for sc.ScanSequence() {
-                                      seq := sc.Sequence()
-                                      d := bytes.ToUpper(seq.Data())
-                                      for _, c := range d {
-                                                if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
-                                                        l++
-                                                        if c == 'C' || c == 'G' {
-                                                                g++
-                                                        }
-                                                }
-                                      }
-                                      fmt.Fprintf(stdin, "%s\n", seq)
-                              }
-                    }
-          }()
+          for i := 1; i <= c; i++ {
+                    fmt.Fprintf(f, "%s/n%d\n", *optD, i)
+          }
+          f.Close()
+          cmd := exec.Command("blastdb_aliastool",
+                    "-dblist_file", *optD + "/dblist.txt",
+                    "-dbtype", "nucl", "-title", "n",
+                    "-out", *optD + "/n")
           _, err = cmd.Output()
           util.Check(err)
           w, err := os.Create(*optD + "/n.txt")
           util.Check(err)
-          gc := float64(g) / float64(l)
-          fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gc)
-          w.Close()
+          defer w.Close()
+          cmd = exec.Command("blastdbcmd", "-db",
+                    (*optD) + "/n",
+                    "-entry", "all")
+          out, err := cmd.Output()
+          util.Check(err)
+          r := bytes.NewReader(out)
+          sc = fasta.NewScanner(r)
+          var l, g int
+          nuc := "ACGTacgt"
+          gc := "GCgc"
+          for sc.ScanSequence() {
+                    d := sc.Sequence().Data()
+                    for i, _ := range d {
+                            if bytes.ContainsAny(d[i:i+1], nuc) {
+                                      l++
+                            } else {
+                                      continue
+                            }
+                            if bytes.ContainsAny(d[i:i+1], gc) {
+                                      g++
+                            }
+                    }
+          }
+          gcc := float64(g) / float64(l)
+          fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gcc)
 }
