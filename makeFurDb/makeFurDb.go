@@ -372,9 +372,10 @@ func main() {
                     p = *optN + "/" + neighbor
                     c++
                     o = *optD + "/n" + strconv.Itoa(c)
+                    m := *optD + "/mask.asnb"
                     cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
                               "-in", p, "-out", o, "-title","n",
-                              "-mask_data", "mask.asnb")
+                              "-mask_data", m)
                     _, err = cmd.Output()
                     util.Check(err)
           }
