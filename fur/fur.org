@@ -109,14 +109,16 @@ of this step and exit.
 #+end_src
 #+begin_export latex
 Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
-the E-value, the number of threads, and a switch to megablast mode
-instead of the default blastn mode. We also set the minimum length of
-the final regions at this point.
+the E-value, the number of threads, a switch to megablast mode instead
+of the default blastn mode, and a switch for running with masking. We
+also set the minimum length of the final regions at this point.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
   optT := flag.Int("t", 8, "Number of threads for Phylonium and Blast")
   optM := flag.Bool("m", false, "megablast mode (default blastn)")
+  optMM := flag.Bool("M", false,
+	  "activate masking (recommended for mammalian genomes")
   optN := flag.Int("n", 100, "number of nucleotides in region")
 #+end_src
 #+begin_export latex
@@ -965,10 +967,12 @@ blastn command, unless the user opted for megablast only.
   }
 #+end_src
 #+begin_export latex
-We set five options in Blast, the values of which we first need to
+We set six options in Blast, the values of which we first need to
 construct. The options are the database path, the number of threads,
-the E-value, the task, and the output format. As output format we set
-the query accession, start, and end---the coordinates for masking
+the E-value, the task, the masking algorithm, and the output
+format. The masking algorithm is initialized as an empty string which
+we fill if the user requested masking. As output format we set the
+query accession, start, and end---the coordinates for homology masking
 later on.
 #+end_export
 #+begin_src go <<Construct Blast options, Pr. \ref{pr:fur}>>=
@@ -976,16 +980,72 @@ later on.
   th := *optT
   ev := *optE
   ta := "megablast"
+  ma := ""
+  if *optMM {
+	  //<<Look up masking algorithm, Pr. \ref{pr:fur}>>
+  }
   of := "6 qaccver qstart qend"
 #+end_src
 #+begin_export latex
-The Blast template has space for our five Blast options. The output
-format is a composite string, so we append it later to the arguments
-slice.
+The repeat masking algorithm is part of the information a Blast
+database stores about itself. This can be accessed using the
+\ty{-info} switch of \ty{blastdbcmd}, which returns something like
+\footnotesize
+\begin{verbatim}
+Database: subjectLo.fasta
+        1 sequences; 100,000 total bases
+
+Date: Aug 23, 2024  12:03 PM    Longest sequence: 100,000 bases
+
+BLASTDB Version: 5
+
+Available filtering algorithms applied to database sequences:
+
+Algorithm ID Algorithm name                          Algorithm options
+40           repeat                                  repeatmasker, default
+
+Volumes:
+        /home/haubold/Research/ShortInvest/2024/RepBlast/subjectLo
+\end{verbatim}
+\normalsize We aim to extract ``40'' at the beginning of line 11 from
+this.
+#+end_export
+#+begin_src go <<Look up masking algorithm, Pr. \ref{pr:fur}>>=
+  cmd := exec.Command("blastdbcmd", "-info", "-db", *optD + "/n")
+  info, err := cmd.CombinedOutput()
+  util.Check(err)
+  lines := strings.Split(string(info), "\n")
+  for i, line := range lines {
+	  fields := strings.Fields(line)
+	  if len(fields) > 0 && fields[0] == "Algorithm" {
+		  ma = strings.Fields(lines[i+1])[0]
+	  }
+  }
+#+end_src
+#+begin_export latex
+It is possible that there was no repeat masking information in the
+database. In that case we should warn the user.
+#+end_export
+#+begin_src go <<Look up masking algorithm, Pr. \ref{pr:fur}>>=
+  if ma == "" {
+	  m := "#Warning [fur]: No masking information " +
+		  "in Blast database; running Subtraction_2 " +
+		  "without masking.\n"
+	  fmt.Fprintf(os.Stderr, m)
+  }
+#+end_src
+#+begin_export latex
+The Blast template has space for five Blast options, six with
+masking. The output format is a composite string, so we append it
+later to the arguments slice.
 #+end_export
 #+begin_src go <<Construct Blast template, Pr. \ref{pr:fur}>>=
   tm := "blastn -db %s -num_threads %d "
-  tm += "-evalue %g -task %s -outfmt "
+  tm += "-evalue %g -task %s "
+  if *optMM  && ma != "" {
+	  tm += "-db_soft_mask %s "
+  }
+  tm += "-outfmt "
 #+end_src
 #+begin_export latex
 We generate the arguments for the Blast command, append the output
@@ -993,6 +1053,9 @@ format, set the arguments, and store the command.
 #+end_export
 #+begin_src go <<Construct megablast command, Pr. \ref{pr:fur}>>=
   as := fmt.Sprintf(tm, da, th, ev, ta)
+  if *optMM && ma != "" {
+	  as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+  }
   args := strings.Fields(as)
   args = append(args, of)
   cmd := exec.Command("blastn")
@@ -1004,7 +1067,10 @@ We repeat this for the blastn command, only with a different task.
 #+end_export
 #+begin_src go <<Construct blastn command, Pr. \ref{pr:fur}>>=
   ta = "blastn"
-  as = fmt.Sprintf(tm, da, th, ev, ta)
+  as := fmt.Sprintf(tm, da, th, ev, ta)
+  if *optMM && ma != "" {
+	  as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+  }
   args = strings.Fields(as)
   args = append(args, of)
   cmd = exec.Command("blastn")
@@ -1301,12 +1367,21 @@ We import \ty{exec}.
   "os/exec"
 #+end_src
 #+begin_export latex
-We construct four tests. The first runs with all options set to their
-default values. In the second test we vary the quantile of the match
-length distribution. In the third test we also vary the window length.
-In the fourth test we also set the number of threads.
+We construct a set of tests without repeat masking and one with repeat
+masking.
 #+end_export
 #+begin_src go <<Construct tests, Pr. \ref{pr:fur}>>=
+  //<<Tests without repeat masking, Pr. \ref{pr:fur}>>
+  //<<Tests with repeat masking, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We construct four tests without repeat masking. The first runs with
+all options set to their default values. In the second test we vary
+the quantile of the match length distribution. In the third test we
+also vary the window length.  In the fourth test we also set the
+number of threads.
+#+end_export
+#+begin_src go <<Tests without repeat masking, Pr. \ref{pr:fur}>>=
   d := "test.db"
   test := exec.Command("./fur", "-d", d)
   tests = append(tests, test)
@@ -1319,11 +1394,28 @@ In the fourth test we also set the number of threads.
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
+We construct three test with repeat masking. In the first, we request
+masking on the current test database, which doesn't contain any
+masking information. For the second test we change to the database
+\ty{masked.db}, where the entire neighborhood is in lower case
+nucleotides, i. e. masked. We first run \ty{fur} on this without
+masking, then with.
+#+end_export
+#+begin_src go <<Tests with repeat masking, Pr. \ref{pr:fur}>>=
+  test = exec.Command("./fur", "-d", d, "-M")
+  tests = append(tests, test)
+  d = "masked.db"
+  test = exec.Command("./fur", "-d", d)
+  tests = append(tests, test)
+  test = exec.Command("./fur", "-d", d, "-M")
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
 For each test we compare the result we get with the result we want,
-which is contained in files \ty{r1.txt}, \ty{r2.txt}, and \ty{r3.txt}.
+which is contained in files \ty{r1.txt}, \ty{r2.txt}, and so on.
 #+end_export
 #+begin_src go <<Run test, Pr. \ref{pr:fur}>>=
-  get, err := test.Output()
+  get, err := test.CombinedOutput()
   if err != nil { t.Error(err) }
   f := "r" + strconv.Itoa(i+1) + ".txt"
   want, err := os.ReadFile(f)

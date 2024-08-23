@@ -50,6 +50,8 @@ func main() {
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
           optT := flag.Int("t", 8, "Number of threads for Phylonium and Blast")
           optM := flag.Bool("m", false, "megablast mode (default blastn)")
+          optMM := flag.Bool("M", false,
+                    "activate masking (recommended for mammalian genomes")
           optN := flag.Int("n", 100, "number of nucleotides in region")
           flag.Parse()
           if *optV {
@@ -337,10 +339,36 @@ func main() {
                     th := *optT
                     ev := *optE
                     ta := "megablast"
+                    ma := ""
+                    if *optMM {
+                              cmd := exec.Command("blastdbcmd", "-info", "-db", *optD + "/n")
+                              info, err := cmd.CombinedOutput()
+                              util.Check(err)
+                              lines := strings.Split(string(info), "\n")
+                              for i, line := range lines {
+                                        fields := strings.Fields(line)
+                                        if len(fields) > 0 && fields[0] == "Algorithm" {
+                                                ma = strings.Fields(lines[i+1])[0]
+                                        }
+                              }
+                              if ma == "" {
+                                        m := "#Warning [fur]: No masking information " +
+                                                "in Blast database; running Subtraction_2 " +
+                                                "without masking.\n"
+                                        fmt.Fprintf(os.Stderr, m)
+                              }
+                    }
                     of := "6 qaccver qstart qend"
                     tm := "blastn -db %s -num_threads %d "
-                    tm += "-evalue %g -task %s -outfmt "
+                    tm += "-evalue %g -task %s "
+                    if *optMM  && ma != "" {
+                              tm += "-db_soft_mask %s "
+                    }
+                    tm += "-outfmt "
                     as := fmt.Sprintf(tm, da, th, ev, ta)
+                    if *optMM && ma != "" {
+                              as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+                    }
                     args := strings.Fields(as)
                     args = append(args, of)
                     cmd := exec.Command("blastn")
@@ -348,7 +376,10 @@ func main() {
                     cmds = append(cmds, cmd)
                     if !*optM {
                               ta = "blastn"
-                              as = fmt.Sprintf(tm, da, th, ev, ta)
+                              as := fmt.Sprintf(tm, da, th, ev, ta)
+                              if *optMM && ma != "" {
+                                        as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+                              }
                               args = strings.Fields(as)
                               args = append(args, of)
                               cmd = exec.Command("blastn")
