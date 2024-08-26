@@ -4,8 +4,9 @@ The program `fur` takes as input a set of target genome sequences and
 a set of related genome sequences, the neighbors. It returns the
 sequence regions common to all targets that are absent form the
 neighbors. Such regions can be used as candidate genetic markers.
-## Author
-[Bernhard Haubold](http://guanine.evolbio.mpg.de/), `haubold@evolbio.mpg.de`
+## Authors
+[Bernhard Haubold](http://guanine.evolbio.mpg.de/)
+and [Beatriz Vieira Mourato](https://beatrizvm.github.io/) 
 ## Make the Programs
 If you are on an Ubuntu system like Ubuntu on
 [wsl](https://learn.microsoft.com/en-us/windows/wsl/install) under
