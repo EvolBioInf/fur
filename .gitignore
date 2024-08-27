@@ -49,6 +49,7 @@ cops/cops
 cops/makeRes.sh
 fur2prim/fur2prim
 fur/fur
+fur/makeRes.sh
 madis/madis
 makeFurDb/makeFurDb
 prim2fasta/prim2fasta

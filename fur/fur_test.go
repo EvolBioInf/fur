@@ -20,8 +20,15 @@ func TestFur(t *testing.T) {
 	test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150",
 		"-t", "8")
 	tests = append(tests, test)
+	test = exec.Command("./fur", "-d", d, "-M")
+	tests = append(tests, test)
+	d = "masked.db"
+	test = exec.Command("./fur", "-d", d)
+	tests = append(tests, test)
+	test = exec.Command("./fur", "-d", d, "-M")
+	tests = append(tests, test)
 	for i, test := range tests {
-		get, err := test.Output()
+		get, err := test.CombinedOutput()
 		if err != nil {
 			t.Error(err)
 		}

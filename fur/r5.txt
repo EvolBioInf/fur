@@ -1,3 +1,4 @@
+#Warning [fur]: No masking information in Blast database; running Subtraction_2 without masking.
   Step           Sequences  Length  Ns
   -------------  ---------  ------  --
   Subtraction_1          1    1052   0

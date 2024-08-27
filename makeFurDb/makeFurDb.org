@@ -213,21 +213,6 @@ We prepare error handling by calling the utility function
   "flag"
 #+end_src
 #+begin_export latex
-By default \ty{makeFurDb} sets sequence data to upper case and then
-removes any character that isn't \ty{A}, \ty{C}, \ty{G}, or \ty{T}. In
-most cases these non-canonical nucleotides are stretches of \ty{N}s,
-which cannot be used in primer design, the original purpose of Fur.
-
-The disadvantage of removing non-canonical nucleotides is that this
-leads to differences between the coordinates in \ty{r.fasta} and its
-original. Annotations like genes are given with respect to this
-original. To preserve their correctness, we also add an option of
-keeping non-canonical nucleotides.
-#+end_export
-#+begin_src go <<Declare options, Pr. \ref{pr:mfd}>>=
-  optK := flag.Bool("k", false, "keep non-canonical nucleotides")
-#+end_src
-#+begin_export latex
 The usage consists of three parts, the actual usage message, an
 explanation of the purpose of \ty{makeFurDb}, and an example command.
 #+end_export
@@ -574,7 +559,9 @@ We import \ty{fasta}.
 #+begin_export latex
 We reserve space for the forward and reverse strands of the sequences
 that make up the target representative. Then we iterate over the
-sequences, clean, and store them.
+sequences. To ensure there are no blanks in a sequence header that is
+later passed to Blast, we truncate it after the first token, usually
+the accession. Then we store the sequence.
 #+end_export
 #+begin_src go <<Read target representative, Pr. \ref{pr:mfd}>>=
   var repSeqs, revRepSeqs []*fasta.Sequence
@@ -585,24 +572,17 @@ sequences, clean, and store them.
   sc := fasta.NewScanner(f)
   for sc.ScanSequence() {
 	  seq := sc.Sequence()
-	  //<<Clean sequence, Pr. \ref{pr:mfd}>>
+	  //<<Truncate header, Pr. \ref{pr:mfd}>>
 	  //<<Store sequence, Pr. \ref{pr:mfd}>>
   }
 #+end_src
 #+begin_export latex
-Cleaning consists of setting the sequence data to upper case. We also
-remove non-canonical nucleotides, unless the user opted to keep
-them. In the last cleaning step we reduce the header to the first
-token, usually the accession. This ensures that there are no blanks in
-the names of the sequences later passed to Blast.
+We truncate the header at the first blank and recreate the sequence
+with the new header.
 #+end_export
-#+begin_src go <<Clean sequence, Pr. \ref{pr:mfd}>>=
-  d := bytes.ToUpper(seq.Data())
-  if !*optK {
-	  //<<Remove non-canonical nucleotides, Pr. \ref{pr:mfd}>>
-  }
+#+begin_src go <<Truncate header, Pr. \ref{pr:mfd}>>=
   h := strings.Fields(seq.Header())[0]
-  seq = fasta.NewSequence(h, d)
+  seq = fasta.NewSequence(h, seq.Data())
 #+end_src
 #+begin_export latex
 We import \ty{bytes} and \ty{strings}.
@@ -610,19 +590,6 @@ We import \ty{bytes} and \ty{strings}.
 #+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
   "bytes"
   "strings"
-#+end_src
-#+begin_export latex
-We remove the non-canonical bases using reslicing.
-#+end_export
-#+begin_src go <<Remove non-canonical nucleotides, Pr. \ref{pr:mfd}>>=
-  i := 0
-  for _, c := range d {
-	  if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
-		  d[i] = c
-		  i++
-	  }
-  }
-  d = d[:i]
 #+end_src
 #+begin_export latex
 We store the forward strand, construct the reverse strand from it, and
@@ -693,7 +660,8 @@ are converted to match ends and written to file.
 #+end_src
 #+begin_export latex
 We open the target rep file inside the database, store the forward and
-reverse strands of sequences it contains, and close the file again.
+reverse strands of the sequences it contains, and close the file
+again.
 #+end_export
 #+begin_src go <<Read sequences of target rep, Pr. \ref{pr:mfd}>>=
   f, err = os.Open(*optD + "/r.fasta")
@@ -708,6 +676,21 @@ reverse strands of sequences it contains, and close the file again.
 	  revTargetSeqs = append(revTargetSeqs, s)
   }
   f.Close()
+#+end_src
+#+begin_export latex
+When doing exact matching, we ignore masking, so we convert the
+nucleotides of the forward and reverse strands we just read to upper
+case.
+#+end_export
+#+begin_src go <<Read sequences of target rep, Pr. \ref{pr:mfd}>>=
+  for i, targetSeq := range targetSeqs {
+	  h := targetSeq.Header()
+	  d := bytes.ToUpper(targetSeq.Data())
+	  targetSeqs[i] = fasta.NewSequence(h, d)
+	  h = revTargetSeqs[i].Header()
+	  d = bytes.ToUpper(revTargetSeqs[i].Data())
+	  revTargetSeqs[i] = fasta.NewSequence(h, d)
+  }
 #+end_src
 #+begin_export latex
 We iterate over the neighbor files and for each file we iterate over
@@ -1064,26 +1047,43 @@ We add a newline to the last line unless this has already been done.
 #+end_src
 #+begin_export latex
 \subsection{Blast Database of Neighbors, \ty{n}}
-We come to the last element of the \ty{fur} database, the Blast
-database of the neighbors. To construct this, we run the external
-program \ty{makeblastdb} and pipe the neighbor sequences to it. At
-this point we visit every neighbor sequence. So we take the
-opportunity to also count the total number of nucleotides they
-contain, $l$, and the number of \ty{C}s and \ty{G}s, $g$. In
-preparation for this we declare the variables $l$ and $g$.
+We come to the penultimate element of the \ty{fur} database, the Blast
+database of the neighbors. To construct this, we iterate over the
+neighbor files and convert each one to a Blast database. These
+databases are numbered, hence we also declare a counter, $c$. To
+facilitate subsequent handling of the databases, we link them into one
+entity.
 #+end_export
 #+begin_src go <<Write Blast database of neighbors to \ty{n}, Pr. \ref{pr:mfd}>>=
   fmt.Fprintf(os.Stderr, "making Blast database\n")
-  cmd := exec.Command("makeblastdb", "-dbtype", "nucl",
-	  "-out", *optD + "/n", "-title", "t")
-  stdin, err := cmd.StdinPipe()
-  util.Check(err)
-  var l, g int
-  go func() {
-	  defer stdin.Close()
-	  //<<Pipe neighbors to \ty{makeblastdb}, Pr. \ref{pr:mfd}>>
-  }()
-  _, err = cmd.Output()
+  c := 0
+  for neighbor, _ := range neighbors {
+	  //<<Make Blast database, Pr. \ref{pr:mfd}>>
+  }
+  //<<Link Blast databases, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We need to preserve any masking information contained in the neighbor
+sequences. To do this, we first extract the mask, then apply it when
+constructing the database with \ty{makeblastdb}.
+#+end_export
+#+begin_src go <<Make Blast database, Pr. \ref{pr:mfd}>>=
+  //<<Extract mask, Pr. \ref{pr:mfd}>>
+  //<<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We extract the mask by running the program \ty{convert2blastmask},
+which is part of the Blast package.
+#+end_export
+#+begin_src go <<Extract mask, Pr. \ref{pr:mfd}>>=
+  p := *optN + "/" + neighbor
+  o := *optD + "/mask.asnb"
+  cmd := exec.Command("convert2blastmask", "-in", p,
+	  "-masking_algorithm", "repeat",
+	  "-masking_options", "default",
+	  "-outfmt", "maskinfo_asn1_bin",
+	  "-out", o)
+  _, err := cmd.CombinedOutput()
   util.Check(err)
 #+end_src
 #+begin_export latex
@@ -1093,47 +1093,127 @@ We import \ty{exec}.
   "os/exec"
 #+end_src
 #+begin_export latex
-We iterate over the sequences in each neighbor file and print each
-sequence to the destination file. We also count the total number of
-nucleotides, $l$, and the combined number of \ty{G} and \ty{C}, $g$.
+We run \ty{makeblastdb}, which is also part of the Blast package, and
+include the masking information we just created in the new
+database. To ensure each database has a unique name, we call them
+\ty{n}$c$, where $c$ is iterated in each round.
 #+end_export
-#+begin_src go <<Pipe neighbors to \ty{makeblastdb}, Pr. \ref{pr:mfd}>>=
-  for neighbor, _ := range neighbors {
-	  p := *optN + "/" + neighbor
-	  r, err := os.Open(p)
-	  util.Check(err)
-	  sc := fasta.NewScanner(r)
-	  for sc.ScanSequence() {
-		  seq := sc.Sequence()
-		  //<<Update $l$ and $g$, Pr. \ref{pr:mfd})>>
-		  fmt.Fprintf(stdin, "%s\n", seq)
-	  }
-  }
+#+begin_src go <<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>=
+  p = *optN + "/" + neighbor
+  c++
+  o = *optD + "/n" + strconv.Itoa(c)
+  m := *optD + "/mask.asnb"
+  cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
+	  "-in", p, "-out", o, "-title","n",
+	  "-mask_data", m)
+  _, err = cmd.Output()
+  util.Check(err)
 #+end_src
 #+begin_export latex
-We scan across the sequence data to count the residues.
+We import \ty{strconv}.
 #+end_export
-#+begin_src go <<Update $l$ and $g$, Pr. \ref{pr:mfd})>>=
-  d := bytes.ToUpper(seq.Data())
-  for _, c := range d {
-	  if c == 'A' || c == 'C' || c == 'G' || c == 'T' {
-		  l++
-		  if c == 'C' || c == 'G' {
-			  g++
-		  }
-	  }
+#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
+  "strconv"
+#+end_src
+#+begin_export latex
+To link the databases, we first write the names of the databases to
+the file \ty{dblist.txt}. The actual linking is then done by calling
+another program from the Blast package, \ty{blastdb\_aliastool}.
+#+end_export
+#+begin_src go <<Link Blast databases, Pr. \ref{pr:mfd}>>=
+  f, err = os.Create(*optD + "/dblist.txt")
+  util.Check(err)
+  for i := 1; i <= c; i++ {
+	  fmt.Fprintf(f, "%s/n%d\n", *optD, i)
   }
+  f.Close()
+  cmd := exec.Command("blastdb_aliastool",
+	  "-dblist_file", *optD + "/dblist.txt",
+	  "-dbtype", "nucl", "-title", "n",
+	  "-out", *optD + "/n")
+  _, err = cmd.Output()
+  util.Check(err)
 #+end_src
 #+begin_export latex
 \subsection{Neighbor Statistics, \ty{n.txt}}
-We write the number of nucleotides and the GC content to file.
+The last element of the fur database is a file, \ty{n.txt}, containing
+the number of nucleotides in the database and its GC content. This is
+later used by \ty{fur} to calculate the null distribution of match
+lengths. So we create \ty{n.txt}, get the entries from the Blast
+database of neighbors we just created, scan these entries, and finally
+print the statistics we are after.
 #+end_export
 #+begin_src go <<Write statistics of neighbors to \ty{n.txt}, Pr. \ref{pr:mfd}>>=
+  //<<Create \ty{n.txt}, Pr. \ref{pr:mfd}>>
+  //<<Get entries from neighbors Blast database, Pr. \ref{pr:mfd}>>
+  //<<Scan entries from neighbors Blast database, Pr. \ref{pr:mfd}>>
+  //<<Print neighbors statistics, Pr. \ref{pr:mfd}>>
+#+end_src
+#+begin_export latex
+We create \ty{n.txt} and make sure it is eventually closed again.
+#+end_export
+#+begin_src go <<Create \ty{n.txt}, Pr. \ref{pr:mfd}>>=
   w, err := os.Create(*optD + "/n.txt")
   util.Check(err)
-  gc := float64(g) / float64(l)
-  fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gc)
-  w.Close()
+  defer w.Close()
+#+end_src
+#+begin_export latex
+We get the entries from the neighbors Blast database by calling the
+program \ty{blastdbcmd} on all database entries.
+#+end_export
+#+begin_src go <<Get entries from neighbors Blast database, Pr. \ref{pr:mfd}>>=
+  cmd = exec.Command("blastdbcmd", "-db",
+	  (*optD) + "/n",
+	  "-entry", "all")
+  out, err := cmd.Output()
+  util.Check(err)
+#+end_src
+#+begin_export latex
+We iterate over the neighbor sequences, one FASTA entry at a time and
+count the nucleotides, \ty{[ACGTacgt]}. We think of their count as the
+sequence length, $\ell$. We also count the GCs, \ty{[GCgc]}, $g$.
+#+end_export
+#+begin_src go <<Scan entries from neighbors Blast database, Pr. \ref{pr:mfd}>>=
+  r := bytes.NewReader(out)
+  sc = fasta.NewScanner(r)
+  var l, g int
+  nuc := "ACGTacgt"
+  gc := "GCgc"
+  for sc.ScanSequence() {
+	  d := sc.Sequence().Data()
+	  for i, _ := range d {
+		  //<<Count nucleotides, Pr. \ref{pr:mfd}>>
+		  //<<Count GCs, Pr. \ref{pr:mfd}>>
+	  }
+  }
+#+end_src
+#+begin_export latex
+We count the upper and lower case versions of the standard four
+nucleotides. If we are not dealing with a nucleotide, we skip the
+subsequent test for \ty{G} or \ty{C}.
+#+end_export
+#+begin_src go <<Count nucleotides, Pr. \ref{pr:mfd}>>=
+  if bytes.ContainsAny(d[i:i+1], nuc) {
+	  l++
+  } else {
+	  continue
+  }
+#+end_src
+#+begin_export latex
+We count the nucleotides that are either \ty{G} or \ty{C}.
+#+end_export
+#+begin_src go <<Count GCs, Pr. \ref{pr:mfd}>>=
+  if bytes.ContainsAny(d[i:i+1], gc) {
+	  g++
+  }
+#+end_src
+#+begin_export latex
+We convert $g$ to the GC content, $g_{\rm c}$, and print it together
+with the sequence length.
+#+end_export
+#+begin_src go <<Print neighbors statistics, Pr. \ref{pr:mfd}>>=
+  gcc := float64(g) / float64(l)
+  fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gcc)
 #+end_src
 #+begin_export latex
 We are done with \ty{makeFurDb}, time to test it.
@@ -1207,7 +1287,9 @@ files \ty{r1.txt}, \ty{r2.txt}, and so on.
 #+end_export
 #+begin_src go <<Run test, Pr. \ref{pr:mfd}>>=
   _, err := test.Output()
-  if err != nil { t.Error(err) }
+  if err != nil {
+	  t.Error(err)
+  }
   get, err := os.ReadFile(d + "/e.fasta")
   if err != nil { t.Error(err) }
   f := "r" + strconv.Itoa(i+1) + ".txt"

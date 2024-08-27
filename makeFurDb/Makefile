@@ -14,7 +14,7 @@ $(exe).go: $(exe).org
 	if [ "$(nw)" != "" ]; then\
 		awk -f ../scripts/preTangle.awk $(exe).org | bash ../scripts/org2nw | notangle -R$(exe).go > $(exe).go;\
 	fi
-$(exe)_test.go:
+$(exe)_test.go: $(exe).org
 	if [ "$(nw)" != "" ]; then\
 		awk -f ../scripts/preTangle.awk $(exe).org | bash ../scripts/org2nw | notangle -R$(exe)_test.go | gofmt > $(exe)_test.go;\
 	fi
