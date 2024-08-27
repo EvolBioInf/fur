@@ -41,6 +41,7 @@ experiments
 makeFurDb/*.db
 fur/*.db
 !fur/test.db
+!fur/masked.db
 
 # Programs
 checkPrim/checkPrim

@@ -1,0 +1,2 @@
+length: 90000
+GC-content: 0.501033

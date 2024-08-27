@@ -1,0 +1,7 @@
+#
+# Alias file created 08/23/2024 16:19:32
+#
+TITLE n
+DBLIST "masked.db/n1" "masked.db/n2" "masked.db/n3" "masked.db/n4" "masked.db/n5" "masked.db/n6" "masked.db/n7" "masked.db/n8" "masked.db/n9" "masked.db/n10" 
+NSEQ 10
+LENGTH 90000
