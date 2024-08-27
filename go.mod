@@ -1,14 +1,12 @@
 module github.com/evolbioinf/fur
 
-go 1.18
+go 1.22.5
 
 require (
-	github.com/evolbioinf/clio v0.0.0-20210309091639-82cb91a31b0c
+	github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b
 	github.com/evolbioinf/esa v0.0.0-20230428092833-66d4eac05d77
 	github.com/evolbioinf/fasta v0.0.0-20230419094527-219cc47d94b2
 	github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965
 )
-
-require github.com/evolbioinf/dist v0.0.0-20230320162102-c887c99309e3 // indirect
 
 replace github.com/evolbioinf/fur/util => ../util

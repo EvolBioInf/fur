@@ -15,8 +15,8 @@ var version, date string
 func PrintInfo(n string) {
 	v := version
 	d := date
-	a := "Bernhard Haubold"
-	e := "haubold@evolbio.mpg.de"
+	a := "Bernhard Haubold,Beatriz Vieira Mourato"
+	e := "haubold@evolbio.mpg.de,mourato@evolbio.mpg.de"
 	l := "Gnu General Public License, " +
 		"https://www.gnu.org/licenses/gpl.html"
 	clio.PrintInfo(n, v, d, a, e, l)
