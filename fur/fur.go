@@ -50,8 +50,10 @@ func main() {
           optUU := flag.Bool("U", false, m)
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
           ncpu := runtime.NumCPU()
-          optT := flag.Int("t", ncpu, "Number of threads for Phylonium and Blast")
-          optM := flag.Bool("m", false, "megablast mode (default blastn)")
+          optT := flag.Int("t", ncpu, "Number of threads " +
+                    "for Phylonium and Blast")
+          optM := flag.Bool("m", false, "megablast mode " +
+                    "(default blastn)")
           optMM := flag.Bool("M", false,
                     "activate masking (recommended for mammalian genomes")
           optN := flag.Int("n", 100, "number of nucleotides in region")
@@ -88,8 +90,9 @@ func main() {
                     os.Exit(1)
           }
           if *optT > ncpu {
-                    m := "Warning [fur]: Number of threads was reduced to %d " +
-                            "to match the number of available CPUs.\n"
+                    m := "Warning [fur]: Number of threads was reduced " +
+                            "to %d to match the number of available " +
+                            "CPUs.\n"
                     fmt.Fprintf(os.Stderr, m, ncpu)
                     (*optT) = ncpu
           }
@@ -477,7 +480,7 @@ func main() {
                                                 h = fmt.Sprintf("%s_(%d..%d) %4d",
                                                           prefix, s, e, n)
                                                 for _, m := range nm {
-                                                          h = fmt.Sprintf("%s  %d", h, m)
+                                                          h = fmt.Sprintf("%s %d", h, m)
                                                 }
                                         }
                                         s := fasta.NewSequence(h, r)
