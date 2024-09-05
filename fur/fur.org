@@ -111,26 +111,57 @@ of this step and exit.
 Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
 the E-value, the number of threads, a switch to megablast mode instead
 of the default blastn mode, and a switch for running with masking. We
-also set the minimum length of the final regions at this point.
+also set the minimum length of the final regions at this point. The
+number of threads is initialized to the number of CPUs.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
-  optT := flag.Int("t", 8, "Number of threads for Phylonium and Blast")
-  optM := flag.Bool("m", false, "megablast mode (default blastn)")
+  ncpu := runtime.NumCPU()
+  optT := flag.Int("t", ncpu, "Number of threads " +
+	  "for Phylonium and Blast")
+  optM := flag.Bool("m", false, "megablast mode " +
+	  "(default blastn)")
   optMM := flag.Bool("M", false,
 	  "activate masking (recommended for mammalian genomes")
   optN := flag.Int("n", 100, "number of nucleotides in region")
 #+end_src
 #+begin_export latex
-We parse the options and respond to the version, \ty{-v}. We also make
-sure the user has supplied a database name with \ty{-d}, and, if so,
-that the database exists and has the correct version.
+We import \ty{runtime}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "runtime"
+#+end_src
+#+begin_export latex
+We parse the options and first respond to the version request,
+\ty{-v}, as this might stop the program. We also respond to the
+database name, \ty{-d}, and the number of threads, \ty{-t}.
 #+end_export
 #+begin_src go <<Parse options, Pr. \ref{pr:fur}>>=
   flag.Parse()
+  //<<Respond to \ty{-v}, Pr. \ref{pr:fur}>>
+  //<<Respond to \ty{-d}, Pr. \ref{pr:fur}>>
+  //<<Respond to \ty{-t}, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We import \ty{fmt}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "fmt"
+#+end_src
+#+begin_export latex
+If the user requested the version, we print it by calling
+\ty{PrintInfo}.
+#+end_export
+#+begin_src go <<Respond to \ty{-v}, Pr. \ref{pr:fur}>>=
   if *optV {
 	  util.PrintInfo("fur")
   }
+#+end_src
+#+begin_export latex
+We make sure the user has supplied a database name, and, if so, we
+check it exists and has the right version.
+#+end_export
+#+begin_src go <<Respond to \ty{-d}, Pr. \ref{pr:fur}>>=
   if *optD == "" {
 	  fmt.Fprintf(os.Stderr, "please supply database\n")
 	  os.Exit(1)
@@ -141,10 +172,9 @@ that the database exists and has the correct version.
   //<<Check database version, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
-We import \ty{fmt} and \ty{os}.
+We import \ty{os}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
-  "fmt"
   "os"
 #+end_src
 #+begin_export latex
@@ -187,6 +217,20 @@ We import \ty{strings}, \ty{strconv} and \ty{log}.
   "strings"
   "strconv"
   "log"
+#+end_src
+#+begin_export latex
+If the user requested more threads than the number of CPUs, Blast
+won't run later on. In that case we warn the user and set the number
+of threads to the number of CPUs.
+#+end_export
+#+begin_src go <<Respond to \ty{-t}, Pr. \ref{pr:fur}>>=
+  if *optT > ncpu {
+	  m := "Warning [fur]: Number of threads was reduced " +
+		  "to %d to match the number of available " +
+		  "CPUs.\n"
+	  fmt.Fprintf(os.Stderr, m, ncpu)
+	  (*optT) = ncpu
+  }
 #+end_src
 #+begin_export latex
 We get the program version from the utility function \ty{Version} and

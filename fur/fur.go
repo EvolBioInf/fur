@@ -4,6 +4,7 @@ import (
           "github.com/evolbioinf/fur/util"
           "github.com/evolbioinf/clio"
           "flag"
+          "runtime"
           "fmt"
           "os"
           "strings"
@@ -48,7 +49,8 @@ func main() {
           optX := flag.Bool("x", false, "exact matches only")
           optUU := flag.Bool("U", false, m)
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
-          optT := flag.Int("t", 8, "Number of threads for Phylonium and Blast")
+          ncpu := runtime.NumCPU()
+          optT := flag.Int("t", ncpu, "Number of threads for Phylonium and Blast")
           optM := flag.Bool("m", false, "megablast mode (default blastn)")
           optMM := flag.Bool("M", false,
                     "activate masking (recommended for mammalian genomes")
@@ -84,6 +86,12 @@ func main() {
           if pv < dv {
                     fmt.Fprintf(os.Stderr, m, ps, ds)
                     os.Exit(1)
+          }
+          if *optT > ncpu {
+                    m := "Warning [fur]: Number of threads was reduced to %d " +
+                            "to match the number of available CPUs.\n"
+                    fmt.Fprintf(os.Stderr, m, ncpu)
+                    (*optT) = ncpu
           }
           regions := make([]*fasta.Sequence, 0)
           rw := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ',
