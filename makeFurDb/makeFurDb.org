@@ -1048,43 +1048,36 @@ We add a newline to the last line unless this has already been done.
 #+begin_export latex
 \subsection{Blast Database of Neighbors, \ty{n}}
 We come to the penultimate element of the \ty{fur} database, the Blast
-database of the neighbors. To construct this, we iterate over the
-neighbor files and convert each one to a Blast database. These
-databases are numbered, hence we also declare a counter, $c$. To
-facilitate subsequent handling of the databases, we link them into one
-entity.
+database of the neighbors. We construct this in such a way that it
+allows later searches to run with masking. So we extract the masking
+information before we construct the database. We also tell the user we
+are making the Blast database.
 #+end_export
 #+begin_src go <<Write Blast database of neighbors to \ty{n}, Pr. \ref{pr:mfd}>>=
   fmt.Fprintf(os.Stderr, "making Blast database\n")
-  c := 0
-  for neighbor, _ := range neighbors {
-	  //<<Make Blast database, Pr. \ref{pr:mfd}>>
-  }
-  //<<Link Blast databases, Pr. \ref{pr:mfd}>>
+  //<<Extract masking information, Pr. \ref{pr:mfd}>>
+  //<<Construct Blast database, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
-We need to preserve any masking information contained in the neighbor
-sequences. To do this, we first extract the mask, then apply it when
-constructing the database with \ty{makeblastdb}.
+We extract the masking information by running the program
+\ty{convert2blastmask}, which is part of the Blast package. We
+construct its command and run it.
 #+end_export
-#+begin_src go <<Make Blast database, Pr. \ref{pr:mfd}>>=
-  //<<Extract mask, Pr. \ref{pr:mfd}>>
-  //<<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>
+#+begin_src go <<Extract masking information, Pr. \ref{pr:mfd}>>=
+  //<<Construct \ty{convert2blastmask} command, Pr. \ref{pr:mfd}>>
+  //<<Run \ty{convert2blastmask}, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
-We extract the mask by running the program \ty{convert2blastmask},
-which is part of the Blast package.
+We store the masking information as a binary file in the database
+directory.
 #+end_export
-#+begin_src go <<Extract mask, Pr. \ref{pr:mfd}>>=
-  p := *optN + "/" + neighbor
-  o := *optD + "/mask.asnb"
-  cmd := exec.Command("convert2blastmask", "-in", p,
+#+begin_src go <<Construct \ty{convert2blastmask} command, Pr. \ref{pr:mfd}>>=
+  mask := *optD + "/mask.asnb"
+  cmd := exec.Command("convert2blastmask",
 	  "-masking_algorithm", "repeat",
 	  "-masking_options", "default",
 	  "-outfmt", "maskinfo_asn1_bin",
-	  "-out", o)
-  _, err := cmd.CombinedOutput()
-  util.Check(err)
+	  "-out", mask)
 #+end_src
 #+begin_export latex
 We import \ty{exec}.
@@ -1093,44 +1086,61 @@ We import \ty{exec}.
   "os/exec"
 #+end_src
 #+begin_export latex
-We run \ty{makeblastdb}, which is also part of the Blast package, and
-include the masking information we just created in the new
-database. To ensure each database has a unique name, we call them
-\ty{n}$c$, where $c$ is iterated in each round.
+We run \ty{convert2blastmask} as a goroutine in which we pipe the
+neighbors to the \ty{stdin} of the command.
 #+end_export
-#+begin_src go <<Run \ty{makeblastdb}, Pr. \ref{pr:mfd}>>=
-  p = *optN + "/" + neighbor
-  c++
-  o = *optD + "/n" + strconv.Itoa(c)
-  m := *optD + "/mask.asnb"
-  cmd = exec.Command("makeblastdb", "-dbtype", "nucl",
-	  "-in", p, "-out", o, "-title","n",
-	  "-mask_data", m)
+#+begin_src go <<Run \ty{convert2blastmask}, Pr. \ref{pr:mfd}>>=
+  stdin, err := cmd.StdinPipe()
+  util.Check(err)
+  go func() {
+	  defer stdin.Close()
+	  //<<Pipe neighbors, Pr. \ref{pr:mfd}>>
+  }()
   _, err = cmd.Output()
   util.Check(err)
 #+end_src
 #+begin_export latex
-We import \ty{strconv}.
+We iterate over the neighbor files and print the bytes contained in
+each as one long string to \ty{stdin}.
 #+end_export
-#+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
-  "strconv"
+#+begin_src go <<Pipe neighbors, Pr. \ref{pr:mfd}>>=
+  for neighbor, _ := range neighbors {
+	  p := *optN + "/" + neighbor
+	  d, err := os.ReadFile(p)
+	  util.Check(err)
+	  fmt.Fprint(stdin, string(d))
+  }
 #+end_src
 #+begin_export latex
-To link the databases, we first write the names of the databases to
-the file \ty{dblist.txt}. The actual linking is then done by calling
-another program from the Blast package, \ty{blastdb\_aliastool}.
+The Blast database is constructed with the \ty{makeblastdb}
+command. So we construct this command before we run it.
 #+end_export
-#+begin_src go <<Link Blast databases, Pr. \ref{pr:mfd}>>=
-  f, err = os.Create(*optD + "/dblist.txt")
+#+begin_src go <<Construct Blast database, Pr. \ref{pr:mfd}>>=
+  //<<Construct \ty{makeblastdb} command, Pr. \ref{pr:mfd}>>
+  //<<Run \ty{makeblastdb}>>
+#+end_src
+#+begin_export latex
+We construct the Blast database \ty{n} with masking information and
+store it inside the \ty{fur} database.
+#+end_export
+#+begin_src go <<Construct \ty{makeblastdb} command, Pr. \ref{pr:mfd}>>=
+  cmd = exec.Command("makeblastdb",
+	  "-dbtype", "nucl",
+	  "-out", *optD + "/n",
+	  "-title", "n",
+	  "-mask_data", mask)
+#+end_src
+#+begin_export latex
+Like \ty{convert2blastmask}, we run \ty{makeblastdb} as a goroutine in
+which we pipe the neighbors to the \ty{stdin} of \ty{maskblastdb}.
+#+end_export
+#+begin_src go <<Run \ty{makeblastdb}>>=
+  stdin, err = cmd.StdinPipe()
   util.Check(err)
-  for i := 1; i <= c; i++ {
-	  fmt.Fprintf(f, "%s/n%d\n", *optD, i)
-  }
-  f.Close()
-  cmd := exec.Command("blastdb_aliastool",
-	  "-dblist_file", *optD + "/dblist.txt",
-	  "-dbtype", "nucl", "-title", "n",
-	  "-out", *optD + "/n")
+  go func() {
+	  defer stdin.Close()
+	  //<<Pipe neighbors, Pr. \ref{pr:mfd}>>
+  }()
   _, err = cmd.Output()
   util.Check(err)
 #+end_src

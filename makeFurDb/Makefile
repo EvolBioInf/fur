@@ -12,7 +12,7 @@ $(exe): $(exe).go
 tangle: $(exe).go $(exe)_test.go
 $(exe).go: $(exe).org
 	if [ "$(nw)" != "" ]; then\
-		awk -f ../scripts/preTangle.awk $(exe).org | bash ../scripts/org2nw | notangle -R$(exe).go > $(exe).go;\
+		awk -f ../scripts/preTangle.awk $(exe).org | bash ../scripts/org2nw | notangle -R$(exe).go | gofmt > $(exe).go;\
 	fi
 $(exe)_test.go: $(exe).org
 	if [ "$(nw)" != "" ]; then\
