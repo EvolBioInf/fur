@@ -1,20 +1,22 @@
-# [`fur`](https://owncloud.gwdg.de/index.php/s/ZJrSZ10O97fAV2j): Find Unique Regions
+# [`fur`](https://owncloud.gwdg.de/index.php/s/XWT9TU1hgC2ecxi): Find Unique Regions
 ## Description
 The program `fur` takes as input a set of target genome sequences and
 a set of related genome sequences, the neighbors. It returns the
 sequence regions common to all targets that are absent form the
 neighbors. Such regions can be used as candidate genetic markers.
 ## Authors
-[Bernhard Haubold](http://guanine.evolbio.mpg.de/)
-and [Beatriz Vieira Mourato](https://beatrizvm.github.io/) 
+[Bernhard Haubold](http://guanine.evolbio.mpg.de/),
+[Beatriz Vieira Mourato](https://beatrizvm.github.io/),
+and [Ivan Tsers](https://owncloud.gwdg.de/index.php/s/XWT9TU1hgC2ecxi)
 ## Make the Programs
 If you are on an Ubuntu system like Ubuntu on
 [wsl](https://learn.microsoft.com/en-us/windows/wsl/install) under
 MS-Windows or the [Ubuntu Docker
 container](https://hub.docker.com/_/ubuntu), you can clone the
-repository and change into it.
+repository, select this branch, and change into it.
 
-`git clone https://github.com/evolbioinf/fur`  
+`git clone https://github.com/evolbioinf/fur`
+`git checkout intersect`
 `cd fur`
 
 Then install the additional dependencies by running the script
