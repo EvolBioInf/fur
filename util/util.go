@@ -11,12 +11,14 @@ import (
 
 var version, date string
 
-// PrintInfo takes as arguments the name. As output it prints this name, together with the version, compilation date,  my name, email address, and the program's license. Then it exits.
+// PrintInfo takes as arguments the name. As output it prints this name, together with the version, compilation date, authors' names and email address, and the program's license. Then it exits.
 func PrintInfo(n string) {
 	v := version
 	d := date
-	a := "Bernhard Haubold,Beatriz Vieira Mourato"
-	e := "haubold@evolbio.mpg.de,mourato@evolbio.mpg.de"
+	a := "Bernhard Haubold,Beatriz Vieira Mourato," +
+		"Ivan Tsers"
+	e := "haubold@evolbio.mpg.de,mourato@evolbio.mpg.de," +
+		"tsers@evolbio.mpg.de"
 	l := "Gnu General Public License, " +
 		"https://www.gnu.org/licenses/gpl.html"
 	clio.PrintInfo(n, v, d, a, e, l)

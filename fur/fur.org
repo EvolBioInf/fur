@@ -96,12 +96,17 @@ result and exit.
   optU := flag.Bool("u", false, m)
 #+end_src
 #+begin_export latex
-Step~(\ref{eq:fur2}) is delegated to \ty{phylonium}, for which we
-don't expose any options. However, the user can restrict the output
-from phylonium to exact matches. She can again also print the result
-of this step and exit.
+Step~(\ref{eq:fur2}) is delegated to the \ty{Intersect} function, for
+which we set a sensitivity threshold \ty{f}. The user can restrict the
+output from \ty{Intersect} to exact matches. She can again also print
+the result of this step and exit.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
+  m = "intersection step sensitivity, the minimum fraction of target " +
+	  "genomes that have the same nucleotide at a given position " +
+	  "in the representative"
+  optF := flag.Float64("f", 1.0, m)
+
   m = "print unique regions after checking for presence " +
 	  "in templates and exit"
   optX := flag.Bool("x", false, "exact matches only")
@@ -118,11 +123,11 @@ number of threads is initialized to the number of CPUs.
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
   ncpu := runtime.NumCPU()
   optT := flag.Int("t", ncpu, "Number of threads " +
-	  "for Phylonium and Blast")
+	  "for Blast")
   optM := flag.Bool("m", false, "megablast mode " +
 	  "(default blastn)")
   optMM := flag.Bool("M", false,
-	  "activate masking (recommended for mammalian genomes")
+	  "activate masking (recommended for mammalian genomes)")
   optN := flag.Int("n", 100, "number of nucleotides in region")
 #+end_src
 #+begin_export latex
@@ -281,7 +286,7 @@ to format the table, which we write to the standard output stream.
 We import \ty{fasta} and \ty{tabwriter}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
-  "github.com/evolbioinf/fasta"
+  "github.com/ivantsers/fasta"
   "text/tabwriter"
 #+end_src
 #+begin_export latex
@@ -493,32 +498,53 @@ header. If we encounter a duplicate, we bail with message.
 #+begin_export latex
 We iterate over the intervals for each of the sequences that make up
 the target representative, and store each region with at least minimum
-length.
+length. We count stored regions and store the current number in
+\ty{regionNum}, which we will use shortly.
 #+end_export
 #+begin_src go <<Store complex regions, Pr. \ref{pr:fur}>>=
   for i, interval := range intervals {
+	  regionNum := 0
 	  d := r[i].Data()
 	  for _, iv := range interval {
 		  l := iv.e - iv.s + 1
 		  if l >= *optN {
 			  //<<Store region, Pr. \ref{pr:fur}>>
+			  regionNum += 1
 		  }
 	  }
   }
 #+end_src
 #+begin_export latex
-A region is stored with a header modeled on
+A region is stored with a header. There are two possible formats. The
+first format, which we use by default, keeps the first field of the
+header and extends it with dollar-separated \textit{shift fields}
+\ty{\$regionNum\$x}:
 \begin{center}
-\ty{name\_(start..end)}
+\ty{name\$regionNum\$x},
 \end{center}
-The suffix containing the start and end coordinates ensures that the
+where we insert the \ty{regionNum} to ensure the name uniqueness. The
+\ty{x} is a zero-based start coordinate of the region on the
+representative contig. This field will be parsed by the \ty{Intersect}
+function in Step~\ref{eq:fur2}.
+
+The second format extends the \ty{name} field with a suffix preceded
+by an underscore:
+\begin{center}
+\ty{name\_(start..end)},
+\end{center}
+where start and end are one-based, end inclusive. We use this format
+if the user has opted for exiting after the First Subtraction.  The
+suffix containing the start and end coordinates ensures that the
 region has a unique name. Since Blast truncates names after the first
 blank, we reduce the name to the first field of the header.
 #+end_export
 #+begin_src go <<Store region, Pr. \ref{pr:fur}>>=
   arr := strings.Fields(r[i].Header())
-  h := fmt.Sprintf("%s_(%d..%d)",
-	  arr[0], iv.s+1, iv.e+1)
+  h := fmt.Sprintf("%s$%d$%d", arr[0], regionNum, iv.s)
+  if *optU {
+	  h = fmt.Sprintf("%s_(%d..%d)",
+		  arr[0], iv.s+1, iv.e+1) 
+  }
   region := fasta.NewSequence(h, d[iv.s:iv.e+1])
   regions = append(regions, region)
 #+end_src
@@ -590,154 +616,109 @@ standard output stream and exit.
 In step~(\ref{eq:fur2}) we intersect the regions found so far with the
 remaining targets. This only makes sense if there are at least two
 targets. So we count the targets, and if there are at least two, we
-implement step~(\ref{eq:fur2}) as a \ty{phylonium} run. This takes as
-input a file containing the unique regions we just extracted. They
-serve as the reference, onto which \ty{phylonium} piles the remaining
-target sequences. \ty{Phylonium} writes its output to a file, from
-where we read it back into \ty{fur}. We delete this output file and
-the input file of unique regions again to leave the database as we
-found it. Like at the end of the previous step, we report its results
-and may be also print them.
+implement step~(\ref{eq:fur2}) as a call to the \ty{Intersect}
+function, which takes as input a struct of parameters. Like at the end
+of the previous step, we report its results and may be also print
+them.
 #+end_export
 #+begin_src go <<Run step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
   numTargets := 0
   //<<Count targets, Pr. \ref{pr:fur}>>
   if numTargets > 1 {
-	  //<<Write unique regions to file, Pr. \ref{pr:fur}>>
-	  //<<Run \ty{phylonium}, Pr. \ref{pr:fur}>>
-	  //<<Read \ty{phylonium} output from file, Pr. \ref{pr:fur}>>
-	  //<<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>
+	  //<<Set parameters for \ty{Intersect}, Pr. \ref{pr:fur}>>
+	  //<<Run \ty{Intersect}, Pr. \ref{pr:fur}>>
+	  //<<Remove short regions, Pr. \ref{pr:fur}>>
   }
   //<<Report results of step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>
   //<<Print results of step (\ref{eq:fur2})?, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
-The targets are in directory \ty{t}, so we count its entries, which
-are one less than the total number of targets.
+The targets are in directory \ty{t}, so we check if it can be opened
+and count its entries, which are one less than the total number of
+targets.
 #+end_export
 #+begin_src go <<Count targets, Pr. \ref{pr:fur}>>=
   dirEntries, err := os.ReadDir(*optD + "/t")
+  if err != nil {
+	  log.Fatalf("couldn't open %s as a " +
+		  "target directory\n", *optD + "/t")
+  }
   numTargets = len(dirEntries) + 1
 #+end_src
 #+begin_export latex
-We write the unique regions to a unique file, which we then close
-again.
+We initialize a struct of parameters for the \ty{Intersect} function:
+\begin{itemize}
+  \itemsep0em
+  \item \ty{Reference}: a slice containing the unique regions we've
+    just found. They serve as the reference, onto which
+    \ty{Intersect} piles the remaining target sequences;
+  \item \ty{ShiftRefRight}: use the shift fields (\ty{\$regionNum\$x})
+    in the reference headers to shift the output coordinates;
+  \item \ty{TargetDir}: the \ty{t/} directory of our \ty{fur}
+    database;
+  \item \ty{Threshold}: sensitivity of intersection, the minimum
+    fraction of genomes in \ty{TargetDir} that share the same
+    nucleotide at a given position in the \ty{Reference}; we have to
+    interpret the value of the flag \ty{-f} first;
+  \item \ty{ShustrPval}: a p-value of the shustring length to
+    calculate the minimum anchor length for exact matching;
+  \item \ty{CleanSubject} and \ty{CleanQuery}: switches to remove
+    non-\ty{ATGC} nucleotides from the subject (reference) and/or
+    query (a target from \ty{TargetDir});
+  \item \ty{PrintN}: print segregating sites as \ty{N} in the output
+    \ty{fasta} sequences. This parameter corresponds to the negated
+    value of the flag \ty{-x}, that is, if the user opted for exact
+    matches only, we won't try to print \ty{N}s;
+  \item \ty{PrintSegSitePos}: add information on segregating sites
+    to headers of the output \ty{fasta} sequences;
+  \item \ty{PrintOneBased}: use one-based end-inclusive coordinates
+    in the output.
+\end{itemize}
 #+end_export
-#+begin_src go <<Write unique regions to file, Pr. \ref{pr:fur}>>=
-  f, err = os.CreateTemp(*optD, "*.fasta")
-  util.Check(err)
-  for _, region := range regions {
-	  fmt.Fprintf(f, "%s\n", region)
+#+begin_src go <<Set parameters for \ty{Intersect}, Pr. \ref{pr:fur}>>=
+  threshold := 0.0
+  //<<Interpret the \ty{-f} flag, Pr. \ref{pr:fur}>>
+  parameters := chr.Parameters{
+	  Reference:       regions,
+	  ShiftRefRight:   true,
+	  TargetDir:       *optD + "/t",
+	  Threshold:       threshold,
+	  ShustrPval:      0.975,
+	  CleanSubject:    true,
+	  CleanQuery:      true,
+	  PrintN:          !*optX,
+	  PrintSegSitePos: true,
+	  PrintOneBased:   true,
   }
-  f.Close()
 #+end_src
 #+begin_export latex
-We initialize the \ty{phylonium} command. Then we prepare its
-arguments and set them. We run the command and analyze the error
-returned.
-#+end_export
-#+begin_src go <<Run \ty{phylonium}, Pr. \ref{pr:fur}>>=
-  cmd := exec.Command("phylonium")
-  //<<Prepare args, Pr. \ref{pr:fur}>>
-  cmd.Args = args
-  out, err := cmd.CombinedOutput()
-  //<<Analyze \ty{phylonium} error, Pr. \ref{pr:fur}>>
-#+end_src
-#+begin_export latex
-We run \ty{phylonium} with the unique regions as reference and a
-unique file we still need to construct, \ty{pf}, as output
-file. \ty{Phylonium} balks if this file already exists, perhaps from a
-failed previous \ty{fur} run. So we delete \ty{p.fasta} if it already
-exists. The remaining arguments are the number of threads and
-sequence files contained in the target directory. The globbing of
-these file names has to be done by us as the command is not executed
-in a shell, which usually takes care of globbing.
-#+end_export
-#+begin_src go <<Prepare args, Pr. \ref{pr:fur}>>=
-  rf := f.Name()
-  pf := ""
-  //<<Construct \ty{phylonium} output, \ty{pf}, Pr. \ref{pr:fur}>>
-  _, err := os.Stat(pf)
-  if err == nil {
-	  err = os.Remove(pf)
-	  util.Check(err)
-  }
-  ts := strconv.Itoa(*optT)
-  args := []string{"phylonium", "-t", ts, "-p", pf, "-r", rf}
-  tf, err := filepath.Glob(*optD + "/t/*")
-  args = append(args, tf...)
-#+end_src
-#+begin_export latex
-We import \ty{filepath}.
+We import \ty{chr}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
-  "path/filepath"
+  "github.com/ivantsers/chr"
 #+end_src
 #+begin_export latex
-We construct a unique file and store its name as the \ty{phylonium}
-output file, \ty{pf}.
+The sensitivity threshold $f$ is a \ty{float64}, $0 < f \le 1$. We
+check the \ty{optF} value and use it as the threshold if it is
+appropriate. If not so, we ask to specify a better \ty{f} and exit.
 #+end_export
-#+begin_src go <<Construct \ty{phylonium} output, \ty{pf}, Pr. \ref{pr:fur}>>=
-  f, err = os.CreateTemp(*optD, "*.fasta")
-  util.Check(err)
-  pf = f.Name()
-  f.Close()
-#+end_src
-#+begin_export latex
-\ty{Phylonium} returns a non-zero state if the homology found in one
-sequence is less than 20\%. This can easily happen in the context of
-\ty{fur}, where a potentially short unique region is intersected with
-whole genomes. For low homology output \ty{phylonium} prints error
-messages containing the word \emph{homology}.
-
-Another cause of a non-zero return is an empty intersection. Again,
-this is a genuine result. In this case \ty{phylonium} reports the
-results of failed distance computations.
-
-So on error we check whether the output contains the words
-\emph{homology} or \emph{nan}, in which case we assume that no error
-occurred, otherwise we bail and print the output \ty{phylonium}
-printed to its standard error and output streams.
-#+end_export
-#+begin_src go <<Analyze \ty{phylonium} error, Pr. \ref{pr:fur}>>=
-  if err != nil {
-	  i := bytes.Index(out, []byte("homology"))
-	  j := bytes.Index(out, []byte("nan"))
-	  if i < 0  && j < 0 {
-		  fmt.Fprintf(os.Stderr,"%s\n", out)
-		  os.Exit(1)
-	  }
+#+begin_src go <<Interpret the \ty{-f} flag, Pr. \ref{pr:fur}>>=
+  if *optF > 1.0 || *optF <= 0.0 {
+	  fmt.Fprintf(os.Stderr,
+		  "can't use %v as a sensitivity threshold, " +
+			  "please use a value greater " +
+			  "than 0 and up to 1\n", *optF)
+	  os.Exit(1)
+  } else {
+	  threshold = *optF
   }
 #+end_src
 #+begin_export latex
-We open the \ty{phylonium} output file, iterate over the regions it
-contains, and save them. Then we clean up the regions we got.
+We call \ty{Intersect} using the parameters we have just set. The
+output intersection is used to re-write the unique \ty{regions}.
 #+end_export
-#+begin_src go <<Read \ty{phylonium} output from file, Pr. \ref{pr:fur}>>=
-  regions = regions[:0]
-  f, err = os.Open(pf)
-  util.Check(err)
-  sc = fasta.NewScanner(f)
-  for sc.ScanSequence() {
-	  s := sc.Sequence()
-	  regions = append(regions, s)
-  }
-  f.Close()
-  //<<Clean up regions, Pr. \ref{pr:fur}>>
-#+end_src
-#+begin_export latex
-We begin the clean up of the output from \ty{phylonium} by removing
-short regions. Then we enter the mutations detected by \ty{phylonium}
-in the remaining regions and adjust the sequence headers. Finally, we
-remove the occasional exclamation mark inserted by
-\ty{phylonium}. These appear to indicate the boundaries between
-sequences that are, in fact, contiguous.
-#+end_export
-#+begin_src go <<Clean up regions, Pr. \ref{pr:fur}>>=
-  //<<Remove short regions, Pr. \ref{pr:fur}>>
-  //<<Enter mutations, Pr. \ref{pr:fur}>>
-  //<<Adjust headers, Pr. \ref{pr:fur}>>
-  //<<Remove exclamation marks, Pr. \ref{pr:fur}>>
+#+begin_src go <<Run \ty{Intersect}, Pr. \ref{pr:fur}>>=
+  regions = chr.Intersect(parameters)
 #+end_src
 #+begin_export latex
 We remove regions shorter than the minimum length.
@@ -751,192 +732,6 @@ We remove regions shorter than the minimum length.
 	  }
   }
   regions = regions[:i]
-#+end_src
-#+begin_export latex
-\ty{Phylonium} returns sequences with headers of the form
-\[
-\ty{>part}_i\ (s_{\rm p}..e_{\rm p})\ n\ p_1\ p_2\ ...\ p_n
-\]
-where $n$ is the number of mutations found in the interval $[s_{\rm
-    p},e_{\rm p}]$ at the one-based positions $p_1, p_2,...,p_n$. We
-get these positions from the header and iterate over them. The user
-might have requested only exact matches, in which case we might lose
-some or all of the regions. So again, we use the reslicing technique
-we just applied to remove short regions.
-#+end_export
-#+begin_src go <<Enter mutations, Pr. \ref{pr:fur}>>=
-  i = 0
-  for _, region := range regions {
-	  //<<Get mutation positions, Pr. \ref{pr:fur}>>
-	  //<<Iterate over mutation positions, Pr. \ref{pr:fur}>>
-  }
-  regions = regions[:i]
-#+end_src
-#+begin_export latex
-The number of mutations is the third field of the header, followed by
-the actual positions.
-#+end_export
-#+begin_src go <<Get mutation positions, Pr. \ref{pr:fur}>>=
-  arr := strings.Fields(region.Header())
-  n, err := strconv.Atoi(arr[2])
-  util.Check(err)
-  pos := make([]int, 0)
-  for j := 0; j < n; j++ {
-	  x, err := strconv.Atoi(arr[j+3])
-	  util.Check(err)
-	  pos = append(pos, x-1)
-  }
-#+end_src
-#+begin_export latex
-Unless the user requested only exact matches, we set polymorphic
-nucleotides to \ty{N}, so they can be avoided when designing primers.
-#+end_export
-#+begin_src go <<Iterate over mutation positions, Pr. \ref{pr:fur}>>=
-  if *optX && len(pos) > 0 { continue }
-  for _, p := range pos {
-	  region.Data()[p] = 'N'
-  }
-  regions[i] = region
-  i++
-#+end_src
-#+begin_export latex
-As we've said, the headers returned by \ty{phylonium} have the format
-\[
-\ty{>part}_i\ (s_{\rm p}..e_{\rm p})\ n\ p_1\ p_2\ ...\ p_n
-\]
-where $(s_{\rm p}..e_{\rm p}$ is the one-based interval,
-end-exclusive.  We'd like to convert this to the interval in the
-underlying target representative, $(s_{\rm r}...e_{\rm r}$),
-end-inclusive. For this, we iterate over the regions returned by
-\ty{phylonium}. For each region, we extract the interval $(s_{\rm
-  p}..e_{\rm p})$ from the header and convert it to $(s_{\rm
-  r}..e_{\rm r})$.
-#+end_export
-#+begin_src go <<Adjust headers, Pr. \ref{pr:fur}>>=
-  for _, region := range regions {
-	  //<<Extract $(s_{\rm p}..e_{\rm p})$, Pr. \ref{pr:fur}>>
-	  //<<Convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, Pr. \ref{pr:fur}>>
-	  //<<Replace header, Pr. \ref{pr:fur}>>
-  }
-#+end_src
-#+begin_export latex
-We split the header at the parentheses and save the mutation
-string. Then we split the interval at the dot-dot. We also convert the
-positions we get from one-based to zero-based and from end-exclusive
-to end-inclusive.
-#+end_export
-#+begin_src go <<Extract $(s_{\rm p}..e_{\rm p})$, Pr. \ref{pr:fur}>>=
-  arr := strings.Split(region.Header(), "(")
-  arr = strings.Split(arr[1], ")")
-  mutations := arr[1]
-  arr = strings.Split(arr[0], "..")
-  sp, err := strconv.Atoi(arr[0])
-  util.Check(err)
-  ep, err := strconv.Atoi(arr[1])
-  util.Check(err)
-  sp -= 1
-  ep -= 2
-#+end_src
-#+begin_export latex
-To convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, we
-declare variables for $s_{\rm r}$ and $e_{\rm r}$. We also declare a
-variable for the index of the slice of intervals in which we found a
-match, and a hook for additional variables we might need when
-iterating over the intervals. Since intervals are stored as slices of
-slices, we iterate over them in a nested loop, from which we need to
-break whenever we've accomplished the conversion. So we label the
-outer loop to eventually use a labeled \ty{break} in our analysis of
-individual intervals. An additional property of our search is that
-both the intervals returned in step~(\ref{eq:fur1}) and the regions
-returned in step~(\ref{eq:fur2}) are ordered. This allows us to resume
-each search where we left off in the previous round.
-#+end_export
-#+begin_src go <<Convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, Pr. \ref{pr:fur}>>=
-  var sr, er, ii, iii int
-  //<<Variables for loop over intervals, Pr. \ref{pr:fur}>>
-  intervals:
-  for ii < len(intervals) {
-	  ivals := intervals[ii]
-	  for iii < len(ivals) {
-		  //<<Analyze interval, Pr. \ref{pr:fur}>>
-	  }
-	  iii = 0
-	  ii++
-  }
-#+end_src
-#+begin_export latex
-The central statistic when analyzing the intervals is their cumulative
-length, $c$, of intervals that have at least the minimum length,
-$m$. For a given interval $(s_{\rm i}..e_{\rm i})$ of length $l=e_{\rm
-  i}-s_{\rm i}+1$, $l\ge m$, we determine whether $(s_{\rm p}..e_{\rm
-  p})$ intersects $(c..c+l-1)$. If so, we calculate $s_{\rm r}=s_{\rm
-  i}+s_{\rm p}-c$ and $e_{\rm r}=s_{\rm i}+e_{\rm p}-c$. We also note
-that the unique region was found, increment $c$ by $l+1$, and break
-out of the loop. If we don't break out of the loop, we just increment
-$c$ by $l+1$.
-#+end_export
-#+begin_src go <<Analyze interval, Pr. \ref{pr:fur}>>=
-  ival := ivals[iii]
-  iii++
-  l := ival.e - ival.s + 1
-  if l < *optN { continue }
-  if sp <= c+l-1 && ep >= c {
-	  sr = ival.s + sp - c
-	  er = ival.s + ep - c
-	  found = true
-	  c += l+1
-	  break intervals
-  }
-  c += l+1
-#+end_src
-#+begin_export latex
-We declare the variables \ty{c} and \ty{found}.
-#+end_export
-#+begin_src go <<Variables for loop over intervals, Pr. \ref{pr:fur}>>=
-  c := 0
-  found := false
-#+end_src
-#+begin_export latex
-If the region was found, we construct its new header and replace the
-old one. The header consists of the header of the appropriate
-representative sequence and the interval $(s_{\rm r}..e_{\rm r})$
-printed one-based. These two elements, the header of the target
-representative and the interval, are joined into one string by an
-underscore to generate unique headers for the subsequent Blast
-step. If, on the other hand, we didn't find the region, something is
-wrong and we bail with message.
-#+end_export
-#+begin_src go <<Replace header, Pr. \ref{pr:fur}>>=
-  if found {
-	  h := fmt.Sprintf("%s_(%d..%d) %s", r[ii].Header(),
-		  sr+1, er+1, mutations)
-	  region.SetHeader(h)
-  } else {
-	  log.Fatalf("Coudn't find region %s\n",
-		  region.Header())
-  }
-#+end_src
-#+begin_export latex
-We replace exclamation marks by \ty{N}s.
-#+end_export
-#+begin_src go <<Remove exclamation marks, Pr. \ref{pr:fur}>>=
-  for _, region := range regions {
-	  for i, c := range region.Data() {
-		  if c == '!' {
-			  region.Data()[i] = 'N'
-		  }
-	  }
-  }
-#+end_src
-#+begin_export latex
-We delete the input file \ty{rf} and the output file \ty{pf.fasta}
-used by \ty{phylonium}.
-#+end_export
-#+begin_src go <<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>=
-  err = os.Remove(rf)
-  util.Check(err)
-  err = os.Remove(pf)
-  util.Check(err)
 #+end_src
 #+begin_export latex
 We report the results from this step.

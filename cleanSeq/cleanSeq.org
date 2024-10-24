@@ -107,7 +107,7 @@ We import \ty{util}.
 #+end_src
 #+begin_src go <<Imports, Pr.~\ref{pr:cle}>>=
   "io"
-  "github.com/evolbioinf/fasta"
+  "github.com/ivantsers/fasta"
 #+end_src
 #+begin_src latex
   We retrieve the two arguments just passed through type assertion.

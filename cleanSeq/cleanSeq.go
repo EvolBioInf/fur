@@ -5,7 +5,7 @@ import (
           "flag"
           "github.com/evolbioinf/clio"
           "io"
-          "github.com/evolbioinf/fasta"
+          "github.com/ivantsers/fasta"
           "strconv"
           "fmt"
 )

@@ -235,7 +235,7 @@ We import \ty{io} and \ty{fasta}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:str}>>=
   "io"
-  "github.com/evolbioinf/fasta"
+  "github.com/ivantsers/fasta"
 #+end_src
 #+begin_export latex
 We retrieve the random number generator and the three options \ty{-i},

@@ -2,7 +2,17 @@ github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b h1:26/B3KZkdt/NzB5
 github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b/go.mod h1:S13GccNRJPbjEsLZ/yCLFRVhdTS4qUJ+mf9GtZja8do=
 github.com/evolbioinf/esa v0.0.0-20230428092833-66d4eac05d77 h1:p0AV7ltMonvs7gANDdkzvxBpYEf181tKJixOYc0xxiM=
 github.com/evolbioinf/esa v0.0.0-20230428092833-66d4eac05d77/go.mod h1:JHdYx+agish2s0bExLYu4sfnkIpQfzQkugwgq+yPXDY=
+github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d h1:8csi45B75ky10mX7lh99rKneCVtdW1ttkIXMBVj84Ts=
+github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d/go.mod h1:JHdYx+agish2s0bExLYu4sfnkIpQfzQkugwgq+yPXDY=
 github.com/evolbioinf/fasta v0.0.0-20230419094527-219cc47d94b2 h1:Ipt7iPoRCqsIhtVNTq1bUwtFj2auwoX+xxmwBm+vEDA=
 github.com/evolbioinf/fasta v0.0.0-20230419094527-219cc47d94b2/go.mod h1:1bD5OMlu85gdxSDr74kxUElPjLc/EVTzkRw2UT+FMhg=
 github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965 h1:5qTR2yzRTRYhmDcWBUWPkxj1AhUWoDLkgypOADbJ5OY=
 github.com/evolbioinf/sus v0.0.0-20230123102713-cc3fd6887965/go.mod h1:SaiLF93OldWIG3wdOZ+aZSNoklGESyYLi5yGQRXONLs=
+github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f h1:yd1T1dpX1RU9ehKYra/Sg/2TD+1dYMm2roFrapPEO4o=
+github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f/go.mod h1:SaiLF93OldWIG3wdOZ+aZSNoklGESyYLi5yGQRXONLs=
+github.com/ivantsers/chr v0.0.0-20241018092444-40b3e33e5397 h1:z1moZUPF4dy/ep7v8TIJ7opqfn7DjeGUZByClpNiSu8=
+github.com/ivantsers/chr v0.0.0-20241018092444-40b3e33e5397/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
+github.com/ivantsers/chr v0.0.0-20241024114117-85bfecf123ac h1:1Rhlwu0r6IaoLcK3y+BMmAFahlJKpyhgY7tAaUYQ/r4=
+github.com/ivantsers/chr v0.0.0-20241024114117-85bfecf123ac/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
+github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0 h1:HCGcXnpX7lbmLMu2e3vjjhur+cRLULAXLZO0IxhESYQ=
+github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0/go.mod h1:WgjYkg+R2oYa26nW+9KiWb1WrNZ0ZN2erE8JAUu/ob4=

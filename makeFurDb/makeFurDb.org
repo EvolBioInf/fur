@@ -554,7 +554,7 @@ lengths.
 We import \ty{fasta}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:mfd}>>=
-  "github.com/evolbioinf/fasta"
+  "github.com/ivantsers/fasta"
 #+end_src
 #+begin_export latex
 We reserve space for the forward and reverse strands of the sequences
