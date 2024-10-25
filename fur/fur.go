@@ -400,7 +400,7 @@ func main() {
                                                           }
                                                 }
                                                 n := len(nm)
-                                                h = fmt.Sprintf("%s_(%d..%d) %4d",
+                                                h = fmt.Sprintf("%s_(%d..%d) %d",
                                                           prefix, s, e, n)
                                                 for _, m := range nm {
                                                           h = fmt.Sprintf("%s %d", h, m)
