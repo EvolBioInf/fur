@@ -49,6 +49,9 @@ func main() {
                     "in the representative"
           optF := flag.Float64("f", 1.0, m)
 
+          m = "p-value for a shustring length in exact matching"
+          optP := flag.Float64("p", 0.975, m)
+
           m = "print unique regions after checking for presence " +
                     "in templates and exit"
           optX := flag.Bool("x", false, "exact matches only")
@@ -232,12 +235,17 @@ func main() {
                               } else {
                                         threshold = *optF
                               }
+                              if *optP > 1.0 || *optF <= 0.0 {
+                                        fmt.Fprintf(os.Stderr,
+                                                "can't use %v as a shustring p-value\n", *optF)
+                                        os.Exit(1)
+                              }
                               parameters := chr.Parameters{
                                         Reference:       regions,
                                         ShiftRefRight:   true,
                                         TargetDir:       *optD + "/t",
                                         Threshold:       threshold,
-                                        ShustrPval:      0.975,
+                                        ShustrPval:      *optP,
                                         CleanSubject:    true,
                                         CleanQuery:      true,
                                         PrintN:          !*optX,

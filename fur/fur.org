@@ -97,15 +97,20 @@ result and exit.
 #+end_src
 #+begin_export latex
 Step~(\ref{eq:fur2}) is delegated to the \ty{Intersect} function, for
-which we set a sensitivity threshold \ty{f}. The user can restrict the
-output from \ty{Intersect} to exact matches. She can again also print
-the result of this step and exit.
+which we set sensitivity thresholds: \ty{f} for a minimum fraction of
+intersecting genomes, and a p-value for a shusting length, which
+defines sensitivity of the exact matching in the search for homologous
+regions. The user can restrict the output from \ty{Intersect} to exact
+matches. She can again also print the result of this step and exit.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
   m = "intersection step sensitivity, the minimum fraction of target " +
 	  "genomes that have the same nucleotide at a given position " +
 	  "in the representative"
   optF := flag.Float64("f", 1.0, m)
+
+  m = "p-value for a shustring length in exact matching"
+  optP := flag.Float64("p", 0.975, m)
 
   m = "print unique regions after checking for presence " +
 	  "in templates and exit"
@@ -661,7 +666,8 @@ We initialize a struct of parameters for the \ty{Intersect} function:
     nucleotide at a given position in the \ty{Reference}; we have to
     interpret the value of the flag \ty{-f} first;
   \item \ty{ShustrPval}: a p-value of the shustring length to
-    calculate the minimum anchor length for exact matching;
+    calculate the minimum anchor length for exact matching; we have to
+    interpret the value of the flag \ty{-f} first;
   \item \ty{CleanSubject} and \ty{CleanQuery}: switches to remove
     non-\ty{ATGC} nucleotides from the subject (reference) and/or
     query (a target from \ty{TargetDir});
@@ -678,12 +684,13 @@ We initialize a struct of parameters for the \ty{Intersect} function:
 #+begin_src go <<Set parameters for \ty{Intersect}, Pr. \ref{pr:fur}>>=
   threshold := 0.0
   //<<Interpret the \ty{-f} flag, Pr. \ref{pr:fur}>>
+  //<<Interpret the \ty{-p} flag, Pr. \ref{pr:fur}>>
   parameters := chr.Parameters{
 	  Reference:       regions,
 	  ShiftRefRight:   true,
 	  TargetDir:       *optD + "/t",
 	  Threshold:       threshold,
-	  ShustrPval:      0.975,
+	  ShustrPval:      *optP,
 	  CleanSubject:    true,
 	  CleanQuery:      true,
 	  PrintN:          !*optX,
@@ -711,6 +718,16 @@ appropriate. If not so, we ask to specify a better \ty{f} and exit.
 	  os.Exit(1)
   } else {
 	  threshold = *optF
+  }
+#+end_src
+#+begin_export latex
+We check the provided shustring p-value.
+#+end_export
+#+begin_src go <<Interpret the \ty{-p} flag, Pr. \ref{pr:fur}>>=
+  if *optP > 1.0 || *optF <= 0.0 {
+	  fmt.Fprintf(os.Stderr,
+		  "can't use %v as a shustring p-value\n", *optF)
+	  os.Exit(1)
   }
 #+end_src
 #+begin_export latex
