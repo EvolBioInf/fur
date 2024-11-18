@@ -8,7 +8,7 @@ import (
           "time"
           "math/rand"
           "io"
-          "github.com/ivantsers/fasta"
+          "github.com/evolbioinf/fasta"
           "fmt"
           "github.com/evolbioinf/esa"
 )

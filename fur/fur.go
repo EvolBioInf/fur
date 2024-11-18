@@ -10,7 +10,7 @@ import (
           "strings"
           "strconv"
           "log"
-          "github.com/ivantsers/fasta"
+          "github.com/evolbioinf/fasta"
           "text/tabwriter"
           "github.com/evolbioinf/sus"
           "math"

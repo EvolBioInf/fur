@@ -291,7 +291,7 @@ to format the table, which we write to the standard output stream.
 We import \ty{fasta} and \ty{tabwriter}.
 #+end_export
 #+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
-  "github.com/ivantsers/fasta"
+  "github.com/evolbioinf/fasta"
   "text/tabwriter"
 #+end_src
 #+begin_export latex
