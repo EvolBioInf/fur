@@ -55,7 +55,7 @@ func main() {
           optM := flag.Bool("m", false, "megablast mode " +
                     "(default blastn)")
           optMM := flag.Bool("M", false,
-                    "activate masking (recommended for mammalian genomes")
+                    "activate masking (recommended for mammalian genomes)")
           optN := flag.Int("n", 100, "number of nucleotides in region")
           flag.Parse()
           if *optV {

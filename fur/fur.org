@@ -122,7 +122,7 @@ number of threads is initialized to the number of CPUs.
   optM := flag.Bool("m", false, "megablast mode " +
 	  "(default blastn)")
   optMM := flag.Bool("M", false,
-	  "activate masking (recommended for mammalian genomes")
+	  "activate masking (recommended for mammalian genomes)")
   optN := flag.Int("n", 100, "number of nucleotides in region")
 #+end_src
 #+begin_export latex
