@@ -66,6 +66,25 @@ We import \ty{log}.
   "log"
 #+end_src
 #+begin_export latex
+\subsection{\ty{CheckOut}}
+!\ty{CheckOut} takes as argument an error and an output slice. It
+! prints the error, the output slice, and exits.
+#+end_export
+#+begin_src go <<Functions, Pa. \ref{pa:util}>>=
+  func CheckOut(e error, o []byte) {
+	  if e != nil {
+		  fmt.Println(string(o))
+		  log.Fatal(e)
+	  }
+  }
+#+end_src
+#+begin_export latex
+We import \ty{fmt}.
+#+end_export
+#+begin_src go <<Imports, Pa. \ref{pa:util}>>=
+  "fmt"
+#+end_src
+#+begin_export latex
 \subsection{\ty{PrepareErrorMessages}}
 As we just saw, we handle errors via the \ty{log} package. By default,
 this prefixes the error message with time and date. Instead, we'd like
@@ -80,12 +99,6 @@ time suppressed.
 	  log.SetPrefix(m)
 	  log.SetFlags(0)
   }
-#+end_src
-#+begin_export latex
-We import \ty{fmt}.
-#+end_export
-#+begin_src go <<Imports, Pa. \ref{pa:util}>>=
-  "fmt"
 #+end_src
 #+begin_export latex
 \subsection{\ty{IsFasta}}

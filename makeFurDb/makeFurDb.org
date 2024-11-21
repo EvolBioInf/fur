@@ -1141,8 +1141,8 @@ which we pipe the neighbors to the \ty{stdin} of \ty{maskblastdb}.
 	  defer stdin.Close()
 	  //<<Pipe neighbors, Pr. \ref{pr:mfd}>>
   }()
-  _, err = cmd.Output()
-  util.Check(err)
+  output, err := cmd.CombinedOutput()
+  util.CheckOut(err, output)
 #+end_src
 #+begin_export latex
 \subsection{Neighbor Statistics, \ty{n.txt}}

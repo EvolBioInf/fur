@@ -30,6 +30,14 @@ func Check(e error) {
 	}
 }
 
+// CheckOut takes as argument an error and an output slice. It  prints the error, the output slice, and exits.
+func CheckOut(e error, o []byte) {
+	if e != nil {
+		fmt.Println(string(o))
+		log.Fatal(e)
+	}
+}
+
 // PrepareErrorMessages takes as argument the program name and sets this as the prefix for error messages from the log package.
 func PrepareErrorMessages(name string) {
 	m := fmt.Sprintf("%s - ", name)

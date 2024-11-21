@@ -1134,18 +1134,9 @@ standard input stream. Then we analyze the Blast error and its output.
 		  fmt.Fprintf(stdin, "%s\n", region)
 	  }
   }()
-  b, err := cmd.CombinedOutput()
-  //<<Analyze Blast error, Pr. \ref{pr:fur}>>
+  out, err := cmd.CombinedOutput()
+  util.CheckOut(err, out)
   //<<Analyze Blast output, Pr. \ref{pr:fur}>>
-#+end_src
-#+begin_export latex
-If Blast threw an error, the output consists of an error message,
-which we print and exit.
-#+end_export
-#+begin_src go <<Analyze Blast error, Pr. \ref{pr:fur}>>=
-  if err != nil {
-	  log.Fatalf("%s\n", string(b))
-  }
 #+end_src
 #+begin_export latex
 We split the Blast output into lines of hits, a slice of byte
@@ -1153,7 +1144,7 @@ slices. Since the Blast output is terminated by a newline, the last
 entry returned by the split is an empty slice, which we discard.
 #+end_export
 #+begin_src go <<Analyze Blast output, Pr. \ref{pr:fur}>>=
-  hits := bytes.Split(b, []byte("\n"))
+  hits := bytes.Split(out, []byte("\n"))
   hits = hits[:len(hits)-1]
 #+end_src
 #+begin_export latex

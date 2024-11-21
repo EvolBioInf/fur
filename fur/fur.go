@@ -406,11 +406,9 @@ func main() {
                                                 fmt.Fprintf(stdin, "%s\n", region)
                                         }
                               }()
-                              b, err := cmd.CombinedOutput()
-                              if err != nil {
-                                        log.Fatalf("%s\n", string(b))
-                              }
-                              hits := bytes.Split(b, []byte("\n"))
+                              out, err := cmd.CombinedOutput()
+                              util.CheckOut(err, out)
+                              hits := bytes.Split(out, []byte("\n"))
                               hits = hits[:len(hits)-1]
                               regMap := make(map[string]int)
                               le = 0

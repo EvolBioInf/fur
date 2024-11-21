@@ -397,8 +397,8 @@ func main() {
 			fmt.Fprint(stdin, string(d))
 		}
 	}()
-	_, err = cmd.Output()
-	util.Check(err)
+	output, err := cmd.CombinedOutput()
+	util.CheckOut(err, output)
 	w, err := os.Create(*optD + "/n.txt")
 	util.Check(err)
 	defer w.Close()
