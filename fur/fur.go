@@ -353,9 +353,9 @@ func main() {
                     ma := ""
                     if *optMM {
                               cmd := exec.Command("blastdbcmd", "-info", "-db", *optD + "/n")
-                              info, err := cmd.CombinedOutput()
-                              util.Check(err)
-                              lines := strings.Split(string(info), "\n")
+                              out, err := cmd.CombinedOutput()
+                              util.CheckOut(err, out)
+                              lines := strings.Split(string(out), "\n")
                               for i, line := range lines {
                                         fields := strings.Fields(line)
                                         if len(fields) > 0 && fields[0] == "Algorithm" {

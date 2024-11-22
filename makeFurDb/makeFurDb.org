@@ -1069,7 +1069,9 @@ construct its command and run it.
 #+end_src
 #+begin_export latex
 We store the masking information as a binary file in the database
-directory.
+directory. Since our input is in FASTA format, we also explicitly
+request that its IDs are parsed. If we don't, the masking step may
+fail.
 #+end_export
 #+begin_src go <<Construct \ty{convert2blastmask} command, Pr. \ref{pr:mfd}>>=
   mask := *optD + "/mask.asnb"
@@ -1077,7 +1079,7 @@ directory.
 	  "-masking_algorithm", "repeat",
 	  "-masking_options", "default",
 	  "-outfmt", "maskinfo_asn1_bin",
-	  "-out", mask)
+	  "-out", mask, "-parse_seqids")
 #+end_src
 #+begin_export latex
 We import \ty{exec}.
@@ -1096,8 +1098,8 @@ neighbors to the \ty{stdin} of the command.
 	  defer stdin.Close()
 	  //<<Pipe neighbors, Pr. \ref{pr:mfd}>>
   }()
-  _, err = cmd.Output()
-  util.Check(err)
+  out, err := cmd.CombinedOutput()
+  util.CheckOut(err, out)
 #+end_src
 #+begin_export latex
 We iterate over the neighbor files and print the bytes contained in
@@ -1121,14 +1123,16 @@ command. So we construct this command before we run it.
 #+end_src
 #+begin_export latex
 We construct the Blast database \ty{n} with masking information and
-store it inside the \ty{fur} database.
+store it inside the \ty{fur} database. Our input is in FASTA format,
+so like for \ty{convert2blastmask}, we explicitly request parsing of
+sequence IDs.
 #+end_export
 #+begin_src go <<Construct \ty{makeblastdb} command, Pr. \ref{pr:mfd}>>=
   cmd = exec.Command("makeblastdb",
 	  "-dbtype", "nucl",
 	  "-out", *optD + "/n",
 	  "-title", "n",
-	  "-mask_data", mask)
+	  "-mask_data", mask, "-parse_seqids")
 #+end_src
 #+begin_export latex
 Like \ty{convert2blastmask}, we run \ty{makeblastdb} as a goroutine in
@@ -1141,8 +1145,8 @@ which we pipe the neighbors to the \ty{stdin} of \ty{maskblastdb}.
 	  defer stdin.Close()
 	  //<<Pipe neighbors, Pr. \ref{pr:mfd}>>
   }()
-  output, err := cmd.CombinedOutput()
-  util.CheckOut(err, output)
+  out, err = cmd.CombinedOutput()
+  util.CheckOut(err, out)
 #+end_src
 #+begin_export latex
 \subsection{Neighbor Statistics, \ty{n.txt}}
@@ -1175,8 +1179,8 @@ program \ty{blastdbcmd} on all database entries.
   cmd = exec.Command("blastdbcmd", "-db",
 	  (*optD) + "/n",
 	  "-entry", "all")
-  out, err := cmd.Output()
-  util.Check(err)
+  out, err = cmd.CombinedOutput()
+  util.CheckOut(err, out)
 #+end_src
 #+begin_export latex
 We iterate over the neighbor sequences, one FASTA entry at a time and
