@@ -1,4 +1,4 @@
-# [`fur`](https://owncloud.gwdg.de/index.php/s/ZJrSZ10O97fAV2j): Find Unique Regions
+# [`fur`](https://owncloud.gwdg.de/index.php/s/6PpPRqNzLpSbtGq): Find Unique Regions
 ## Description
 The program `fur` takes as input a set of target genome sequences and
 a set of related genome sequences, the neighbors. It returns the
