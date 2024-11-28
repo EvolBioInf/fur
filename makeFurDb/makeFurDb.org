@@ -204,7 +204,8 @@ We prepare error handling by calling the utility function
   optR := flag.String("r", "", "target representative " +
 	  "(default shortest)")
   optO := flag.Bool("o", false, "overwrite existing database")
-  optTT := flag.Int("T", 0, "threads (default all processors)")
+  ncpu := runtime.NumCPU()
+  optTT := flag.Int("T", ncpu, "number of threads")
 #+end_src
 #+begin_src latex
   We import \ty{flag}.
@@ -325,15 +326,11 @@ it. Otherwise, we bail with a friendly message.
 #+end_src
 #+begin_export latex
 If the user set a negative number of threads, something is wrong and
-we throw a fatal error. If the user didn't set the number of threads,
-we use the number of logical CPUs available.
+we throw a fatal error.
 #+end_export
 #+begin_src go <<Respond to \ty{-T}, Pr. \ref{pr:mfd}>>=
   if *optTT < 0 {
 	  log.Fatalf("Can't set %d threads.", *optTT)
-  }
-  if *optTT == 0 {
-	  (*optTT) = runtime.NumCPU()
   }
 #+end_src
 #+begin_export latex

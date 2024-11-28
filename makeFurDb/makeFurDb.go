@@ -69,7 +69,8 @@ func main() {
 	optR := flag.String("r", "", "target representative "+
 		"(default shortest)")
 	optO := flag.Bool("o", false, "overwrite existing database")
-	optTT := flag.Int("T", 0, "threads (default all processors)")
+	ncpu := runtime.NumCPU()
+	optTT := flag.Int("T", ncpu, "number of threads")
 	u := "makeFurDb [option]... -t <targetDir> " +
 		"-n <neighborDir> -d <db>"
 	p := "Construct fur database."
@@ -113,9 +114,6 @@ func main() {
 
 	if *optTT < 0 {
 		log.Fatalf("Can't set %d threads.", *optTT)
-	}
-	if *optTT == 0 {
-		(*optTT) = runtime.NumCPU()
 	}
 	targets := readDir(*optT)
 	if len(targets) == 0 {
