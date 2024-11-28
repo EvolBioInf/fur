@@ -50,7 +50,7 @@ func main() {
           optUU := flag.Bool("U", false, m)
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
           ncpu := runtime.NumCPU()
-          optT := flag.Int("t", ncpu, "Number of threads " +
+          optT := flag.Int("t", ncpu, "number of threads " +
                     "for Phylonium and Blast")
           optM := flag.Bool("m", false, "megablast mode " +
                     "(default blastn)")
