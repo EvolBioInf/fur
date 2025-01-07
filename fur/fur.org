@@ -127,8 +127,8 @@ number of threads is initialized to the number of CPUs.
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
   ncpu := runtime.NumCPU()
-  optT := flag.Int("t", ncpu, "Number of threads " +
-	  "for Blast")
+  optT := flag.Int("t", ncpu, "number of threads " +
+	  "for Phylonium and Blast")
   optM := flag.Bool("m", false, "megablast mode " +
 	  "(default blastn)")
   optMM := flag.Bool("M", false,
@@ -868,9 +868,9 @@ this.
 #+end_export
 #+begin_src go <<Look up masking algorithm, Pr. \ref{pr:fur}>>=
   cmd := exec.Command("blastdbcmd", "-info", "-db", *optD + "/n")
-  info, err := cmd.CombinedOutput()
-  util.Check(err)
-  lines := strings.Split(string(info), "\n")
+  out, err := cmd.CombinedOutput()
+  util.CheckOut(err, out)
+  lines := strings.Split(string(out), "\n")
   for i, line := range lines {
 	  fields := strings.Fields(line)
 	  if len(fields) > 0 && fields[0] == "Algorithm" {
@@ -946,18 +946,9 @@ standard input stream. Then we analyze the Blast error and its output.
 		  fmt.Fprintf(stdin, "%s\n", region)
 	  }
   }()
-  b, err := cmd.CombinedOutput()
-  //<<Analyze Blast error, Pr. \ref{pr:fur}>>
+  out, err := cmd.CombinedOutput()
+  util.CheckOut(err, out)
   //<<Analyze Blast output, Pr. \ref{pr:fur}>>
-#+end_src
-#+begin_export latex
-If Blast threw an error, the output consists of an error message,
-which we print and exit.
-#+end_export
-#+begin_src go <<Analyze Blast error, Pr. \ref{pr:fur}>>=
-  if err != nil {
-	  log.Fatalf("%s\n", string(b))
-  }
 #+end_src
 #+begin_export latex
 We split the Blast output into lines of hits, a slice of byte
@@ -965,7 +956,7 @@ slices. Since the Blast output is terminated by a newline, the last
 entry returned by the split is an empty slice, which we discard.
 #+end_export
 #+begin_src go <<Analyze Blast output, Pr. \ref{pr:fur}>>=
-  hits := bytes.Split(b, []byte("\n"))
+  hits := bytes.Split(out, []byte("\n"))
   hits = hits[:len(hits)-1]
 #+end_src
 #+begin_export latex

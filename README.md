@@ -33,7 +33,7 @@ The directory `bin` now contains the binaries.
 As an alternative to building `fur`, we also post it as a [docker
   container](https://hub.docker.com/r/haubold/fox). The container
   includes all programs needed to work through the tutorial at the end
-  of the [documentation](https://owncloud.gwdg.de/index.php/s/ZJrSZ10O97fAV2j) in `~/furDoc.pdf`.
+  of the [documentation](https://owncloud.gwdg.de/index.php/s/6PpPRqNzLpSbtGq) in `~/furDoc.pdf`.
   
 `docker pull haubold/fox`  
 `docker run -it --detach-keys="ctrl-@" fox`

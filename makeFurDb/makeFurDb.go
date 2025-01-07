@@ -69,7 +69,8 @@ func main() {
 	optR := flag.String("r", "", "target representative "+
 		"(default shortest)")
 	optO := flag.Bool("o", false, "overwrite existing database")
-	optTT := flag.Int("T", 0, "threads (default all processors)")
+	ncpu := runtime.NumCPU()
+	optTT := flag.Int("T", ncpu, "number of threads")
 	u := "makeFurDb [option]... -t <targetDir> " +
 		"-n <neighborDir> -d <db>"
 	p := "Construct fur database."
@@ -113,9 +114,6 @@ func main() {
 
 	if *optTT < 0 {
 		log.Fatalf("Can't set %d threads.", *optTT)
-	}
-	if *optTT == 0 {
-		(*optTT) = runtime.NumCPU()
 	}
 	targets := readDir(*optT)
 	if len(targets) == 0 {
@@ -367,7 +365,7 @@ func main() {
 		"-masking_algorithm", "repeat",
 		"-masking_options", "default",
 		"-outfmt", "maskinfo_asn1_bin",
-		"-out", mask)
+		"-out", mask, "-parse_seqids")
 	stdin, err := cmd.StdinPipe()
 	util.Check(err)
 	go func() {
@@ -379,13 +377,13 @@ func main() {
 			fmt.Fprint(stdin, string(d))
 		}
 	}()
-	_, err = cmd.Output()
-	util.Check(err)
+	out, err := cmd.CombinedOutput()
+	util.CheckOut(err, out)
 	cmd = exec.Command("makeblastdb",
 		"-dbtype", "nucl",
 		"-out", *optD+"/n",
 		"-title", "n",
-		"-mask_data", mask)
+		"-mask_data", mask, "-parse_seqids")
 	stdin, err = cmd.StdinPipe()
 	util.Check(err)
 	go func() {
@@ -397,16 +395,16 @@ func main() {
 			fmt.Fprint(stdin, string(d))
 		}
 	}()
-	_, err = cmd.Output()
-	util.Check(err)
+	out, err = cmd.CombinedOutput()
+	util.CheckOut(err, out)
 	w, err := os.Create(*optD + "/n.txt")
 	util.Check(err)
 	defer w.Close()
 	cmd = exec.Command("blastdbcmd", "-db",
 		(*optD)+"/n",
 		"-entry", "all")
-	out, err := cmd.Output()
-	util.Check(err)
+	out, err = cmd.CombinedOutput()
+	util.CheckOut(err, out)
 	r := bytes.NewReader(out)
 	sc = fasta.NewScanner(r)
 	var l, g int

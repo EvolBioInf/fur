@@ -58,8 +58,8 @@ func main() {
           optUU := flag.Bool("U", false, m)
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
           ncpu := runtime.NumCPU()
-          optT := flag.Int("t", ncpu, "Number of threads " +
-                    "for Blast")
+          optT := flag.Int("t", ncpu, "number of threads " +
+                    "for Phylonium and Blast")
           optM := flag.Bool("m", false, "megablast mode " +
                     "(default blastn)")
           optMM := flag.Bool("M", false,
@@ -284,9 +284,9 @@ func main() {
                     ma := ""
                     if *optMM {
                               cmd := exec.Command("blastdbcmd", "-info", "-db", *optD + "/n")
-                              info, err := cmd.CombinedOutput()
-                              util.Check(err)
-                              lines := strings.Split(string(info), "\n")
+                              out, err := cmd.CombinedOutput()
+                              util.CheckOut(err, out)
+                              lines := strings.Split(string(out), "\n")
                               for i, line := range lines {
                                         fields := strings.Fields(line)
                                         if len(fields) > 0 && fields[0] == "Algorithm" {
@@ -337,11 +337,9 @@ func main() {
                                                 fmt.Fprintf(stdin, "%s\n", region)
                                         }
                               }()
-                              b, err := cmd.CombinedOutput()
-                              if err != nil {
-                                        log.Fatalf("%s\n", string(b))
-                              }
-                              hits := bytes.Split(b, []byte("\n"))
+                              out, err := cmd.CombinedOutput()
+                              util.CheckOut(err, out)
+                              hits := bytes.Split(out, []byte("\n"))
                               hits = hits[:len(hits)-1]
                               regMap := make(map[string]int)
                               le = 0
