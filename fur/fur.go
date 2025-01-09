@@ -44,6 +44,8 @@ func main() {
           m = "print unique regions after sliding window analysis " +
                     "and exit"
           optU := flag.Bool("u", false, m)
+          optT := flag.Int("t", ncpu, "number of threads")
+
           m = "intersection step sensitivity, the minimum fraction of target " +
                     "genomes that have the same nucleotide at a given position " +
                     "in the representative"
@@ -58,8 +60,6 @@ func main() {
           optUU := flag.Bool("U", false, m)
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
           ncpu := runtime.NumCPU()
-          optT := flag.Int("t", ncpu, "number of threads " +
-                    "for Phylonium and Blast")
           optM := flag.Bool("m", false, "megablast mode " +
                     "(default blastn)")
           optMM := flag.Bool("M", false,
@@ -251,6 +251,7 @@ func main() {
                                         PrintN:          !*optX,
                                         PrintSegSitePos: true,
                                         PrintOneBased:   true,
+                                        NumThreads:      *optT,
                               }
                               regions = chr.Intersect(parameters)
                               i := 0

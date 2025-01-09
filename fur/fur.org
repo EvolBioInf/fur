@@ -97,13 +97,16 @@ result and exit.
 #+end_src
 #+begin_export latex
 Step~(\ref{eq:fur2}) is delegated to the \ty{Intersect} function, for
-which we set sensitivity thresholds: \ty{f} for a minimum fraction of
-intersecting genomes, and a p-value for a shusting length, which
-defines sensitivity of the exact matching in the search for homologous
-regions. The user can restrict the output from \ty{Intersect} to exact
-matches. She can again also print the result of this step and exit.
+which we set the number of threads and sensitivity thresholds: \ty{f}
+for a minimum fraction of intersecting genomes, and a p-value for a
+shusting length, which defines sensitivity of the exact matching in
+the search for homologous regions. The user can restrict the output
+from \ty{Intersect} to exact matches. She can again also print the
+result of this step and exit.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
+  optT := flag.Int("t", ncpu, "number of threads")
+
   m = "intersection step sensitivity, the minimum fraction of target " +
 	  "genomes that have the same nucleotide at a given position " +
 	  "in the representative"
@@ -119,16 +122,15 @@ matches. She can again also print the result of this step and exit.
 #+end_src
 #+begin_export latex
 Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
-the E-value, the number of threads, a switch to megablast mode instead
-of the default blastn mode, and a switch for running with masking. We
-also set the minimum length of the final regions at this point. The
-number of threads is initialized to the number of CPUs.
+the E-value, the number of threads (same as in the step
+\ref{eq:fur2}), a switch to megablast mode instead of the default
+blastn mode, and a switch for running with masking. We also set the
+minimum length of the final regions at this point. The number of
+threads is initialized to the number of CPUs.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
   ncpu := runtime.NumCPU()
-  optT := flag.Int("t", ncpu, "number of threads " +
-	  "for Phylonium and Blast")
   optM := flag.Bool("m", false, "megablast mode " +
 	  "(default blastn)")
   optMM := flag.Bool("M", false,
@@ -678,7 +680,8 @@ We initialize a struct of parameters for the \ty{Intersect} function:
   \item \ty{PrintSegSitePos}: add information on segregating sites
     to headers of the output \ty{fasta} sequences;
   \item \ty{PrintOneBased}: use one-based end-inclusive coordinates
-    in the output.
+    in the output;
+  \item \ty{NumThreads}: number of concurrently processed files.
 \end{itemize}
 #+end_export
 #+begin_src go <<Set parameters for \ty{Intersect}, Pr. \ref{pr:fur}>>=
@@ -696,6 +699,7 @@ We initialize a struct of parameters for the \ty{Intersect} function:
 	  PrintN:          !*optX,
 	  PrintSegSitePos: true,
 	  PrintOneBased:   true,
+	  NumThreads:      *optT,
   }
 #+end_src
 #+begin_export latex
