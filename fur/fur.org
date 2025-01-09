@@ -97,14 +97,16 @@ result and exit.
 #+end_src
 #+begin_export latex
 Step~(\ref{eq:fur2}) is delegated to the \ty{Intersect} function, for
-which we set the number of threads and sensitivity thresholds: \ty{f}
-for a minimum fraction of intersecting genomes, and a p-value for a
-shusting length, which defines sensitivity of the exact matching in
-the search for homologous regions. The user can restrict the output
-from \ty{Intersect} to exact matches. She can again also print the
-result of this step and exit.
+which we set the number of threads, which is initialized to the number
+of CPUs. We proceed with sensitivity thresholds: \ty{f} for a minimum
+fraction of intersecting genomes, and a p-value for a shusting length,
+which defines sensitivity of the exact matching in the search for
+homologous regions. The user can restrict the output from
+\ty{Intersect} to exact matches. She can again also print the result
+of this step and exit.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
+  ncpu := runtime.NumCPU()
   optT := flag.Int("t", ncpu, "number of threads")
 
   m = "intersection step sensitivity, the minimum fraction of target " +
@@ -125,12 +127,11 @@ Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
 the E-value, the number of threads (same as in the step
 \ref{eq:fur2}), a switch to megablast mode instead of the default
 blastn mode, and a switch for running with masking. We also set the
-minimum length of the final regions at this point. The number of
-threads is initialized to the number of CPUs.
+minimum length of the final regions at this point.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
-  ncpu := runtime.NumCPU()
+  
   optM := flag.Bool("m", false, "megablast mode " +
 	  "(default blastn)")
   optMM := flag.Bool("M", false,

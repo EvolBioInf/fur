@@ -44,6 +44,7 @@ func main() {
           m = "print unique regions after sliding window analysis " +
                     "and exit"
           optU := flag.Bool("u", false, m)
+          ncpu := runtime.NumCPU()
           optT := flag.Int("t", ncpu, "number of threads")
 
           m = "intersection step sensitivity, the minimum fraction of target " +
@@ -59,7 +60,7 @@ func main() {
           optX := flag.Bool("x", false, "exact matches only")
           optUU := flag.Bool("U", false, m)
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
-          ncpu := runtime.NumCPU()
+
           optM := flag.Bool("m", false, "megablast mode " +
                     "(default blastn)")
           optMM := flag.Bool("M", false,
