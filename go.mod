@@ -2,6 +2,8 @@ module github.com/evolbioinf/fur
 
 go 1.22.5
 
+toolchain go1.23.11
+
 require (
 	github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b
 	github.com/evolbioinf/esa v0.0.0-20230428092833-66d4eac05d77
