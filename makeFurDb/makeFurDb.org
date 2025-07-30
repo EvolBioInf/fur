@@ -25,15 +25,16 @@ against $n_1$ to get the match factor
 \[
 r[1..4]=n_1[6..9]=\ty{AAAT}.
 \]
-Then we delete the match from $r$ to get $r=\ty{AATATT}$, and repeat
-to find the two remaining match factors \ty{AAT} and \ty{ATT}. When
-analyzing real data, $r$ and the elements of $N$ can have any size and
-we also match the reverse complement of $r$.
+Then we delete the match and its terminal mismatch from $r$ to get
+$r=\ty{ATATT}$, and repeat to find the two remaining match factors
+\ty{AAT} and \ty{ATT}. When analyzing real data, $r$ and the elements
+of $N$ can have any size and we also match the reverse complement of
+$r$.
 
 Real genome assemblies may be scattered across many short contigs. To
-prevent the computation of a suffix array for each of them, we
-aggregate nucleotides from multiple contigs into pseudo contigs of
-some minimal length, say 10 Mb.
+avoid computing a suffix array for each of them, we aggregate
+nucleotides from multiple contigs into pseudo contigs of some minimal
+length, say 10 Mb.
 
 The rationale of our matching step is that regions in $r$ with short
 matches are absent from $N$. For neighborhoods with more than one
@@ -54,7 +55,7 @@ have
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $\mbox{ml}$ & 4 & 0 & 0 & 0 & 3 & 0 & 0 & 3 & 0 & 0
+    $\mbox{ml}$ & 4 & 0 & 0 & 0 & 0 & 2 & 0 & 0 & 2 & 0
   \end{tabular}
 \end{center}
 
@@ -63,12 +64,12 @@ When we match $r$ against $n_2$, we find the match factors \ty{AA} and
 factor. If it is larger than the corresponding entry in $\mbox{ml}$,
 we update the entry. So in our example we don't update
 $\mbox{ml}[1]=4$, because $4>2$, but we do update
-$\mbox{ml}[3]\leftarrow 8$ to get
+$\mbox{ml}[4]\leftarrow 7$ to get
 \begin{center}
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $\mbox{ml}$ & 4 & 0 & 8 & 0 & 3 & 0 & 0 & 3 & 0 & 0
+    $\mbox{ml}$ & 4 & 0 & 0 & 7 & 3 & 0 & 0 & 3 & 0 & 0
   \end{tabular}
 \end{center}
 
@@ -100,7 +101,7 @@ lengths. For our example we get,
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $\mbox{ml}$ & 4 & 3 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1
+    $\mbox{ml}$ & 4 & 3 & 2 & 7 & 6 & 5 & 4 & 3 & 2 & 1
   \end{tabular}
 \end{center}
 
