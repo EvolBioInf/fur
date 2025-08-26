@@ -112,7 +112,7 @@ func main() {
 		util.Check(err)
 	}
 
-	if *optTT < 0 {
+	if *optTT <= 0 {
 		log.Fatalf("Can't set %d threads.", *optTT)
 	}
 	targets := readDir(*optT)

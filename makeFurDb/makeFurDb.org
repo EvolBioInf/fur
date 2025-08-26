@@ -326,11 +326,11 @@ it. Otherwise, we bail with a friendly message.
   }
 #+end_src
 #+begin_export latex
-If the user set a negative number of threads, something is wrong and
-we throw a fatal error.
+If the user requested fewer than one thread, something is wrong and we
+throw a fatal error.
 #+end_export
 #+begin_src go <<Respond to \ty{-T}, Pr. \ref{pr:mfd}>>=
-  if *optTT < 0 {
+  if *optTT <= 0 {
 	  log.Fatalf("Can't set %d threads.", *optTT)
   }
 #+end_src
