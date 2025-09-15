@@ -788,8 +788,9 @@ the actual positions.
   }
 #+end_src
 #+begin_export latex
-Unless the user requested only exact matches, we set polymorphic
-nucleotides to \ty{N}, so they can be avoided when designing primers.
+If the user requested only exact matches, we skip any region with
+polymorphic positions.  Otherwise, we set the polymorphic positions to
+\ty{N}, so they can be avoided when designing primers.
 #+end_export
 #+begin_src go <<Iterate over mutation positions, Pr. \ref{pr:fur}>>=
   if *optX && len(pos) > 0 { continue }
