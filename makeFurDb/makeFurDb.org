@@ -27,7 +27,7 @@ r[1..4]=n_1[6..9]=\ty{AAAT}.
 \]
 Then we delete the match and its terminal mismatch from $r$ to get
 $r=\ty{ATATT}$, and repeat to find the two remaining match factors
-\ty{AAT} and \ty{ATT}. When analyzing real data, $r$ and the elements
+\ty{AT} and \ty{TT}. When analyzing real data, $r$ and the elements
 of $N$ can have any size and we also match the reverse complement of
 $r$.
 
@@ -59,17 +59,17 @@ have
   \end{tabular}
 \end{center}
 
-When we match $r$ against $n_2$, we find the match factors \ty{AA} and
-\ty{ATAATATT} of lengths 2 and 8. We consider the length of each
-factor. If it is larger than the corresponding entry in $\mbox{ml}$,
-we update the entry. So in our example we don't update
-$\mbox{ml}[1]=4$, because $4>2$, but we do update
-$\mbox{ml}[4]\leftarrow 7$ to get
+When we match $r$ against $n_2$, we find the match factor \ty{AA} of
+length 2 at position 1 and \ty{AATATT} of length 7 at position 4. We
+consider the length of each factor. If it is larger than the
+corresponding entry in $\mbox{ml}$, we update the entry. So in our
+example we don't update $\mbox{ml}[1]=4$, because $4>2$, but we do
+update $\mbox{ml}[4]\leftarrow 7$ to get
 \begin{center}
   \begin{tabular}{ccccccccccc}
     $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 0\\
     $r$ & \ty{A} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{A} & \ty{T} & \ty{A} & \ty{T} & \ty{T}\\
-    $\mbox{ml}$ & 4 & 0 & 0 & 7 & 3 & 0 & 0 & 3 & 0 & 0
+    $\mbox{ml}$ & 4 & 0 & 0 & 7 & 2 & 0 & 0 & 2 & 0 & 0
   \end{tabular}
 \end{center}
 
