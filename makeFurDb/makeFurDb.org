@@ -61,7 +61,7 @@ have
 
 When we match $r$ against $n_2$, we find the match factor \ty{AA} of
 length 2 at position 1, skip the mismatch at position 3, and find the
-match factor \ty{AATATT} of length 7 at position 4. We consider the
+match factor \ty{TAATATT} of length 7 at position 4. We consider the
 length of each factor. If it is larger than the corresponding entry in
 $\mbox{ml}$, we update the entry. So in our example we don't update
 $\mbox{ml}[1]=4$, because $4>2$, but we do update
