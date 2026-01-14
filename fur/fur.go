@@ -15,6 +15,7 @@ import (
           "github.com/evolbioinf/sus"
           "math"
           "path/filepath"
+          "github.com/ivantsers/chr"
           "os/exec"
           "bytes"
 )
@@ -48,10 +49,13 @@ func main() {
                     "in templates and exit"
           optX := flag.Bool("x", false, "exact matches only")
           optUU := flag.Bool("U", false, m)
+          optF := flag.Float64("f", 1.0, "intersection sensitivity")
+          optP := flag.Float64("p", 0.975,
+                    "anchor shustring length p-value")
           optE := flag.Float64("e", 1e-5, "E-value for Blast")
           ncpu := runtime.NumCPU()
           optT := flag.Int("t", ncpu, "number of threads " +
-                    "for Phylonium and Blast")
+                    "for the intersection step and Blast")
           optM := flag.Bool("m", false, "megablast mode " +
                     "(default blastn)")
           optMM := flag.Bool("M", false,
@@ -95,6 +99,10 @@ func main() {
                             "CPUs.\n"
                     fmt.Fprintf(os.Stderr, m, ncpu)
                     (*optT) = ncpu
+          }
+          if *optF > 1 || *optF <= 0 {
+                    log.Fatalf("can't use %f as a sensitivity threshold\n" +
+                          "please use a positive value not exceeding 1", *optF)
           }
           regions := make([]*fasta.Sequence, 0)
           rw := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ',
@@ -208,128 +216,145 @@ func main() {
                     dirEntries, err := os.ReadDir(*optD + "/t")
                     numTargets = len(dirEntries) + 1
                     if numTargets > 1 {
-                              f, err = os.CreateTemp(*optD, "*.fasta")
-                              util.Check(err)
-                              for _, region := range regions {
-                                        fmt.Fprintf(f, "%s\n", region)
-                              }
-                              f.Close()
-                              cmd := exec.Command("phylonium")
-                              rf := f.Name()
-                              pf := ""
-                              f, err = os.CreateTemp(*optD, "*.fasta")
-                              util.Check(err)
-                              pf = f.Name()
-                              f.Close()
-                              _, err := os.Stat(pf)
-                              if err == nil {
-                                        err = os.Remove(pf)
-                                        util.Check(err)
-                              }
-                              ts := strconv.Itoa(*optT)
-                              args := []string{"phylonium", "-t", ts, "-p", pf, "-r", rf}
-                              tf, err := filepath.Glob(*optD + "/t/*")
-                              args = append(args, tf...)
-                              cmd.Args = args
-                              out, err := cmd.CombinedOutput()
-                              if err != nil {
-                                        i := bytes.Index(out, []byte("homology"))
-                                        j := bytes.Index(out, []byte("nan"))
-                                        if i < 0  && j < 0 {
-                                                fmt.Fprintf(os.Stderr,"%s\n", out)
-                                                os.Exit(1)
-                                        }
-                              }
-                              regions = regions[:0]
-                              f, err = os.Open(pf)
-                              util.Check(err)
-                              sc = fasta.NewScanner(f)
-                              for sc.ScanSequence() {
-                                        s := sc.Sequence()
-                                        regions = append(regions, s)
-                              }
-                              f.Close()
-                              i := 0
-                              for _, region := range regions {
-                                        if len(region.Data()) >= *optN {
+                              if *optF == 1.0 {
+                                      f, err = os.CreateTemp(*optD, "*.fasta")
+                                      util.Check(err)
+                                      for _, region := range regions {
+                                                fmt.Fprintf(f, "%s\n", region)
+                                      }
+                                      f.Close()
+                                      cmd := exec.Command("phylonium")
+                                      rf := f.Name()
+                                      pf := ""
+                                      f, err = os.CreateTemp(*optD, "*.fasta")
+                                      util.Check(err)
+                                      pf = f.Name()
+                                      f.Close()
+                                      _, err := os.Stat(pf)
+                                      if err == nil {
+                                                err = os.Remove(pf)
+                                                util.Check(err)
+                                      }
+                                      ts := strconv.Itoa(*optT)
+                                      args := []string{"phylonium", "-t", ts, "-p", pf, "-r", rf}
+                                      tf, err := filepath.Glob(*optD + "/t/*")
+                                      args = append(args, tf...)
+                                      cmd.Args = args
+                                      out, err := cmd.CombinedOutput()
+                                      if err != nil {
+                                                i := bytes.Index(out, []byte("homology"))
+                                                j := bytes.Index(out, []byte("nan"))
+                                                if i < 0  && j < 0 {
+                                                        fmt.Fprintf(os.Stderr,"%s\n", out)
+                                                        os.Exit(1)
+                                                }
+                                      }
+                                      regions = regions[:0]
+                                      f, err = os.Open(pf)
+                                      util.Check(err)
+                                      sc = fasta.NewScanner(f)
+                                      for sc.ScanSequence() {
+                                                s := sc.Sequence()
+                                                regions = append(regions, s)
+                                      }
+                                      f.Close()
+                                      i := 0
+                                      for _, region := range regions {
+                                                if len(region.Data()) >= *optN {
+                                                        regions[i] = region
+                                                        i++
+                                                }
+                                      }
+                                      regions = regions[:i]
+                                      i = 0
+                                      for _, region := range regions {
+                                                arr := strings.Fields(region.Header())
+                                                n, err := strconv.Atoi(arr[2])
+                                                util.Check(err)
+                                                pos := make([]int, 0)
+                                                for j := 0; j < n; j++ {
+                                                          x, err := strconv.Atoi(arr[j+3])
+                                                          util.Check(err)
+                                                          pos = append(pos, x-1)
+                                                }
+                                                if *optX && len(pos) > 0 { continue }
+                                                for _, p := range pos {
+                                                          region.Data()[p] = 'N'
+                                                }
                                                 regions[i] = region
                                                 i++
-                                        }
-                              }
-                              regions = regions[:i]
-                              i = 0
-                              for _, region := range regions {
-                                        arr := strings.Fields(region.Header())
-                                        n, err := strconv.Atoi(arr[2])
-                                        util.Check(err)
-                                        pos := make([]int, 0)
-                                        for j := 0; j < n; j++ {
-                                                  x, err := strconv.Atoi(arr[j+3])
-                                                  util.Check(err)
-                                                  pos = append(pos, x-1)
-                                        }
-                                        if *optX && len(pos) > 0 { continue }
-                                        for _, p := range pos {
-                                                  region.Data()[p] = 'N'
-                                        }
-                                        regions[i] = region
-                                        i++
-                              }
-                              regions = regions[:i]
-                              for _, region := range regions {
-                                        arr := strings.Split(region.Header(), "(")
-                                        arr = strings.Split(arr[1], ")")
-                                        mutations := arr[1]
-                                        arr = strings.Split(arr[0], "..")
-                                        sp, err := strconv.Atoi(arr[0])
-                                        util.Check(err)
-                                        ep, err := strconv.Atoi(arr[1])
-                                        util.Check(err)
-                                        sp -= 1
-                                        ep -= 2
-                                        var sr, er, ii, iii int
-                                        c := 0
-                                        found := false
-                                        intervals:
-                                        for ii < len(intervals) {
-                                                  ivals := intervals[ii]
-                                                  for iii < len(ivals) {
-                                                          ival := ivals[iii]
-                                                          iii++
-                                                          l := ival.e - ival.s + 1
-                                                          if l < *optN { continue }
-                                                          if sp <= c+l-1 && ep >= c {
-                                                                    sr = ival.s + sp - c
-                                                                    er = ival.s + ep - c
-                                                                    found = true
-                                                                    c += l+1
-                                                                    break intervals
+                                      }
+                                      regions = regions[:i]
+                                      for regionNum, region := range regions {
+                                                arr := strings.Split(region.Header(), "(")
+                                                arr = strings.Split(arr[1], ")")
+                                                arr = strings.Split(arr[0], "..")
+                                                sp, err := strconv.Atoi(arr[0])
+                                                util.Check(err)
+                                                ep, err := strconv.Atoi(arr[1])
+                                                util.Check(err)
+                                                sp -= 1
+                                                ep -= 2
+                                                var ii, iii int
+                                                c := 0
+                                                found := false
+                                                intervals:
+                                                for ii < len(intervals) {
+                                                          ivals := intervals[ii]
+                                                          for iii < len(ivals) {
+                                                                  ival := ivals[iii]
+                                                                  iii++
+                                                                  l := ival.e - ival.s + 1
+                                                                  if l < *optN { continue }
+                                                                  if sp <= c+l-1 && ep >= c {
+                                                                            found = true
+                                                                            c += l+1
+                                                                            break intervals
+                                                                  }
+                                                                  c += l+1
                                                           }
-                                                          c += l+1
-                                                  }
-                                                  iii = 0
-                                                  ii++
-                                        }
-                                        if found {
-                                                  h := fmt.Sprintf("%s_(%d..%d) %s", r[ii].Header(),
-                                                          sr+1, er+1, mutations)
-                                                  region.SetHeader(h)
-                                        } else {
-                                                  log.Fatalf("Coudn't find region %s\n",
-                                                          region.Header())
-                                        }
-                              }
-                              for _, region := range regions {
-                                        for i, c := range region.Data() {
-                                                if c == '!' {
-                                                        region.Data()[i] = 'N'
+                                                          iii = 0
+                                                          ii++
                                                 }
-                                        }
+                                                if found {
+                                                          h := fmt.Sprintf("%s_%d", r[ii].Header(),
+                                                                  regionNum + 1)
+                                                          region.SetHeader(h)
+                                                } else {
+                                                          log.Fatalf("Coudn't find region %s\n",
+                                                                  region.Header())
+                                                }
+                                      }
+                                      for _, region := range regions {
+                                                for i, c := range region.Data() {
+                                                        if c == '!' {
+                                                                region.Data()[i] = 'N'
+                                                        }
+                                                }
+                                      }
+                                      err = os.Remove(rf)
+                                      util.Check(err)
+                                      err = os.Remove(pf)
+                                      util.Check(err)
+                              } else {
+                                      for _, region := range regions {
+                                                arr := strings.Split(region.Header(), "_(")
+                                                region.SetHeader(arr[0])
+                                      }
+                                      var parameters chr.Parameters
+                                      parameters.Reference = regions
+
+                                      queryPaths, err := filepath.Glob(*optD + "/t/*")
+                                      util.Check(err)
+                                      parameters.QueryPaths = queryPaths
+
+                                      parameters.Threshold = *optF
+                                      parameters.ShustrPval = *optP
+                                      parameters.NumThreads = *optT
+                                      parameters.PrintN = true
+                                      intersection := chr.Intersect(parameters)
+                                      regions = intersection
                               }
-                              err = os.Remove(rf)
-                              util.Check(err)
-                              err = os.Remove(pf)
-                              util.Check(err)
                     }
                     ns = len(regions)
                     le, nn = countNucl(regions)
@@ -445,42 +470,12 @@ func main() {
                               for i, region := range regions {
                                         h := region.Header()
                                         r := bytes.TrimLeft(region.Data(), "N")
-                                        dl := len(region.Data()) - len(r)
+                                        //dl := len(region.Data()) - len(r)
                                         r = bytes.TrimRight(r, "N")
-                                        dr := len(region.Data()) - len(r) - dl
-                                        if dl > 0 || dr > 0 {
-                                                arr := strings.Split(h, "_(")
-                                                prefix := arr[0]
-                                                arr = strings.Split(arr[1], ")")
-                                                muts := strings.Fields(arr[1])
-                                                mutations := make([]int, 0)
-                                                for _, m := range muts {
-                                                          i, err := strconv.Atoi(m)
-                                                          util.Check(err)
-                                                          mutations = append(mutations, i)
-                                                }
-                                                arr = strings.Split(arr[0], "..")
-                                                s, err := strconv.Atoi(arr[0])
-                                                util.Check(err)
-                                                e, err := strconv.Atoi(arr[1])
-                                                util.Check(err)
-                                                s += dl
-                                                e -= dr
-                                                nm := make([]int, 0)
-                                                l := e - s
-                                                for i := 1; i < len(mutations); i++ {
-                                                          x := mutations[i] - dl
-                                                          if x > 0 && x <= l {
-                                                                  nm = append(nm, x)
-                                                          }
-                                                }
-                                                n := len(nm)
-                                                h = fmt.Sprintf("%s_(%d..%d) %4d",
-                                                          prefix, s, e, n)
-                                                for _, m := range nm {
-                                                          h = fmt.Sprintf("%s %d", h, m)
-                                                }
-                                        }
+                                        //dr := len(region.Data()) - len(r) - dl
+                                        //if dl > 0 || dr > 0 {
+                                                //Adjust header, Pr. \ref{pr:fur}
+                                        //}
                                         s := fasta.NewSequence(h, r)
                                         regions[i] = s
                               }
