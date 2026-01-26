@@ -1008,7 +1008,9 @@ downstream regions. Due to this, the coordinates of the regions we
 have after Subtraction 1 become irrelevant, so we remove them from the
 region's headers. Then we set the function's parameters and run
 it. The function returns a slice of \ty{fasta} regions, which we use
-to re-write the \ty{regions} variable.
+to re-write the \ty{regions} variable. At the end of this step we
+remove short regions and replace occasional exclamation marks with
+\ty{N}.
 #+end_export
 #+begin_src go <<Find a partial intersection, Pr. \ref{pr:fur}>>=
   //<<Remove region coordinates from Subtraction 1, Pr. \ref{pr:fur}>>
@@ -1016,6 +1018,8 @@ to re-write the \ty{regions} variable.
   //<<Set parameters for \ty{chr.Intersect}, Pr. \ref{pr:fur}>>
   intersection := chr.Intersect(parameters)
   regions = intersection
+  //<<Remove short regions, Pr. \ref{pr:fur}>>
+  //<<Remove exclamation marks, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
 We import \ty{chr}.

@@ -354,6 +354,21 @@ func main() {
                                       parameters.PrintN = true
                                       intersection := chr.Intersect(parameters)
                                       regions = intersection
+                                      i := 0
+                                      for _, region := range regions {
+                                                if len(region.Data()) >= *optN {
+                                                        regions[i] = region
+                                                        i++
+                                                }
+                                      }
+                                      regions = regions[:i]
+                                      for _, region := range regions {
+                                                for i, c := range region.Data() {
+                                                        if c == '!' {
+                                                                region.Data()[i] = 'N'
+                                                        }
+                                                }
+                                      }
                               }
                     }
                     ns = len(regions)
