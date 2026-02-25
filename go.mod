@@ -5,15 +5,13 @@ go 1.23.0
 toolchain go1.23.11
 
 require (
-	github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b
-	github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d
-	github.com/evolbioinf/fasta v0.0.0-20230419094527-219cc47d94b2
+	github.com/evolbioinf/clio v0.0.0-20250730155633-f17ebc5319c4
+	github.com/evolbioinf/esa v0.0.0-20260221181549-4ec39e983a94
+	github.com/evolbioinf/fasta v0.0.0-20251121105511-f74cf90e08b9
 	github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f
+	github.com/ivantsers/chr v0.0.0-20260217143140-97606e7a66ee
 )
 
-require (
-	github.com/ivantsers/chr v0.0.0-20251113132902-d017496cc4c3 // indirect
-	github.com/ivantsers/fastautils v0.0.0-20241118142913-f5f2f9b175e5 // indirect
-)
+require github.com/ivantsers/fastautils v0.0.0-20251209121146-e8b82c66bfde // indirect
 
 replace github.com/evolbioinf/fur/util => ../util
