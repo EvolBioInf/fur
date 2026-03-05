@@ -96,16 +96,26 @@ result and exit.
   optU := flag.Bool("u", false, m)
 #+end_src
 #+begin_export latex
-Step~(\ref{eq:fur2}) is delegated to \ty{phylonium}, for which we
-don't expose any options. However, the user can restrict the output
-from phylonium to exact matches. She can again also print the result
-of this step and exit.
+Step~(\ref{eq:fur2}) finds regions present in a given fraction of
+target genomes $f$, which is used as an intersection sensitivity
+threshold. A calculation of a perfect intersection ($f = 1.0$, the
+default value) is delegated to \ty{phylonium}, for which we don't
+expose any options. However, the user can restrict the output from
+phylonium to exact matches. A partial intersection ($0 < f < 1.0$) is
+calculated with the imported function \ty{chr.Intersect}, for which we
+expose $f$ and a p-value for a distribution of shustring lengths,
+which are used to identify homology anchors in partial intersections.
+
+The user can also print the result of Step~(\ref{eq:fur2}) and exit.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
   m = "print unique regions after checking for presence " +
 	  "in templates and exit"
   optX := flag.Bool("x", false, "exact matches only")
   optUU := flag.Bool("U", false, m)
+  optF := flag.Float64("f", 1.0, "intersection sensitivity")
+  optP := flag.Float64("p", 0.975,
+	  "anchor shustring length p-value")
 #+end_src
 #+begin_export latex
 Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
@@ -118,7 +128,7 @@ number of threads is initialized to the number of CPUs.
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
   ncpu := runtime.NumCPU()
   optT := flag.Int("t", ncpu, "number of threads " +
-	  "for Phylonium and Blast")
+	  "for the intersection step and Blast")
   optM := flag.Bool("m", false, "megablast mode " +
 	  "(default blastn)")
   optMM := flag.Bool("M", false,
@@ -134,13 +144,15 @@ We import \ty{runtime}.
 #+begin_export latex
 We parse the options and first respond to the version request,
 \ty{-v}, as this might stop the program. We also respond to the
-database name, \ty{-d}, and the number of threads, \ty{-t}.
+database name, \ty{-d}, the number of threads, \ty{-t}, and the
+sensitivity threshold, \ty{-f}.
 #+end_export
 #+begin_src go <<Parse options, Pr. \ref{pr:fur}>>=
   flag.Parse()
   //<<Respond to \ty{-v}, Pr. \ref{pr:fur}>>
   //<<Respond to \ty{-d}, Pr. \ref{pr:fur}>>
   //<<Respond to \ty{-t}, Pr. \ref{pr:fur}>>
+  //<<Respond to \ty{-f}, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
 We import \ty{fmt}.
@@ -230,6 +242,16 @@ of threads to the number of CPUs.
 		  "CPUs.\n"
 	  fmt.Fprintf(os.Stderr, m, ncpu)
 	  (*optT) = ncpu
+  }
+#+end_src
+#+begin_export latex
+A sensitivity threshold $f$ is defined in $0 < f \le 1$. If the user
+sets $f$ outside the range, we notify the user and exit.
+#+end_export
+#+begin_src go <<Respond to \ty{-f}, Pr. \ref{pr:fur}>>=
+  if *optF > 1 || *optF <= 0 {
+	  log.Fatalf("can't use %f as a sensitivity threshold\n" +
+		"please use a positive value not exceeding 1", *optF)
   }
 #+end_src
 #+begin_export latex
@@ -590,23 +612,29 @@ standard output stream and exit.
 In step~(\ref{eq:fur2}) we intersect the regions found so far with the
 remaining targets. This only makes sense if there are at least two
 targets. So we count the targets, and if there are at least two, we
-implement step~(\ref{eq:fur2}) as a \ty{phylonium} run. This takes as
-input a file containing the unique regions we just extracted. They
-serve as the reference, onto which \ty{phylonium} piles the remaining
-target sequences. \ty{Phylonium} writes its output to a file, from
-where we read it back into \ty{fur}. We delete this output file and
-the input file of unique regions again to leave the database as we
-found it. Like at the end of the previous step, we report its results
-and may be also print them.
+find an intersection, the implemetation of which depends on the
+intersection sensitivity $f$:
+
+\begin{itemize}
+  \itemsep0em
+  \item a perfect intersection ($f = 1.0$, which is the default): find
+    regions present in all target genomes;
+  \item a partial intersection ($0 < f < 1.0$): find regions present in a
+    fraction $f$ of target genomes.
+\end{itemize}
+
+Like at the end of the previous step, we report its results and may be
+also print them.
 #+end_export
 #+begin_src go <<Run step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>=
   numTargets := 0
   //<<Count targets, Pr. \ref{pr:fur}>>
   if numTargets > 1 {
-	  //<<Write unique regions to file, Pr. \ref{pr:fur}>>
-	  //<<Run \ty{phylonium}, Pr. \ref{pr:fur}>>
-	  //<<Read \ty{phylonium} output from file, Pr. \ref{pr:fur}>>
-	  //<<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>
+	  if *optF == 1.0 {
+		  //<<Find a perfect intersection, Pr. \ref{pr:fur}>>
+	  } else {
+		  //<<Find a partial intersection, Pr. \ref{pr:fur}>>
+	  }
   }
   //<<Report results of step (\ref{eq:fur2}), Pr. \ref{pr:fur}>>
   //<<Print results of step (\ref{eq:fur2})?, Pr. \ref{pr:fur}>>
@@ -618,6 +646,21 @@ are one less than the total number of targets.
 #+begin_src go <<Count targets, Pr. \ref{pr:fur}>>=
   dirEntries, err := os.ReadDir(*optD + "/t")
   numTargets = len(dirEntries) + 1
+#+end_src
+#+begin_export latex
+The search of a perfect intersection is implemented as a run of
+\ty{phylonium}, which takes as input a file containing the unique
+regions we just extracted. They serve as the reference, onto which
+\ty{phylonium} piles the remaining target sequences. \ty{Phylonium}
+writes its output to a file, from where we read it back into
+\ty{fur}. We delete this output file and the input file of unique
+regions again to leave the database as we found it.
+#+end_export
+#+begin_src go <<Find a perfect intersection, Pr. \ref{pr:fur}>>=
+  //<<Write unique regions to file, Pr. \ref{pr:fur}>>
+  //<<Run \ty{phylonium}, Pr. \ref{pr:fur}>>
+  //<<Read \ty{phylonium} output from file, Pr. \ref{pr:fur}>>
+  //<<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
 We write the unique regions to a unique file, which we then close
@@ -806,30 +849,43 @@ As we've said, the headers returned by \ty{phylonium} have the format
 \ty{>part}_i\ (s_{\rm p}..e_{\rm p})\ n\ p_1\ p_2\ ...\ p_n
 \]
 where $(s_{\rm p}..e_{\rm p}$ is the one-based interval,
-end-exclusive.  We'd like to convert this to the interval in the
-underlying target representative, $(s_{\rm r}...e_{\rm r}$),
-end-inclusive. For this, we iterate over the regions returned by
-\ty{phylonium}. For each region, we extract the interval $(s_{\rm
-  p}..e_{\rm p})$ from the header and convert it to $(s_{\rm
-  r}..e_{\rm r})$.
+end-exclusive. The region coordinates reported by the current version
+of \ty{phylonium} are not guaranteed to correspond to region's actual
+position in the reference genome if the latter contains nucleotides
+other than \ty{A}, \ty{C}, \ty{G}, or \ty{T}. The most widespread
+example of such a nucleotide is \ty{N}, which stands for "anything" in
+genomic assemblies and is found in poorly resolved
+regions. Non-\ty{ACGT} nucleotides are always cleaned out by
+\ty{phylonium} resulting in left shifts in downstream regions of the
+same contigs. After finding the intersection, \ty{phylonium} reports
+region coordinates relative to the \textit{cleaned} reference, which
+exists only in memory during runtime and may differ from the original
+reference.
+
+As the coordinates reported by \ty{phylonium} are not always robust,
+we do not include them in the headers of the intersection
+regions. However, we still report the reference contig name, the
+region's id, and the number and positions of the mutations.
+
+We iterate over the regions, extract header fileds, find the
+corresponding reference contig, replace the header, and increase the
+region's number.
 #+end_export
 #+begin_src go <<Adjust headers, Pr. \ref{pr:fur}>>=
-  for _, region := range regions {
-	  //<<Extract $(s_{\rm p}..e_{\rm p})$, Pr. \ref{pr:fur}>>
-	  //<<Convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, Pr. \ref{pr:fur}>>
+  for regionNum, region := range regions {
+	  //<<Extract header fields, Pr. \ref{pr:fur}>>
+	  //<<Find reference intervals, Pr. \ref{pr:fur}>>
 	  //<<Replace header, Pr. \ref{pr:fur}>>
   }
 #+end_src
 #+begin_export latex
-We split the header at the parentheses and save the mutation
-string. Then we split the interval at the dot-dot. We also convert the
-positions we get from one-based to zero-based and from end-exclusive
-to end-inclusive.
+We split the header at the parentheses. Then we split the interval at
+the dot-dot. We also convert the positions we get from one-based to
+zero-based and from end-exclusive to end-inclusive.
 #+end_export
-#+begin_src go <<Extract $(s_{\rm p}..e_{\rm p})$, Pr. \ref{pr:fur}>>=
+#+begin_src go <<Extract header fields, Pr. \ref{pr:fur}>>=
   arr := strings.Split(region.Header(), "(")
   arr = strings.Split(arr[1], ")")
-  mutations := arr[1]
   arr = strings.Split(arr[0], "..")
   sp, err := strconv.Atoi(arr[0])
   util.Check(err)
@@ -839,21 +895,21 @@ to end-inclusive.
   ep -= 2
 #+end_src
 #+begin_export latex
-To convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, we
-declare variables for $s_{\rm r}$ and $e_{\rm r}$. We also declare a
-variable for the index of the slice of intervals in which we found a
-match, and a hook for additional variables we might need when
-iterating over the intervals. Since intervals are stored as slices of
-slices, we iterate over them in a nested loop, from which we need to
-break whenever we've accomplished the conversion. So we label the
-outer loop to eventually use a labeled \ty{break} in our analysis of
-individual intervals. An additional property of our search is that
-both the intervals returned in step~(\ref{eq:fur1}) and the regions
-returned in step~(\ref{eq:fur2}) are ordered. This allows us to resume
-each search where we left off in the previous round.
+To find reference intervals corresponding to the regions of the
+intersection, we declare a variable for the index of the slice of
+intervals in which we found a match, and a hook for additional
+variables we might need when iterating over the intervals. Since
+intervals are stored as slices of slices, we iterate over them in a
+nested loop, from which we need to break whenever we've accomplished
+the conversion. So we label the outer loop to eventually use a labeled
+\ty{break} in our analysis of individual intervals. An additional
+property of our search is that both the intervals returned in
+step~(\ref{eq:fur1}) and the regions returned in step~(\ref{eq:fur2})
+are ordered. This allows us to resume each search where we left off in
+the previous round.
 #+end_export
-#+begin_src go <<Convert $(s_{\rm p}..e_{\rm p})$ to $(s_{\rm r}..e_{\rm r})$, Pr. \ref{pr:fur}>>=
-  var sr, er, ii, iii int
+#+begin_src go <<Find reference intervals, Pr. \ref{pr:fur}>>=
+  var ii, iii int
   //<<Variables for loop over intervals, Pr. \ref{pr:fur}>>
   intervals:
   for ii < len(intervals) {
@@ -870,11 +926,11 @@ The central statistic when analyzing the intervals is their cumulative
 length, $c$, of intervals that have at least the minimum length,
 $m$. For a given interval $(s_{\rm i}..e_{\rm i})$ of length $l=e_{\rm
   i}-s_{\rm i}+1$, $l\ge m$, we determine whether $(s_{\rm p}..e_{\rm
-  p})$ intersects $(c..c+l-1)$. If so, we calculate $s_{\rm r}=s_{\rm
-  i}+s_{\rm p}-c$ and $e_{\rm r}=s_{\rm i}+e_{\rm p}-c$. We also note
-that the unique region was found, increment $c$ by $l+1$, and break
-out of the loop. If we don't break out of the loop, we just increment
-$c$ by $l+1$.
+  p})$ intersects $(c..c+l-1)$. If so, the outer loop's iterator
+\ty{ii} points at the reference contig we are looking for. We also
+note that the unique region was found, increment $c$ by $l+1$, and
+break out of the loop. If we don't break out of the loop, we just
+increment $c$ by $l+1$.
 #+end_export
 #+begin_src go <<Analyze interval, Pr. \ref{pr:fur}>>=
   ival := ivals[iii]
@@ -882,8 +938,6 @@ $c$ by $l+1$.
   l := ival.e - ival.s + 1
   if l < *optN { continue }
   if sp <= c+l-1 && ep >= c {
-	  sr = ival.s + sp - c
-	  er = ival.s + ep - c
 	  found = true
 	  c += l+1
 	  break intervals
@@ -899,18 +953,24 @@ We declare the variables \ty{c} and \ty{found}.
 #+end_src
 #+begin_export latex
 If the region was found, we construct its new header and replace the
-old one. The header consists of the header of the appropriate
-representative sequence and the interval $(s_{\rm r}..e_{\rm r})$
-printed one-based. These two elements, the header of the target
-representative and the interval, are joined into one string by an
-underscore to generate unique headers for the subsequent Blast
-step. If, on the other hand, we didn't find the region, something is
-wrong and we bail with message.
+old one. The new header consists of two elements:
+
+\begin{enumerate}
+  \itemsep0em
+  \item the header of the appropriate representative sequence;
+  \item the one-based number of the region;
+\end{enumerate}
+
+The first and the second element are joined by an underscore to
+generate unique headers for the subsequent Blast step.
+
+If, on the other hand, we didn't find the region, something is wrong
+and we bail with message.
 #+end_export
 #+begin_src go <<Replace header, Pr. \ref{pr:fur}>>=
   if found {
-	  h := fmt.Sprintf("%s_(%d..%d) %s", r[ii].Header(),
-		  sr+1, er+1, mutations)
+	  h := fmt.Sprintf("%s_%d", r[ii].Header(),
+		  regionNum + 1)
 	  region.SetHeader(h)
   } else {
 	  log.Fatalf("Coudn't find region %s\n",
@@ -931,7 +991,8 @@ We replace exclamation marks by \ty{N}s.
 #+end_src
 #+begin_export latex
 We delete the input file \ty{rf} and the output file \ty{pf.fasta}
-used by \ty{phylonium}.
+used by \ty{phylonium}. This concludes the implementation of the case
+of a perfect intersection.
 #+end_export
 #+begin_src go <<Delete \ty{phylonium} input and output file, Pr. \ref{pr:fur}>>=
   err = os.Remove(rf)
@@ -939,6 +1000,75 @@ used by \ty{phylonium}.
   err = os.Remove(pf)
   util.Check(err)
 #+end_src
+#+begin_export latex
+The search of a partial intersection is implemented as a run of the
+imported function \ty{chr.Intersect}. Just like \ty{phylonium}, it
+also removes non-\ty{ACGT} nucleotides from the reference shifting the
+downstream regions. Due to this, the coordinates of the regions we
+have after Subtraction 1 become irrelevant, so we remove them from the
+region's headers. Then we set the function's parameters and run
+it. The function returns a slice of \ty{fasta} regions, which we use
+to re-write the \ty{regions} variable. At the end of this step we
+remove short regions and replace occasional exclamation marks with
+\ty{N}.
+#+end_export
+#+begin_src go <<Find a partial intersection, Pr. \ref{pr:fur}>>=
+  //<<Remove region coordinates from Subtraction 1, Pr. \ref{pr:fur}>>
+  var parameters chr.Parameters
+  //<<Set parameters for \ty{chr.Intersect}, Pr. \ref{pr:fur}>>
+  intersection := chr.Intersect(parameters)
+  regions = intersection
+  //<<Remove short regions, Pr. \ref{pr:fur}>>
+  //<<Remove exclamation marks, Pr. \ref{pr:fur}>>
+#+end_src
+#+begin_export latex
+We import \ty{chr}.
+#+end_export
+#+begin_src go <<Imports, Pr. \ref{pr:fur}>>=
+  "github.com/ivantsers/chr"
+#+end_src
+#+begin_export latex
+We split regions' headers by the underscore followed by a parenthesis
+and save the first field as new headers.
+#+end_export
+#+begin_src go <<Remove region coordinates from Subtraction 1, Pr. \ref{pr:fur}>>=
+  for _, region := range regions {
+	  arr := strings.Split(region.Header(), "_(")
+	  region.SetHeader(arr[0])
+  }
+#+end_src
+#+begin_export latex
+The function requires five parameters:
+
+\begin{enumerate}
+  \itemsep0em
+  \item a slice of \ty{fasta} regions, which we pass from the memory;
+  \item a slice of paths to the queries, which we build using
+    \ty{filepath.Glob} and \ty{-d};
+  \item an intersection sensitivity threshold, which we pass from \ty{-f};
+  \item a shustring length p-value for anchors, which we pass from \ty{-p};
+  \item a number of threads, which we pass from \ty{-t};
+  \item a switch to print mutations as \ty{N}s.
+\end{enumerate}
+#+end_export
+#+begin_src go <<Set parameters for \ty{chr.Intersect}, Pr. \ref{pr:fur}>>=
+  parameters.Reference = regions
+
+  queryPaths, err := filepath.Glob(*optD + "/t/*")
+  util.Check(err)
+  parameters.QueryPaths = queryPaths
+
+  parameters.Threshold = *optF
+  parameters.ShustrPval = *optP
+  parameters.NumThreads = *optT
+  parameters.PrintN = true
+#+end_src
+#+begin_export latex
+Again, the output regions' headers contain the reference contig name,
+and the number of a unique region.
+
+This concludes the implementation of the partial intersection.
+#+end_export
 #+begin_export latex
 We report the results from this step.
 #+end_export
@@ -1236,12 +1366,12 @@ necessary, and return the freshly edited regions to their slice.
   for i, region := range regions {
 	  h := region.Header()
 	  r := bytes.TrimLeft(region.Data(), "N")
-	  dl := len(region.Data()) - len(r)
+	  //dl := len(region.Data()) - len(r)
 	  r = bytes.TrimRight(r, "N")
-	  dr := len(region.Data()) - len(r) - dl
-	  if dl > 0 || dr > 0 {
-		  //<<Adjust header, Pr. \ref{pr:fur}>>
-	  }
+	  //dr := len(region.Data()) - len(r) - dl
+	  //if dl > 0 || dr > 0 {
+		  //Adjust header, Pr. \ref{pr:fur}
+	  //}
 	  s := fasta.NewSequence(h, r)
 	  regions[i] = s
   }
@@ -1249,14 +1379,11 @@ necessary, and return the freshly edited regions to their slice.
 #+begin_export latex
 We recall the structure of our header,
 \[
-\ty{>}\mbox{prefix}\_(s...e)\ n\ p_1\ p_2\ ...\ p_n
+\ty{>}\mbox{prefix}\_regionNumber\ n\ p_1\ p_2\ ...\ p_n
 \]
-When adjusting the header we need to adjust the start and end
-positions, $s$ and $e$, and the mutations, which form the header's
-suffix. So we extract the prefix, the suffix, and the start and
-end. Then we adjust start and end, before we adjust the
-mutations. With the new coordinates in hand, we construct the new
-header.
+When adjusting the header we need to adjust the mutations, which form
+the header's suffix. So we extract the prefix and the suffix. Then
+adjust the mutations and construct the new header.
 #+end_export
 #+begin_src go <<Adjust header, Pr. \ref{pr:fur}>>=
   //<<Extract prefix, Pr. \ref{pr:fur}>>
@@ -1403,19 +1530,20 @@ We import \ty{exec}.
   "os/exec"
 #+end_src
 #+begin_export latex
-We construct a set of tests without repeat masking and one with repeat
-masking.
+We construct a set of tests without repeat masking, one with repeat
+masking, and one with partial intersection.
 #+end_export
 #+begin_src go <<Construct tests, Pr. \ref{pr:fur}>>=
   //<<Tests without repeat masking, Pr. \ref{pr:fur}>>
   //<<Tests with repeat masking, Pr. \ref{pr:fur}>>
+  //<<Test with partial intersection, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
 We construct four tests without repeat masking. The first runs with
 all options set to their default values. In the second test we vary
 the quantile of the match length distribution. In the third test we
 also vary the window length.  In the fourth test we also set the
-number of threads.
+number of threads to all threads available.
 #+end_export
 #+begin_src go <<Tests without repeat masking, Pr. \ref{pr:fur}>>=
   d := "test.db"
@@ -1425,9 +1553,17 @@ number of threads.
   tests = append(tests, test)
   test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150")
   tests = append(tests, test)
+  ncpuString := strconv.Itoa(runtime.NumCPU())
   test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150",
-	  "-t", "8")
+	  "-t", ncpuString)
   tests = append(tests, test)
+#+end_src
+#+begin_export latex
+We import \ty{runtime} and \ty{strconv}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:fur}>>=
+  "runtime"
+  "strconv"
 #+end_src
 #+begin_export latex
 We construct three test with repeat masking. In the first, we request
@@ -1444,6 +1580,16 @@ masking, then with.
   test = exec.Command("./fur", "-d", d)
   tests = append(tests, test)
   test = exec.Command("./fur", "-d", d, "-M")
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+To test partial intersection, we use another database, in which one of
+five targets lacks the marker. We set the sensitivity threshold to
+0.8, or 4 target genomes.
+#+end_export
+#+begin_src go <<Test with partial intersection, Pr. \ref{pr:fur}>>=
+  d = "testPartial.db"
+  test = exec.Command("./fur", "-d", d, "-f", "0.8")  
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
@@ -1468,4 +1614,3 @@ We import \ty{strconv}, \ty{os}, and \ty{bytes}.
   "os"
   "bytes"
 #+end_src
-

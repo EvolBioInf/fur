@@ -5,8 +5,9 @@ a set of related genome sequences, the neighbors. It returns the
 sequence regions common to all targets that are absent form the
 neighbors. Such regions can be used as candidate genetic markers.
 ## Authors
-[Bernhard Haubold](http://guanine.evolbio.mpg.de/)
-and [Beatriz Vieira Mourato](https://beatrizvm.github.io/) 
+[Bernhard Haubold](http://guanine.evolbio.mpg.de/), [Beatriz Vieira
+Mourato](https://beatrizvm.github.io/), and [Ivan
+Tsers](https://github.com/IvanTsers/).
 ## Make the Programs
 If you are on an Ubuntu system like Ubuntu on
 [wsl](https://learn.microsoft.com/en-us/windows/wsl/install) under
