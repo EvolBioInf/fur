@@ -9,9 +9,9 @@ require (
 	github.com/evolbioinf/esa v0.0.0-20260221181549-4ec39e983a94
 	github.com/evolbioinf/fasta v0.0.0-20251121105511-f74cf90e08b9
 	github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f
-	github.com/ivantsers/chr v0.0.0-20260217143140-97606e7a66ee
+	github.com/ivantsers/chr v0.0.0-20260305132247-73e9872f7573
 )
 
-require github.com/ivantsers/fastautils v0.0.0-20251209121146-e8b82c66bfde // indirect
+require github.com/ivantsers/fastautils v0.0.0-20260305131012-2ab126fbf7b5 // indirect
 
 replace github.com/evolbioinf/fur/util => ../util

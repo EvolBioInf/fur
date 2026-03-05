@@ -1543,7 +1543,7 @@ We construct four tests without repeat masking. The first runs with
 all options set to their default values. In the second test we vary
 the quantile of the match length distribution. In the third test we
 also vary the window length.  In the fourth test we also set the
-number of threads.
+number of threads to all threads available.
 #+end_export
 #+begin_src go <<Tests without repeat masking, Pr. \ref{pr:fur}>>=
   d := "test.db"
@@ -1553,9 +1553,17 @@ number of threads.
   tests = append(tests, test)
   test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150")
   tests = append(tests, test)
+  ncpuString := strconv.Itoa(runtime.NumCPU())
   test = exec.Command("./fur", "-d", d, "-q", "0.5", "-w", "150",
-	  "-t", "8")
+	  "-t", ncpuString)
   tests = append(tests, test)
+#+end_src
+#+begin_export latex
+We import \ty{runtime} and \ty{strconv}.
+#+end_export
+#+begin_src go <<Testing imports, Pr. \ref{pr:fur}>>=
+  "runtime"
+  "strconv"
 #+end_src
 #+begin_export latex
 We construct three test with repeat masking. In the first, we request
