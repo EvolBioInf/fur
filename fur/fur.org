@@ -1590,7 +1590,7 @@ five targets lacks the marker. We set the sensitivity threshold to
 #+begin_src go <<Test with partial intersection, Pr. \ref{pr:fur}>>=
   d = "testPartial.db"
   test = exec.Command("./fur", "-d", d, "-f", "0.8")  
-  //tests = append(tests, test)
+  tests = append(tests, test)
 #+end_src
 #+begin_export latex
 For each test we compare the result we get with the result we want,
