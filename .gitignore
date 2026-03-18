@@ -43,6 +43,7 @@ makeFurDb/*.db
 fur/*.db
 !fur/test.db
 !fur/masked.db
+!fur/testPartial.db
 
 # Programs
 checkPrim/checkPrim
