@@ -49,17 +49,14 @@ fur/*.db
 checkPrim/checkPrim
 cleanSeq/cleanSeq
 cops/cops
-cops/makeRes.sh
 fur2prim/fur2prim
 fur/fur
-fur/makeRes.sh
 madis/madis
 makeFurDb/makeFurDb
 prim2fasta/prim2fasta
 prim2tab/prim2tab
 scop/scop
 stream/stream
-stream/makeRes.sh
 
 # Data files and figures
 stream/memory.dat
