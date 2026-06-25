@@ -7,4 +7,3 @@
 ./fur -d masked.db -M &> r7.txt
 ./fur -d testPartial.db -f 0.8 &> r8.txt
 ./fur -d test.db -m -W 4 &> r9.txt
-./fur -d test.db -W 36 &> r10.txt

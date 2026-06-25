@@ -61,7 +61,8 @@ func main() {
           optMM := flag.Bool("M", false,
                     "activate masking (recommended for mammalian genomes)")
           optN := flag.Int("n", 100, "number of nucleotides in region")
-          optWW := flag.Int("W", 0, "word length for Blast")
+          optWW := flag.Int("W", 0, "word size for megablast mode " +
+                    "(use with -m)")
           flag.Parse()
           if *optV {
                     util.PrintInfo("fur")
@@ -112,7 +113,7 @@ func main() {
                     }
           })
 
-          if wProvided && *optWW < 4 {
+          if wProvided && *optM && *optWW < 4 {
                     m := "couldn't set the Blast word size to %d: " +
                             "please use a word size of >= 4"
                     log.Fatalf(m, *optWW)
@@ -452,9 +453,6 @@ func main() {
                               }
                               if *optMM && ma != "" {
                                         args = append(args, "-db_soft_mask", ma)
-                              }
-                              if wProvided {
-                                        args = append(args, "-word_size", ws)
                               }
                               args = append(args, "-outfmt", of)
                               cmd := exec.Command("blastn", args...)

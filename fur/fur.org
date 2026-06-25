@@ -121,9 +121,9 @@ The user can also print the result of Step~(\ref{eq:fur2}) and exit.
 Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
 the E-value, the number of threads, a switch to megablast mode instead
 of the default blastn mode, a switch for running with masking, and the
-word length. We also set the minimum length of the final regions at
-this point. The number of threads is initialized to the number of
-CPUs.
+word size for megablast. We also set the minimum length of the final
+regions at this point. The number of threads is initialized to the
+number of CPUs.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
@@ -135,7 +135,8 @@ CPUs.
   optMM := flag.Bool("M", false,
 	  "activate masking (recommended for mammalian genomes)")
   optN := flag.Int("n", 100, "number of nucleotides in region")
-  optWW := flag.Int("W", 0, "word length for Blast")
+  optWW := flag.Int("W", 0, "word size for megablast mode " +
+	  "(use with -m)")
 #+end_src
 #+begin_export latex
 We import \ty{runtime}.
@@ -258,11 +259,11 @@ sets $f$ outside the range, we notify the user and exit.
   }
 #+end_src
 #+begin_export latex
-The user can override task-specific Blast word sizes by explicitly
+The user can override megablast-specific Blast word size by explicitly
 setting it with the \ty{-W} flag. We visit all parsed flags and check
-if \ty{-W} is provided. Nucleotide Blast allows the word size of 4 and
-greater, so we check the provided value. If it is invalid, we politely
-ask the user to set a valid one.
+if \ty{-W} is provided and megablast mode is activated. Nucleotide
+Blast allows the word size of 4 and greater, so we check the provided
+value. If it is invalid, we politely ask the user to set a valid one.
 #+end_export
 #+begin_src go <<Respond to \ty{-W}, Pr. \ref{pr:fur}>>=
   wProvided := false
@@ -272,7 +273,7 @@ ask the user to set a valid one.
 	  }
   })
 
-  if wProvided && *optWW < 4 {
+  if wProvided && *optM && *optWW < 4 {
 	  m := "couldn't set the Blast word size to %d: " +
 		  "please use a word size of >= 4"
 	  log.Fatalf(m, *optWW)
@@ -1260,7 +1261,8 @@ format, set the arguments, and store the command.
   cmds = append(cmds, cmd)
 #+end_src
 #+begin_export latex
-We repeat this for the blastn command, only with a different task.
+We repeat this for the blastn command, only with a different task and
+without word size.
 #+end_export
 #+begin_src go <<Construct blastn command, Pr. \ref{pr:fur}>>=
   ta = "blastn"
@@ -1272,9 +1274,6 @@ We repeat this for the blastn command, only with a different task.
   }
   if *optMM && ma != "" {
 	  args = append(args, "-db_soft_mask", ma)
-  }
-  if wProvided {
-	  args = append(args, "-word_size", ws)
   }
   args = append(args, "-outfmt", of)
   cmd := exec.Command("blastn", args...)
@@ -1622,17 +1621,12 @@ five targets lacks the marker. We set the sensitivity threshold to
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
-We run \ty{fur} in megablast and blastn modes setting the word size to
-4 and 36, respectively. In the first case, we adjust megablast to be
-actually more stringent than blastn, and in the second case, we adjust
-both megablast and blastn to be less stringent than the default
-megablast.
+We run \ty{fur} in megablast mode setting the word size to 4. In this
+way, we adjust megablast to be actually more stringent than blastn.
 #+end_export
 #+begin_src go <<Tests with word size, Pr. \ref{pr:fur}>>=
   d = "test.db"
   test = exec.Command("./fur", "-d", d, "-m", "-W", "4")
-  tests = append(tests, test)
-  test = exec.Command("./fur", "-d", d, "-W", "36")
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
