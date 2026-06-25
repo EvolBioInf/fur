@@ -424,7 +424,7 @@ func main() {
                                         fmt.Fprintf(os.Stderr, m)
                               }
                     }
-                    if wProvided {
+                    if wProvided && *optM {
                               ws = strconv.Itoa(*optWW)
                     }
                     of := "6 qaccver qstart qend"
@@ -437,7 +437,7 @@ func main() {
                     if *optMM && ma != "" {
                               args = append(args, "-db_soft_mask", ma)
                     }
-                    if wProvided {
+                    if wProvided && *optM {
                               args = append(args, "-word_size", ws)
                     }
                     args = append(args, "-outfmt", of)
