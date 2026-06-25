@@ -62,7 +62,7 @@ func main() {
                     "activate masking (recommended for mammalian genomes)")
           optN := flag.Int("n", 100, "number of nucleotides in region")
           optWW := flag.Int("W", 0, "word size for megablast mode " +
-                    "(use with -m)")
+                    "(implies -m)")
           flag.Parse()
           if *optV {
                     util.PrintInfo("fur")
@@ -103,20 +103,18 @@ func main() {
                     (*optT) = ncpu
           }
           if *optF > 1 || *optF <= 0 {
-                    log.Fatalf("can't use %f as a sensitivity threshold\n" +
-                          "please use a positive value not exceeding 1", *optF)
+                    m := "can't use %f as a sensitivity threshold\n" +
+                            "please use a positive value not exceeding 1"
+                    log.Fatalf(m, *optF)
           }
-          wProvided := false
-          flag.Visit(func(f *flag.Flag) {
-                    if f.Name == "W" {
-                            wProvided = true
+          if *optWW > 0 {
+                    if *optWW < 4 {
+                            m := "couldn't set the Blast word size " +
+                                    "to %d; " +
+                                    "please use a word size of >= 4"
+                            log.Fatalf(m, *optWW)
                     }
-          })
-
-          if wProvided && *optM && *optWW < 4 {
-                    m := "couldn't set the Blast word size to %d: " +
-                            "please use a word size of >= 4"
-                    log.Fatalf(m, *optWW)
+                    (*optM) = true
           }
           regions := make([]*fasta.Sequence, 0)
           rw := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ',
@@ -424,7 +422,7 @@ func main() {
                                         fmt.Fprintf(os.Stderr, m)
                               }
                     }
-                    if wProvided && *optM {
+                    if *optWW > 0 {
                               ws = strconv.Itoa(*optWW)
                     }
                     of := "6 qaccver qstart qend"
@@ -437,7 +435,7 @@ func main() {
                     if *optMM && ma != "" {
                               args = append(args, "-db_soft_mask", ma)
                     }
-                    if wProvided && *optM {
+                    if *optWW > 0 {
                               args = append(args, "-word_size", ws)
                     }
                     args = append(args, "-outfmt", of)
