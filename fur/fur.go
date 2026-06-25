@@ -61,6 +61,7 @@ func main() {
           optMM := flag.Bool("M", false,
                     "activate masking (recommended for mammalian genomes)")
           optN := flag.Int("n", 100, "number of nucleotides in region")
+          optWW := flag.Int("W", 0, "word length for Blast")
           flag.Parse()
           if *optV {
                     util.PrintInfo("fur")
@@ -103,6 +104,18 @@ func main() {
           if *optF > 1 || *optF <= 0 {
                     log.Fatalf("can't use %f as a sensitivity threshold\n" +
                           "please use a positive value not exceeding 1", *optF)
+          }
+          wProvided := false
+          flag.Visit(func(f *flag.Flag) {
+                    if f.Name == "W" {
+                            wProvided = true
+                    }
+          })
+
+          if wProvided && *optWW < 4 {
+                    m := "couldn't set the Blast word size to %d: " +
+                            "please use a word size of >= 4"
+                    log.Fatalf(m, *optWW)
           }
           regions := make([]*fasta.Sequence, 0)
           rw := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ',
@@ -387,10 +400,11 @@ func main() {
           if len(regions) > 0 {
                     cmds := make([]*exec.Cmd, 0)
                     da := *optD + "/n"
-                    th := *optT
-                    ev := *optE
+                    th := strconv.Itoa(*optT)
+                    ev := fmt.Sprintf("%g", *optE)
                     ta := "megablast"
                     ma := ""
+                    ws := ""
                     if *optMM {
                               cmd := exec.Command("blastdbcmd", "-info", "-db", *optD + "/n")
                               out, err := cmd.CombinedOutput()
@@ -409,32 +423,41 @@ func main() {
                                         fmt.Fprintf(os.Stderr, m)
                               }
                     }
+                    if wProvided {
+                              ws = strconv.Itoa(*optWW)
+                    }
                     of := "6 qaccver qstart qend"
-                    tm := "blastn -db %s -num_threads %d "
-                    tm += "-evalue %g -task %s "
-                    if *optMM  && ma != "" {
-                              tm += "-db_soft_mask %s "
+                    args := []string{
+                              "-db", da,
+                              "-num_threads", th,
+                              "-evalue", ev,
+                              "-task", ta,
                     }
-                    tm += "-outfmt "
-                    as := fmt.Sprintf(tm, da, th, ev, ta)
                     if *optMM && ma != "" {
-                              as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+                              args = append(args, "-db_soft_mask", ma)
                     }
-                    args := strings.Fields(as)
-                    args = append(args, of)
-                    cmd := exec.Command("blastn")
-                    cmd.Args = args
+                    if wProvided {
+                              args = append(args, "-word_size", ws)
+                    }
+                    args = append(args, "-outfmt", of)
+                    cmd := exec.Command("blastn", args...)
                     cmds = append(cmds, cmd)
                     if !*optM {
                               ta = "blastn"
-                              as := fmt.Sprintf(tm, da, th, ev, ta)
-                              if *optMM && ma != "" {
-                                        as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+                              args := []string{
+                                        "-db", da,
+                                        "-num_threads", th,
+                                        "-evalue", ev,
+                                        "-task", ta,
                               }
-                              args = strings.Fields(as)
-                              args = append(args, of)
-                              cmd = exec.Command("blastn")
-                              cmd.Args = args
+                              if *optMM && ma != "" {
+                                        args = append(args, "-db_soft_mask", ma)
+                              }
+                              if wProvided {
+                                        args = append(args, "-word_size", ws)
+                              }
+                              args = append(args, "-outfmt", of)
+                              cmd := exec.Command("blastn", args...)
                               cmds = append(cmds, cmd)
                     }
                     for _, cmd := range cmds {

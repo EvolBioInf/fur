@@ -32,6 +32,11 @@ func TestFur(t *testing.T) {
 	d = "testPartial.db"
 	test = exec.Command("./fur", "-d", d, "-f", "0.8")
 	tests = append(tests, test)
+	d = "test.db"
+	test = exec.Command("./fur", "-d", d, "-m", "-W", "4")
+	tests = append(tests, test)
+	test = exec.Command("./fur", "-d", d, "-W", "36")
+	tests = append(tests, test)
 	for i, test := range tests {
 		get, err := test.CombinedOutput()
 		if err != nil {

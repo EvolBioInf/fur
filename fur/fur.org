@@ -120,9 +120,10 @@ The user can also print the result of Step~(\ref{eq:fur2}) and exit.
 #+begin_export latex
 Step~(\ref{eq:fur3}) is implemented in \ty{blastn}, where we expose
 the E-value, the number of threads, a switch to megablast mode instead
-of the default blastn mode, and a switch for running with masking. We
-also set the minimum length of the final regions at this point. The
-number of threads is initialized to the number of CPUs.
+of the default blastn mode, a switch for running with masking, and the
+word length. We also set the minimum length of the final regions at
+this point. The number of threads is initialized to the number of
+CPUs.
 #+end_export
 #+begin_src go <<Options for step (\ref{eq:fur3}), Pr. \ref{pr:fur}>>=
   optE := flag.Float64("e", 1e-5, "E-value for Blast")
@@ -134,6 +135,7 @@ number of threads is initialized to the number of CPUs.
   optMM := flag.Bool("M", false,
 	  "activate masking (recommended for mammalian genomes)")
   optN := flag.Int("n", 100, "number of nucleotides in region")
+  optWW := flag.Int("W", 0, "word length for Blast")
 #+end_src
 #+begin_export latex
 We import \ty{runtime}.
@@ -144,8 +146,8 @@ We import \ty{runtime}.
 #+begin_export latex
 We parse the options and first respond to the version request,
 \ty{-v}, as this might stop the program. We also respond to the
-database name, \ty{-d}, the number of threads, \ty{-t}, and the
-sensitivity threshold, \ty{-f}.
+database name, \ty{-d}, the number of threads, \ty{-t}, the
+sensitivity threshold, \ty{-f}, and the Blast word length, \ty{-W}.
 #+end_export
 #+begin_src go <<Parse options, Pr. \ref{pr:fur}>>=
   flag.Parse()
@@ -153,6 +155,7 @@ sensitivity threshold, \ty{-f}.
   //<<Respond to \ty{-d}, Pr. \ref{pr:fur}>>
   //<<Respond to \ty{-t}, Pr. \ref{pr:fur}>>
   //<<Respond to \ty{-f}, Pr. \ref{pr:fur}>>
+  //<<Respond to \ty{-W}, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
 We import \ty{fmt}.
@@ -252,6 +255,27 @@ sets $f$ outside the range, we notify the user and exit.
   if *optF > 1 || *optF <= 0 {
 	  log.Fatalf("can't use %f as a sensitivity threshold\n" +
 		"please use a positive value not exceeding 1", *optF)
+  }
+#+end_src
+#+begin_export latex
+The user can override task-specific Blast word sizes by explicitly
+setting it with the \ty{-W} flag. We visit all parsed flags and check
+if \ty{-W} is provided. Nucleotide Blast allows the word size of 4 and
+greater, so we check the provided value. If it is invalid, we politely
+ask the user to set a valid one.
+#+end_export
+#+begin_src go <<Respond to \ty{-W}, Pr. \ref{pr:fur}>>=
+  wProvided := false
+  flag.Visit(func(f *flag.Flag) {
+	  if f.Name == "W" {
+		  wProvided = true
+	  }
+  })
+
+  if wProvided && *optWW < 4 {
+	  m := "couldn't set the Blast word size to %d: " +
+		  "please use a word size of >= 4"
+	  log.Fatalf(m, *optWW)
   }
 #+end_src
 #+begin_export latex
@@ -1129,35 +1153,40 @@ We import \ty{exec}.
   "os/exec"
 #+end_src
 #+begin_export latex
-We construct the Blast options, construct a template for the Blast
-commands, and construct the megablast command. Then we construct the
-blastn command, unless the user opted for megablast only.
+We construct the Blast options and construct the megablast
+command. Then we construct the blastn command, unless the user opted
+for megablast only.
 #+end_export
 #+begin_src go <<Construct Blast commands, Pr. \ref{pr:fur}>>=
   //<<Construct Blast options, Pr. \ref{pr:fur}>>
-  //<<Construct Blast template, Pr. \ref{pr:fur}>>
   //<<Construct megablast command, Pr. \ref{pr:fur}>>
   if !*optM {
 	  //<<Construct blastn command, Pr. \ref{pr:fur}>>
   }
 #+end_src
 #+begin_export latex
-We set six options in Blast, the values of which we first need to
+We set seven options in Blast, the values of which we first need to
 construct. The options are the database path, the number of threads,
-the E-value, the task, the masking algorithm, and the output
-format. The masking algorithm is initialized as an empty string which
-we fill if the user requested masking. As output format we set the
-query accession, start, and end---the coordinates for homology masking
-later on.
+the E-value, the task, the masking algorithm, the word size, and the
+output format. The masking algorithm is initialized as an empty
+string, which we fill if the user requested masking. The word size is
+initialized as an empty string, which we set if the user has provided
+the word length. As output format we set the query accession, start,
+and end---the coordinates for homology masking later on. We convert
+all numerical options values to strings.
 #+end_export
 #+begin_src go <<Construct Blast options, Pr. \ref{pr:fur}>>=
   da := *optD + "/n"
-  th := *optT
-  ev := *optE
+  th := strconv.Itoa(*optT)
+  ev := fmt.Sprintf("%g", *optE)
   ta := "megablast"
   ma := ""
+  ws := ""
   if *optMM {
 	  //<<Look up masking algorithm, Pr. \ref{pr:fur}>>
+  }
+  if wProvided {
+	  ws = strconv.Itoa(*optWW)
   }
   of := "6 qaccver qstart qend"
 #+end_src
@@ -1210,31 +1239,24 @@ database. In that case we should warn the user.
   }
 #+end_src
 #+begin_export latex
-The Blast template has space for five Blast options, six with
-masking. The output format is a composite string, so we append it
-later to the arguments slice.
-#+end_export
-#+begin_src go <<Construct Blast template, Pr. \ref{pr:fur}>>=
-  tm := "blastn -db %s -num_threads %d "
-  tm += "-evalue %g -task %s "
-  if *optMM  && ma != "" {
-	  tm += "-db_soft_mask %s "
-  }
-  tm += "-outfmt "
-#+end_src
-#+begin_export latex
 We generate the arguments for the Blast command, append the output
 format, set the arguments, and store the command.
 #+end_export
 #+begin_src go <<Construct megablast command, Pr. \ref{pr:fur}>>=
-  as := fmt.Sprintf(tm, da, th, ev, ta)
-  if *optMM && ma != "" {
-	  as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+  args := []string{
+	  "-db", da,
+	  "-num_threads", th,
+	  "-evalue", ev,
+	  "-task", ta,
   }
-  args := strings.Fields(as)
-  args = append(args, of)
-  cmd := exec.Command("blastn")
-  cmd.Args = args
+  if *optMM && ma != "" {
+	  args = append(args, "-db_soft_mask", ma)
+  }
+  if wProvided {
+	  args = append(args, "-word_size", ws)
+  }
+  args = append(args, "-outfmt", of)
+  cmd := exec.Command("blastn", args...)
   cmds = append(cmds, cmd)
 #+end_src
 #+begin_export latex
@@ -1242,14 +1264,20 @@ We repeat this for the blastn command, only with a different task.
 #+end_export
 #+begin_src go <<Construct blastn command, Pr. \ref{pr:fur}>>=
   ta = "blastn"
-  as := fmt.Sprintf(tm, da, th, ev, ta)
-  if *optMM && ma != "" {
-	  as = fmt.Sprintf(tm, da, th, ev, ta, ma)
+  args := []string{
+	  "-db", da,
+	  "-num_threads", th,
+	  "-evalue", ev,
+	  "-task", ta,
   }
-  args = strings.Fields(as)
-  args = append(args, of)
-  cmd = exec.Command("blastn")
-  cmd.Args = args
+  if *optMM && ma != "" {
+	  args = append(args, "-db_soft_mask", ma)
+  }
+  if wProvided {
+	  args = append(args, "-word_size", ws)
+  }
+  args = append(args, "-outfmt", of)
+  cmd := exec.Command("blastn", args...)
   cmds = append(cmds, cmd)
 #+end_src
 #+begin_export latex
@@ -1531,12 +1559,13 @@ We import \ty{exec}.
 #+end_src
 #+begin_export latex
 We construct a set of tests without repeat masking, one with repeat
-masking, and one with partial intersection.
+masking, one with partial intersection, and two tests with word size.
 #+end_export
 #+begin_src go <<Construct tests, Pr. \ref{pr:fur}>>=
   //<<Tests without repeat masking, Pr. \ref{pr:fur}>>
   //<<Tests with repeat masking, Pr. \ref{pr:fur}>>
   //<<Test with partial intersection, Pr. \ref{pr:fur}>>
+  //<<Tests with word size, Pr. \ref{pr:fur}>>
 #+end_src
 #+begin_export latex
 We construct four tests without repeat masking. The first runs with
@@ -1590,6 +1619,20 @@ five targets lacks the marker. We set the sensitivity threshold to
 #+begin_src go <<Test with partial intersection, Pr. \ref{pr:fur}>>=
   d = "testPartial.db"
   test = exec.Command("./fur", "-d", d, "-f", "0.8")  
+  tests = append(tests, test)
+#+end_src
+#+begin_export latex
+We run \ty{fur} in megablast and blastn modes setting the word size to
+4 and 36, respectively. In the first case, we adjust megablast to be
+actually more stringent than blastn, and in the second case, we adjust
+both megablast and blastn to be less stringent than the default
+megablast.
+#+end_export
+#+begin_src go <<Tests with word size, Pr. \ref{pr:fur}>>=
+  d = "test.db"
+  test = exec.Command("./fur", "-d", d, "-m", "-W", "4")
+  tests = append(tests, test)
+  test = exec.Command("./fur", "-d", d, "-W", "36")
   tests = append(tests, test)
 #+end_src
 #+begin_export latex
