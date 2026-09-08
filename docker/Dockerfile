@@ -10,5 +10,5 @@ COPY bin/* /usr/local/bin/
 RUN chown root:root /usr/bin/sudo && chmod 4755 /usr/bin/sudo && chown -R jdoe /home/jdoe/ && chgrp -R jdoe /home/jdoe/
 USER jdoe
 WORKDIR /home/jdoe
-ENV HOME /home/jdoe
+ENV HOME=/home/jdoe
 
