@@ -3,9 +3,10 @@
 The program `fur` takes as input a set of target genome sequences and
 a set of related genome sequences, the neighbors. It returns the
 sequence regions common to all targets that are absent form the
-neighbors. Such regions can be used as candidate genetic markers.
+neighbors. Such regions can be used as candidate genetic markers. For
+more details on the workings of `for` see our [publication](https://academic.oup.com/bioinformaticsadvances/article/4/1/vbae113/7721998).
 ## Authors
-[Bernhard Haubold](http://guanine.evolbio.mpg.de/), [Beatriz Vieira
+[Bernhard Haubold](https://www.evolbio.mpg.de/person/12020), [Beatriz Vieira
 Mourato](https://beatrizvm.github.io/), and [Ivan
 Tsers](https://github.com/IvanTsers/).
 ## Make the Programs
