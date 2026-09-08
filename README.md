@@ -5,7 +5,7 @@ a set of related genome sequences, the neighbors. It returns the
 sequence regions common to all targets that are absent form the
 neighbors. Such regions can be used as candidate genetic markers. For
 more details on `for` see our
-[publication](https://academic.oup.com/bioinformaticsadvances/article/4/1/vbae113/7721998).
+[publication](https://pubmed.ncbi.nlm.nih.gov/39132289/).
 ## Authors
 [Bernhard Haubold](https://www.evolbio.mpg.de/person/12020), [Beatriz Vieira
 Mourato](https://beatrizvm.github.io/), and [Ivan
