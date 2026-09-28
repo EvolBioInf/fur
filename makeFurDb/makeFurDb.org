@@ -1158,8 +1158,7 @@ print the statistics we are after.
 #+end_export
 #+begin_src go <<Write statistics of neighbors to \ty{n.txt}, Pr. \ref{pr:mfd}>>=
   //<<Create \ty{n.txt}, Pr. \ref{pr:mfd}>>
-  //<<Get entries from neighbors Blast database, Pr. \ref{pr:mfd}>>
-  //<<Scan entries from neighbors Blast database, Pr. \ref{pr:mfd}>>
+  //<<Iterate over neighbors, Pr. \ref{pr:mfd}>>
   //<<Print neighbors statistics, Pr. \ref{pr:mfd}>>
 #+end_src
 #+begin_export latex
@@ -1171,39 +1170,47 @@ We create \ty{n.txt} and make sure it is eventually closed again.
   defer w.Close()
 #+end_src
 #+begin_export latex
-We get the entries from the neighbors Blast database by calling the
-program \ty{blastdbcmd} on all database entries.
+We prepare the residue count and then iterate over the neighbors to
+count their residues.
 #+end_export
-#+begin_src go <<Get entries from neighbors Blast database, Pr. \ref{pr:mfd}>>=
-  cmd = exec.Command("blastdbcmd", "-db",
-	  (*optD) + "/n",
-	  "-entry", "all")
-  out, err = cmd.CombinedOutput()
-  util.CheckOut(err, out)
-#+end_src
-#+begin_export latex
-We iterate over the neighbor sequences, one FASTA entry at a time and
-count the nucleotides, \ty{[ACGTacgt]}. We think of their count as the
-sequence length, $\ell$. We also count the GCs, \ty{[GCgc]}, $g$.
-#+end_export
-#+begin_src go <<Scan entries from neighbors Blast database, Pr. \ref{pr:mfd}>>=
-  r := bytes.NewReader(out)
-  sc = fasta.NewScanner(r)
-  var l, g int
-  nuc := "ACGTacgt"
-  gc := "GCgc"
-  for sc.ScanSequence() {
-	  d := sc.Sequence().Data()
-	  for i, _ := range d {
-		  //<<Count nucleotides, Pr. \ref{pr:mfd}>>
-		  //<<Count GCs, Pr. \ref{pr:mfd}>>
-	  }
+#+begin_src go <<Iterate over neighbors, Pr. \ref{pr:mfd}>>=
+  //<<Prepare residue count, Pr. \ref{pr:mfd}>>
+  for neighbor, _ := range neighbors {
+  	p := *optN + "/" + neighbor
+  	r, err := os.Open(p)
+  	util.Check(err)
+  	sc := fasta.NewScanner(r)
+  	for sc.ScanSequence() {
+  		//<<Count residues, Pr. \ref{pr:mfd}>>
+  	}
+  	r.Close()
   }
 #+end_src
 #+begin_export latex
-We count the upper and lower case versions of the standard four
-nucleotides. If we are not dealing with a nucleotide, we skip the
-subsequent test for \ty{G} or \ty{C}.
+We wish to calculate the neighbors combined length, $\ell$, and their
+GC content. So we declare a variable for each. Now, for the length we
+count just the nuclotides, \ty{[ACGTacgt]}, for the G/C content
+\ty{[GCgc]}.
+#+end_export
+#+begin_src go <<Prepare residue count, Pr. \ref{pr:mfd}>>=
+  var l, g int
+  nuc := "ACGTacgt"
+  gc := "GCgc"
+#+end_src
+#+begin_export latex
+We convert the sequence data to a byte slice, iterate over it, and
+count at each position the nucleotides and the GCs.
+#+end_export
+#+begin_src go <<Count residues, Pr. \ref{pr:mfd}>>=
+  d := sc.Sequence().Data()
+  for i, _ := range d {
+  	//<<Count nucleotides, Pr. \ref{pr:mfd}>>
+  	//<<Count GCs, Pr. \ref{pr:mfd}>>
+  }
+#+end_src
+#+begin_export latex
+If we are not dealing with a nucleotide, we skip the subsequent test
+for \ty{G} or \ty{C}.
 #+end_export
 #+begin_src go <<Count nucleotides, Pr. \ref{pr:mfd}>>=
   if bytes.ContainsAny(d[i:i+1], nuc) {
@@ -1222,7 +1229,7 @@ We count the nucleotides that are either \ty{G} or \ty{C}.
 #+end_src
 #+begin_export latex
 We convert $g$ to the GC content, $g_{\rm c}$, and print it together
-with the sequence length.
+with the number of nucleotides, which we call the sequence length.
 #+end_export
 #+begin_src go <<Print neighbors statistics, Pr. \ref{pr:mfd}>>=
   gcc := float64(g) / float64(l)

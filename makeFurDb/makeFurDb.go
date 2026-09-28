@@ -400,28 +400,28 @@ func main() {
 	w, err := os.Create(*optD + "/n.txt")
 	util.Check(err)
 	defer w.Close()
-	cmd = exec.Command("blastdbcmd", "-db",
-		(*optD)+"/n",
-		"-entry", "all")
-	out, err = cmd.CombinedOutput()
-	util.CheckOut(err, out)
-	r := bytes.NewReader(out)
-	sc = fasta.NewScanner(r)
 	var l, g int
 	nuc := "ACGTacgt"
 	gc := "GCgc"
-	for sc.ScanSequence() {
-		d := sc.Sequence().Data()
-		for i, _ := range d {
-			if bytes.ContainsAny(d[i:i+1], nuc) {
-				l++
-			} else {
-				continue
-			}
-			if bytes.ContainsAny(d[i:i+1], gc) {
-				g++
+	for neighbor, _ := range neighbors {
+		p := *optN + "/" + neighbor
+		r, err := os.Open(p)
+		util.Check(err)
+		sc := fasta.NewScanner(r)
+		for sc.ScanSequence() {
+			d := sc.Sequence().Data()
+			for i, _ := range d {
+				if bytes.ContainsAny(d[i:i+1], nuc) {
+					l++
+				} else {
+					continue
+				}
+				if bytes.ContainsAny(d[i:i+1], gc) {
+					g++
+				}
 			}
 		}
+		r.Close()
 	}
 	gcc := float64(g) / float64(l)
 	fmt.Fprintf(w, "length: %d\nGC-content: %f\n", l, gcc)
